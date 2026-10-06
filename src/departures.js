@@ -11,13 +11,14 @@ export const INITIAL_DEPARTURES = [
 
 /** The same data feeds the physical display and the small HUD. */
 export class DeparturesBoard extends THREE.Group {
-  constructor(materials, { position = [-2.2, 3.5, -22], yaw = -2.64 } = {}) {
+  constructor(materials, { position = [-2.2, 3.5, -22], yaw = -2.64, stationName = 'Nordplatz' } = {}) {
     super();
     this.name = 'DeparturesBoard';
     this.position.set(...position);
     this.rotation.y = yaw;
     this.departures = INITIAL_DEPARTURES.map(item => ({ ...item }));
     this.clock = '14:32';
+    this.stationName = stationName;
     this.revision = 0;
     box(this, materials.dark, [4.35, 1.88, 0.18], [0, 0, 0]);
     box(this, materials.aluminum, [4.4, 0.03, 0.18], [0, -0.93, 0]);
@@ -35,6 +36,9 @@ export class DeparturesBoard extends THREE.Group {
   }
 
   setDepartures(departures) {
+    // A live service may ask for the same rows many times. Upload the screen
+    // texture only when the visible timetable actually changes.
+    if (JSON.stringify(departures) === JSON.stringify(this.departures)) return;
     this.departures = departures.map(item => ({ ...item }));
     this.revision++;
     this.renderDisplay();
@@ -43,6 +47,12 @@ export class DeparturesBoard extends THREE.Group {
   setClock(clock) {
     if (clock === this.clock) return;
     this.clock = clock;
+    this.renderDisplay();
+  }
+
+  setStationName(stationName) {
+    if (stationName === this.stationName) return;
+    this.stationName = stationName;
     this.renderDisplay();
   }
 
@@ -60,10 +70,10 @@ export class DeparturesBoard extends THREE.Group {
       ctx.font = 'bold 32px Arial'; ctx.fillStyle = '#fff7e9'; ctx.fillText(item.route, 81, y + 8);
       ctx.font = '500 43px Arial'; ctx.fillStyle = '#f0efd7'; ctx.fillText(item.destination.toUpperCase(), 218, y + 8);
       ctx.font = '37px monospace'; ctx.fillStyle = '#abc2b7'; ctx.fillText(item.platform, 1106, y + 8);
-      ctx.textAlign = 'right'; ctx.fillStyle = '#e8c779'; ctx.font = '40px monospace'; ctx.fillText(`${item.minutes} min`, w - 56, y + 8); ctx.textAlign = 'left';
+      ctx.textAlign = 'right'; ctx.fillStyle = '#e8c779'; ctx.font = item.due && item.due.length > 7 ? '32px monospace' : '40px monospace'; ctx.fillText(item.due ?? `${item.minutes} min`, w - 56, y + 8); ctx.textAlign = 'left';
       ctx.fillStyle = '#263a34'; ctx.fillRect(56, y + 38, w - 112, 1);
     });
-    ctx.fillStyle = '#86a296'; ctx.font = '20px Arial'; ctx.fillText('NORDPLATZ     •     Please stand behind the safety line', 56, 620);
+    ctx.fillStyle = '#86a296'; ctx.font = '20px Arial'; ctx.fillText(`${this.stationName.toUpperCase()}     •     Please stand behind the safety line`, 56, 620);
     this.texture.needsUpdate = true;
   }
 }

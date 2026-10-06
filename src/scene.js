@@ -4,6 +4,8 @@ import { createMaterials } from './materials.js';
 import { Station } from './station.js';
 import { Train } from './train.js';
 import { Lighting } from './lighting.js';
+import { MetroRoute, RouteWorld } from './route.js';
+import { TrainService } from './service.js';
 
 export function createScene(container) {
   if (!container) throw new Error('The 3D scene container is missing.');
@@ -49,11 +51,15 @@ export function createScene(container) {
   scene.environmentIntensity = 0.48;
   room.dispose(); pmrem.dispose();
   const materials = createMaterials();
-  const station = new Station(materials);
+  const station = new Station(materials, { northCap: false });
   const train = new Train(materials);
+  const route = new MetroRoute();
+  const routeWorld = new RouteWorld(materials, station, route);
+  const service = new TrainService(train, route);
   const lighting = new Lighting(scene, materials);
-  scene.add(station, train, lighting);
-  const world = { scene, renderer, camera, station, train, lighting, resize, environment, viewport, onResize: null };
+  lighting.addStationFixtures(-240, { cool: true, pointLights: 2 });
+  scene.add(station, train, lighting, routeWorld);
+  const world = { scene, renderer, camera, station, stations: routeWorld.stations, train, route, routeWorld, service, lighting, resize, environment, viewport, onResize: null };
   const handleResize = () => { if (resize()) world.onResize?.(); };
   const resizeObserver = new ResizeObserver(handleResize);
   resizeObserver.observe(container);

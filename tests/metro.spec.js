@@ -153,9 +153,13 @@ test('reset, focus loss, help, and reload leave controls in a clean state', asyn
   await expect(page.locator('#station-clock')).toHaveText('14:32');
 });
 
-test('departures and separate door leaves can be updated for later phases', async ({ page }) => {
+test('departures and separate platform-side door leaves can be updated', async ({ page }) => {
   const result = await page.evaluate(() => {
     const { train, station } = window.metro.world;
+    // Phase 2 starts with platform doors open, so establish the closed baseline.
+    window.metro.world.renderer.setAnimationLoop(null);
+    train.closeDoors();
+    for (let i = 0; i < 120; i++) train.update(1 / 60);
     const leaf = train.cars[0].doors[0];
     const closedZ = leaf.position.z;
     train.openDoors();

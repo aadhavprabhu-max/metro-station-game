@@ -22,6 +22,11 @@ export class TrainCar extends THREE.Group {
     this.name = `TrainCar-${index + 1}`;
     this.carNumber = 101 + index;
     this.doors = [];
+    this.doorways = [];
+    this.destinationDisplays = [];
+    this.cabs = [];
+    this.doorProgressBySide = { '-1': 0, '1': 0 };
+    this.doorTargets = { '-1': 0, '1': 0 };
     this.doorTarget = 0;
     this.doorProgress = 0;
     this.buildBody(materials, leading, trailing);
@@ -50,11 +55,17 @@ export class TrainCar extends THREE.Group {
     roof.castShadow = true; roof.receiveShadow = true;
     this.add(roof);
     for (const side of [-1, 1]) {
-      box(this, m.whitePaint, [0.095, 0.93, 15.86], [side * 1.365, 0.6, 0]);
-      box(this, m.trainAccent, [0.105, 0.25, 15.94], [side * 1.377, 1.025, 0]);
+      // Keep real apertures behind the separate sliding door leaves.
+      // Continuous lower panels would otherwise remain across an open doorway.
+      for (const [start, end] of [[-7.93, -6.44], [-4.56, -0.94], [0.94, 4.56], [6.44, 7.93]]) {
+        const length = end - start;
+        const z = (start + end) / 2;
+        box(this, m.whitePaint, [0.095, 0.93, length], [side * 1.365, 0.6, z]);
+        box(this, m.trainAccent, [0.105, 0.25, length], [side * 1.377, 1.025, z]);
+        box(this, m.trainAccent, [0.11, 0.22, length], [side * 1.375, 0.27, z]);
+        box(this, m.steel, [0.11, 0.055, length], [side * 1.385, 0.08, z]);
+      }
       box(this, m.whitePaint, [0.085, 0.29, 15.84], [side * 1.365, 2.565, 0]);
-      box(this, m.trainAccent, [0.11, 0.22, 15.93], [side * 1.375, 0.27, 0]);
-      box(this, m.steel, [0.11, 0.055, 15.92], [side * 1.385, 0.08, 0]);
       // Continuous body panels surround actual window apertures.
       for (const z of [-7.86, -6.68, -4.45, -3.96, -1.15, -0.87, 0.87, 1.15, 3.96, 4.45, 6.68, 7.86]) {
         box(this, m.whitePaint, [0.095, 1.37, 0.16], [side * 1.365, 1.76, z]);
@@ -62,7 +73,7 @@ export class TrainCar extends THREE.Group {
       for (const z of [-2.58, 2.58]) windowAssembly(this, m, side, z, 2.55);
       for (const z of [-7.25, 7.25]) windowAssembly(this, m, side, z, 0.91);
       for (const z of [-5.5, 0, 5.5]) this.buildDoor(m, side, z);
-      label(this, `U1   CENTRAL`, 1.45, 0.18, [side * 1.432, 2.58, -2.6], { background: '#102524', color: '#ead7a1', fontSize: 78, rotation: [0, side * Math.PI / 2, 0] });
+      this.addDestinationDisplay(this, 1.45, 0.18, [side * 1.432, 2.58, -2.6], { background: '#102524', color: '#ead7a1', fontSize: 78, rotation: [0, side * Math.PI / 2, 0] });
       label(this, `M   ${this.carNumber}`, 0.8, 0.17, [side * 1.425, 0.68, 7.15], { background: '#d4ded6', color: '#28554e', fontSize: 94, rotation: [0, side * Math.PI / 2, 0] });
       label(this, '♿', 0.22, 0.22, [side * 1.435, 1.05, 1.03], { background: '#31534f', color: '#edf0df', fontSize: 330, rotation: [0, side * Math.PI / 2, 0] });
     }
@@ -79,6 +90,7 @@ export class TrainCar extends THREE.Group {
     const assembly = new THREE.Group();
     assembly.name = 'DoorAssembly';
     assembly.position.set(side * 1.397, 0, z);
+    this.doorways.push({ side, localZ: z, assembly });
     this.add(assembly);
     box(assembly, m.rubber, [0.065, 0.06, 1.89], [0, 2.47, 0]);
     box(assembly, m.steel, [0.13, 0.035, 1.87], [side * 0.025, 0.065, 0]);
@@ -90,6 +102,7 @@ export class TrainCar extends THREE.Group {
       leaf.position.z = direction * 0.439;
       leaf.userData.closedZ = leaf.position.z;
       leaf.userData.direction = direction;
+      leaf.userData.side = side;
       box(leaf, m.aluminum, [0.06, 1.06, 0.84], [0, 0.62, 0]);
       box(leaf, m.aluminum, [0.06, 0.31, 0.84], [0, 2.27, 0]);
       for (const edge of [-1, 1]) box(leaf, m.aluminum, [0.06, 1.06, 0.1], [0, 1.63, edge * 0.369]);
@@ -154,6 +167,8 @@ export class TrainCar extends THREE.Group {
   buildCab(m, end, leading) {
     const cab = new THREE.Group();
     cab.name = leading ? 'FrontCab' : 'RearCab';
+    cab.userData.end = end;
+    const lamps = [];
     cab.position.z = end * 7.9;
     if (end === 1) cab.rotation.y = Math.PI;
     const profile = new THREE.Shape();
@@ -167,32 +182,97 @@ export class TrainCar extends THREE.Group {
     box(cab, m.cabGlass, [2.2, 1.04, 0.018], [0, 1.99, -0.485]);
     box(cab, m.rubber, [0.035, 1.08, 0.025], [0, 1.99, -0.501]);
     box(cab, m.dark, [2.0, 0.31, 0.1], [0, 2.73, -0.433]);
-    label(cab, 'U1   CENTRAL', 1.9, 0.24, [0, 2.73, -0.494], { rotation: [0, Math.PI, 0], background: '#122724', color: '#efcf80', fontSize: 93 });
+    this.addDestinationDisplay(cab, 1.9, 0.24, [0, 2.73, -0.494], { rotation: [0, Math.PI, 0], background: '#122724', color: '#efcf80', fontSize: 93 });
     for (const side of [-1, 1]) {
       box(cab, m.dark, [0.51, 0.22, 0.08], [side * 0.85, 0.99, -0.515]);
-      box(cab, leading ? m.warmLight : m.redLight, [0.36, 0.115, 0.024], [side * 0.85, 1.01, -0.568], { shadow: false });
-      box(cab, leading ? m.redLight : m.warmLight, [0.13, 0.04, 0.027], [side * 1.05, 0.78, -0.543], { shadow: false });
+      const main = box(cab, leading ? m.warmLight : m.redLight, [0.36, 0.115, 0.024], [side * 0.85, 1.01, -0.568], { shadow: false });
+      const marker = box(cab, leading ? m.redLight : m.warmLight, [0.13, 0.04, 0.027], [side * 1.05, 0.78, -0.543], { shadow: false });
+      main.userData.dynamic = marker.userData.dynamic = true;
+      lamps.push({ main, marker });
       box(cab, m.rubber, [0.018, 0.57, 0.026], [side * 0.53, 1.79, -0.517], { rotation: [0, 0, side * -0.48] });
     }
     box(cab, m.rubber, [2.16, 0.18, 0.19], [0, 0.24, -0.48]);
     box(cab, m.dark, [0.45, 0.2, 0.49], [0, -0.06, -0.53]);
     label(cab, `M    ${this.carNumber}`, 0.86, 0.14, [0, 0.52, -0.508], { background: '#316c65', color: '#e4eada', rotation: [0, Math.PI, 0], fontSize: 104 });
-    if (leading) {
-      const headlights = new THREE.SpotLight('#fff0c8', 24, 15, 0.45, 0.6, 1.7);
-      headlights.position.set(0, 1, -0.65);
-      headlights.target.position.set(0, -0.8, -10);
-      cab.add(headlights, headlights.target);
-    }
+    const headlights = new THREE.SpotLight('#fff0c8', leading ? 24 : 0, 15, 0.45, 0.6, 1.7);
+    headlights.position.set(0, 1, -0.65);
+    headlights.target.position.set(0, -0.8, -10);
+    cab.add(headlights, headlights.target);
+    this.cabs.push({ end, lamps, headlights, materials: m });
     this.add(cab);
   }
 
-  openDoors() { this.doorTarget = 1; }
-  closeDoors() { this.doorTarget = 0; }
+  addDestinationDisplay(parent, width, height, position, options) {
+    const display = label(parent, 'U1   CENTRAL', width, height, position, options);
+    display.name = 'DestinationDisplay';
+    display.userData.dynamic = true;
+    this.destinationDisplays.push({ display, options });
+    return display;
+  }
+
+  setDestination(destination) {
+    for (const { display, options } of this.destinationDisplays) {
+      const texture = display.material.map;
+      const canvas = texture.image;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = options.background;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = options.color;
+      ctx.font = `600 ${options.fontSize}px Arial, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(`U1   ${destination.toUpperCase()}`, canvas.width / 2, canvas.height / 2, canvas.width - 50);
+      texture.needsUpdate = true;
+      display.userData.destination = destination;
+    }
+  }
+
+  setDirection(direction) {
+    for (const { end, lamps, headlights, materials } of this.cabs) {
+      const leading = end === -direction;
+      for (const { main, marker } of lamps) {
+        main.material = leading ? materials.warmLight : materials.redLight;
+        marker.material = leading ? materials.redLight : materials.warmLight;
+      }
+      headlights.intensity = leading ? 24 : 0;
+    }
+  }
+
+  openDoors(side = -1) {
+    if (side == null) { this.doorTargets[-1] = 1; this.doorTargets[1] = 1; }
+    else this.doorTargets[side] = 1;
+    this.doorTarget = this.doorTargets[-1];
+  }
+
+  closeDoors(side = null) {
+    if (side == null) { this.doorTargets[-1] = 0; this.doorTargets[1] = 0; }
+    else this.doorTargets[side] = 0;
+    this.doorTarget = this.doorTargets[-1];
+  }
+
+  setDoorsOpen(side = -1) {
+    this.closeDoors();
+    this.doorTargets[side] = 1;
+    this.doorProgressBySide[-1] = side === -1 ? 1 : 0;
+    this.doorProgressBySide[1] = side === 1 ? 1 : 0;
+    this.applyDoorPositions();
+  }
+
+  applyDoorPositions() {
+    this.doorProgress = this.doorProgressBySide[-1];
+    this.doorTarget = this.doorTargets[-1];
+    for (const leaf of this.doors) {
+      leaf.position.z = leaf.userData.closedZ + leaf.userData.direction * this.doorProgressBySide[leaf.userData.side] * 0.81;
+    }
+  }
+
   update(delta) {
-    if (this.doorProgress === this.doorTarget) return;
-    this.doorProgress = THREE.MathUtils.damp(this.doorProgress, this.doorTarget, 5, delta);
-    if (Math.abs(this.doorProgress - this.doorTarget) < 0.001) this.doorProgress = this.doorTarget;
-    for (const leaf of this.doors) leaf.position.z = leaf.userData.closedZ + leaf.userData.direction * this.doorProgress * 0.81;
+    for (const side of [-1, 1]) {
+      const target = this.doorTargets[side];
+      if (this.doorProgressBySide[side] === target) continue;
+      this.doorProgressBySide[side] = THREE.MathUtils.damp(this.doorProgressBySide[side], target, 5, delta);
+      if (Math.abs(this.doorProgressBySide[side] - target) < 0.001) this.doorProgressBySide[side] = target;
+    }
+    this.applyDoorPositions();
   }
 }
 
@@ -220,7 +300,37 @@ export class Train extends THREE.Group {
       }
     }
   }
-  openDoors() { this.cars.forEach(car => car.openDoors()); }
-  closeDoors() { this.cars.forEach(car => car.closeDoors()); }
+  get doorsOpen() { return this.cars.every(car => car.doorProgressBySide[-1] >= 0.98); }
+  get doorsClosed() { return this.cars.every(car => Object.values(car.doorProgressBySide).every(progress => progress === 0)); }
+
+  get boardingDoors() {
+    this.updateWorldMatrix(true, true);
+    return this.cars.flatMap((car, carIndex) => car.doorways.filter(door => door.side === -1).map(door => ({
+      carIndex, localZ: door.localZ, side: -1, width: 1.72,
+      position: car.localToWorld(new THREE.Vector3(-1.397, 0.1, door.localZ)),
+    })));
+  }
+
+  nearestBoardingDoor(worldX, worldZ) {
+    let nearest = null;
+    for (const door of this.boardingDoors) {
+      const distance = Math.hypot(door.position.x - worldX, door.position.z - worldZ);
+      if (!nearest || distance < nearest.distance) nearest = { ...door, distance };
+    }
+    return nearest;
+  }
+
+  cabinBounds(carIndex) {
+    const car = this.cars[carIndex];
+    if (!car) return null;
+    const center = car.getWorldPosition(new THREE.Vector3());
+    return { minX: center.x - 1.02, maxX: center.x + 1.02, minZ: center.z - 6.75, maxZ: center.z + 6.75, floorY: center.y + 0.095 };
+  }
+
+  openDoors(side = -1) { this.cars.forEach(car => car.openDoors(side)); }
+  closeDoors(side = null) { this.cars.forEach(car => car.closeDoors(side)); }
+  setDoorsOpen(side = -1) { this.cars.forEach(car => car.setDoorsOpen(side)); }
+  setDestination(destination) { this.cars.forEach(car => car.setDestination(destination)); }
+  setDirection(direction) { this.cars.forEach(car => car.setDirection(direction)); }
   update(delta) { this.cars.forEach(car => car.update(delta)); }
 }

@@ -63,9 +63,14 @@ export class Track extends THREE.Group {
 }
 
 export class Station extends THREE.Group {
-  constructor(materials) {
+  constructor(materials, options = {}) {
     super();
-    this.name = 'NordplatzStation';
+    this.stationId = options.id ?? 'station-1';
+    this.displayName = options.displayName ?? 'Nordplatz';
+    this.destinationName = options.destinationName ?? 'Central';
+    this.platformNumber = options.platformNumber ?? '01';
+    this.name = `${this.displayName}Station`;
+    this.options = { northCap: true, southCap: true, signageColor: '#396057', ...options };
     this.colliders = [];
     this.bounds = { minX: -9.65, maxX: -0.68, minZ: -42.7, maxZ: 42.7 };
     this.platform = new Platform(materials);
@@ -74,7 +79,7 @@ export class Station extends THREE.Group {
     this.buildArchitecture(materials);
     this.buildFurniture(materials);
     this.buildSignage(materials);
-    this.departures = new DeparturesBoard(materials);
+    this.departures = new DeparturesBoard(materials, { stationName: this.displayName });
     this.add(this.departures);
     batchStaticGeometry(this);
   }
@@ -92,7 +97,8 @@ export class Station extends THREE.Group {
       box(this, m.wall, [10.1, 5.4, 0.4], [-5, 2.7, z]);
       box(this, m.wall, [2.9, 5.4, 0.4], [6.4, 2.7, z]);
       box(this, m.wall, [4.9, 1.5, 0.4], [2.45, 4.7, z]);
-      box(this, m.rubber, [4.8, 5.1, 0.1], [2.45, 1.8, z + Math.sign(z) * 4], { shadow: false });
+      const hasCap = z < 0 ? this.options.northCap : this.options.southCap;
+      if (hasCap) box(this, m.rubber, [4.8, 5.1, 0.1], [2.45, 1.8, z + Math.sign(z) * 4], { shadow: false });
     }
     const panels = [], lowerPanels = [], crossBeams = [], ceilingSlats = [];
     for (let z = -42; z <= 42; z += 3) {
@@ -168,8 +174,8 @@ export class Station extends THREE.Group {
 
   buildSignage(m) {
     for (const z of [-27, -8, 12, 32]) {
-      label(this, 'NORDPLATZ', 4.65, 0.65, [7.58, 2.6, z], { rotation: [0, -Math.PI / 2, 0], background: '#396057', color: '#f0f0e0', fontSize: 94 });
-      label(this, 'NORDPLATZ', 3.35, 0.48, [-9.85, 2.73, z + 3], { rotation: [0, Math.PI / 2, 0], background: '#396057', color: '#f0f0e0', fontSize: 94 });
+      label(this, this.displayName.toUpperCase(), 4.65, 0.65, [7.58, 2.6, z], { rotation: [0, -Math.PI / 2, 0], background: this.options.signageColor, color: '#f0f0e0', fontSize: 94 });
+      label(this, this.displayName.toUpperCase(), 3.35, 0.48, [-9.85, 2.73, z + 3], { rotation: [0, Math.PI / 2, 0], background: this.options.signageColor, color: '#f0f0e0', fontSize: 94 });
     }
     for (const z of [-6, 18, 38]) {
       const sign = new THREE.Group();
@@ -185,7 +191,7 @@ export class Station extends THREE.Group {
     platformSign.rotation.y = -2.65;
     this.add(platformSign);
     box(platformSign, m.dark, [2.62, 0.61, 0.11], [0, 0, 0]);
-    label(platformSign, '01   U1  → CENTRAL', 2.5, 0.49, [0, 0, 0.062], { fontSize: 75 });
+    label(platformSign, `${this.platformNumber}   U1  → ${this.destinationName.toUpperCase()}`, 2.5, 0.49, [0, 0, 0.062], { fontSize: 75 });
     for (const x of [-0.9, 0.9]) box(platformSign, m.steel, [0.035, 1.3, 0.035], [x, 0.97, 0]);
     // A self-contained route diagram; no external fonts or image assets.
     for (const z of [-21, 9]) {

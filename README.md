@@ -1,6 +1,6 @@
-# Nordplatz · Metro Station — Phase 1
+# Nordplatz · Metro Station — Phase 2
 
-A playable first-person metro station built with Three.js, JavaScript, HTML, and CSS. The opening view faces a parked, connected three-car train and a physical departures board. Everything in the scene, including textures and signs, is generated locally; there are no remote models, image assets, fonts, or runtime APIs.
+A playable first-person metro line built with Three.js, JavaScript, HTML, and CSS. The original Nordplatz opening view faces the same three-car train and physical departures board. The train now travels to Central through a continuous tunnel and returns automatically. Everything in the scene, including textures and signs, is generated locally; there are no remote models, image assets, fonts, or runtime APIs.
 
 ## Open the standalone game
 
@@ -33,11 +33,16 @@ npm run dev -- --port 5173 --strictPort
 | W A S D or arrow keys | Walk |
 | Shift | Sprint |
 | Left-button drag / touch drag | Look around |
+| E / Board train button | Board near an open platform-side door, or leave at a station |
 | R or Reset view | Return to the starting view |
 | Escape | Release dragging / close controls |
 | Touch movement pad | Walk on a touch screen |
 
-Mouse-look releases on pointer up, cancellation, lost capture, or window blur. It does not lock the cursor. The player remains on the platform and collides with walls, pillars, benches, bins, and technical cabinets. The safety boundary prevents stepping onto the tracks.
+Mouse-look releases on pointer up, cancellation, lost capture, or window blur. It does not lock the cursor. On platforms, the player collides with walls, pillars, benches, bins, and technical cabinets. The safety boundary prevents stepping onto the tracks. Approach an open doorway and press E to board. Inside, walk and look around the car; seats, grab poles, walls, and car ends constrain movement. The rider follows the train throughout its journey and can leave only when stopped with the platform-side doors open. Reset view returns to Nordplatz while the service continues.
+
+## Train journeys
+
+Nordplatz and Central are 240 m apart, with a 152 m connecting tunnel. After an initial 30-second boarding window, doors close, the train pauses briefly, and it accelerates to 10 m/s. Each moving leg takes about 34 seconds, including smooth acceleration and braking. It stops exactly alongside the destination platform, changes the active cab and destination signs, opens the doors, and waits 20 seconds before the return sequence. Both station timetables and the HUD show the live service state and countdown. Simulation pauses when the browser tab is hidden.
 
 ## Build and validation
 
@@ -57,6 +62,8 @@ Rendering regressions also check the actual canvas pixels between frames, startu
 
 For browser-level rendering diagnostics, run `node tests/render-diagnostics.mjs`. It launches the installed Chromium without forcing a GPU backend, reports failed requests, console errors, canvas attachment and size, WebGL state, scene mesh/light counts, advancing frames, and actual captured pixels. It saves both the browser screenshot and the raw 3D canvas under `/tmp`. Set `METRO_URL` to inspect a different running dev or production URL.
 
+`npm test -- tests/journey.spec.js` checks a continuous round trip, synchronized cars, stopping accuracy, door interlocks, destination displays, boarding, riding, alighting, and rider collisions. For real-time production-browser evidence, run `METRO_URL=http://127.0.0.1:4173/metro-station-game/ node tests/journey-inspect.mjs`. This runner uses the actual animation loop, keyboard and mouse input, captures both directions plus a platform departure, and writes screenshots/diagnostics under `/tmp/metro-journey`.
+
 ## Architecture
 
 | Module | Responsibility |
@@ -66,6 +73,8 @@ For browser-level rendering diagnostics, run `node tests/render-diagnostics.mjs`
 | `src/player.js` | Input, drag look, movement, collision, reset |
 | `src/station.js` | Reusable `Station`, `Platform`, and `Track` |
 | `src/train.js` | Reusable `Train` / `TrainCar`, cabs, interiors, separate doors |
+| `src/route.js` | Route sampling, Central station, continuous connecting track and tunnel |
+| `src/service.js` | Door/dwell sequence, acceleration/braking, exact stops, reversing service |
 | `src/departures.js` | Timetable data and updateable canvas display |
 | `src/lighting.js` | Ambient, directional, point lights and physical fixtures |
 | `src/materials.js` | Shared physical materials and procedural textures |
@@ -75,8 +84,10 @@ For browser-level rendering diagnostics, run `node tests/render-diagnostics.mjs`
 
 World units are meters. The platform is 88 m long; each car is 16 m long, with a 1 m articulated connection. The track gauge is 1.435 m. Camera eye height is 1.76 m, FOV is 73°, and clipping planes are 0.06–180 m. Walking is 4.5 m/s and sprinting is 7 m/s.
 
-Tiles, tactile strips, sleepers, roof vents, and ceiling slats use instancing. Other opaque static pieces are batched by material; door leaves and glass remain independent. Shadows use a 2048² map, cached while geometry is stationary and refreshed during door animation. Resolution is capped at a device pixel ratio of 1.6. No post-processing is required.
+Tiles, tactile strips, sleepers, roof vents, and ceiling slats use instancing. Other opaque static pieces are batched by material; door leaves, destination displays, headlights, and glass remain independent. Shadows use a 2048² map, cached while geometry is stationary and refreshed during train/door movement. The shadow light follows the rider's station or train. Resolution is capped at a device pixel ratio of 1.6. No post-processing is required.
 
 For future systems, `Train.openDoors()`, `Train.closeDoors()`, `Train.update(delta)`, `DeparturesBoard.setDepartures(rows)`, and `DeparturesBoard.setClock(value)` are available. `window.metro.snapshot()` exposes read-only diagnostic snapshots; `window.metro.world` and `.player` support development inspection. Timetable updates also refresh the next-departure HUD.
 
-The train remains parked in Phase 1. Boarding, moving trains, passenger NPCs, audio, routes, and other stations are intentionally reserved for later phases. Door animation is prepared in code but has no player interaction yet. The station clock advances from a fixed scenario time; the timetable is example data rather than a live transport feed.
+Passenger NPCs, ambient audio, ticketing, and additional lines remain future work. Riders explore one car at a time; gangway traversal is not implemented. The station clock advances from a fixed scenario time. U1 is a live local service; the other timetable rows remain illustrative.
+
+The existing `.github/workflows/pages.yml` builds and deploys pushes to `main`. Production asset URLs use `/metro-station-game/`; local development uses the root path. GitHub Pages serves the generated self-contained `dist/index.html`.

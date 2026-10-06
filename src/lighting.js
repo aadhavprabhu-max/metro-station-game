@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { box, instances } from './geometry.js';
+import { instances } from './geometry.js';
 
 export class Lighting extends THREE.Group {
   constructor(scene, materials) {
@@ -16,18 +16,34 @@ export class Lighting extends THREE.Group {
     key.shadow.normalBias = 0.035;
     scene.add(key, key.target);
     this.keyLight = key;
-    const fixtures = [];
+    this.scene = scene;
+    this.materials = materials;
+    this.stationLights = [];
+    this.addStationFixtures(0, { pointLights: 4 });
+  }
+
+  /** Each station reuses the fixtures; the system's ambient and shadow key stay global. */
+  addStationFixtures(offsetZ, { cool = false, pointLights = 2 } = {}) {
+    const fixturesGroup = new THREE.Group();
+    fixturesGroup.name = `StationFixtures-${offsetZ}`;
+    fixturesGroup.position.z = offsetZ;
+    this.add(fixturesGroup);
+    const fixtures = [], housings = [];
     for (let z = -40; z <= 40; z += 8) {
       for (const x of [-6.0, -1.3, 5.7]) {
-        box(this, materials.dark, [0.23, 0.11, 4.3], [x, 5.02, z], { shadow: false });
+        housings.push({ size: [0.23, 0.11, 4.3], position: [x, 5.02, z] });
         fixtures.push({ size: [0.17, 0.025, 4.1], position: [x, 4.955, z] });
       }
     }
-    instances(this, materials.tubeLight, fixtures, undefined, false);
-    for (const z of [-28, -7, 14, 35]) {
-      const point = new THREE.PointLight('#f6f3df', 65, 23, 2);
-      point.position.set(-2.7, 4.65, z);
-      scene.add(point);
+    instances(fixturesGroup, this.materials.dark, housings, undefined, false);
+    instances(fixturesGroup, this.materials.tubeLight, fixtures, undefined, false);
+    const positions = pointLights >= 4 ? [-28, -7, 14, 35] : [-21, 21].slice(0, pointLights);
+    for (const z of positions) {
+      const point = new THREE.PointLight(cool ? '#dfeaf5' : '#f6f3df', pointLights >= 4 ? 65 : 90, pointLights >= 4 ? 23 : 34, 2);
+      point.position.set(-2.7, 4.65, z + offsetZ);
+      this.scene.add(point);
+      this.stationLights.push(point);
     }
+    return fixturesGroup;
   }
 }
