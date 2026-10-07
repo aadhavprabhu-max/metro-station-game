@@ -1,6 +1,6 @@
-# Nordplatz · Metro Station — Phase 2
+# Nordplatz · Metro Station — U1 Network
 
-A playable first-person metro line built with Three.js, JavaScript, HTML, and CSS. The original Nordplatz opening view faces the same three-car train and physical departures board. The train now travels to Central through a continuous tunnel and returns automatically. Everything in the scene, including textures and signs, is generated locally; there are no remote models, image assets, fonts, or runtime APIs.
+A playable first-person metro line built with Three.js, JavaScript, HTML, and CSS. The original Nordplatz opening view faces the same three-car train and physical departures board. U1 runs Nordplatz → Central → Rosenheimer Platz, then returns through Central to Nordplatz automatically. Everything in the scene, including textures and signs, is generated locally; there are no remote models, image assets, fonts, or runtime APIs.
 
 ## Open the standalone game
 
@@ -42,7 +42,9 @@ Mouse-look releases on pointer up, cancellation, lost capture, or window blur. I
 
 ## Train journeys
 
-Nordplatz and Central are 240 m apart, with a 152 m connecting tunnel. After an initial 30-second boarding window, doors close, the train pauses briefly, and it accelerates to 10 m/s. Each moving leg takes about 34 seconds, including smooth acceleration and braking. It stops exactly alongside the destination platform, changes the active cab and destination signs, opens the doors, and waits 20 seconds before the return sequence. Both station timetables and the HUD show the live service state and countdown. Simulation pauses when the browser tab is hidden.
+U1 has three stops at route distances 0, 240, and 480 m: Nordplatz, Central, and Rosenheimer Platz. Each adjacent pair has continuous rails and a 152 m connecting tunnel. Central is an intermediate through-station, not a terminus. The train reverses its active cab only at Rosenheimer Platz and Nordplatz; its destination remains the appropriate terminus throughout each direction.
+
+After an initial 30-second boarding window, doors close, the train pauses briefly, and it accelerates to 10 m/s. Each moving leg takes about 34 seconds, including smooth acceleration and braking. At every stop it aligns exactly with the platform, opens only the platform-side doors, and waits 20 seconds. A full four-leg cycle takes about four minutes. All three station timetables and the HUD show the next stop, terminal destination, direction, state, and countdown; Central's board lists both U1 directions. Simulation pauses when the browser tab is hidden.
 
 ## Build and validation
 
@@ -62,7 +64,11 @@ Rendering regressions also check the actual canvas pixels between frames, startu
 
 For browser-level rendering diagnostics, run `node tests/render-diagnostics.mjs`. It launches the installed Chromium without forcing a GPU backend, reports failed requests, console errors, canvas attachment and size, WebGL state, scene mesh/light counts, advancing frames, and actual captured pixels. It saves both the browser screenshot and the raw 3D canvas under `/tmp`. Set `METRO_URL` to inspect a different running dev or production URL.
 
-`npm test -- tests/journey.spec.js` checks a continuous round trip, synchronized cars, stopping accuracy, door interlocks, destination displays, boarding, riding, alighting, and rider collisions. For real-time production-browser evidence, run `METRO_URL=http://127.0.0.1:4173/metro-station-game/ node tests/journey-inspect.mjs`. This runner uses the actual animation loop, keyboard and mouse input, captures both directions plus a platform departure, and writes screenshots/diagnostics under `/tmp/metro-journey`.
+`npm test -- tests/journey.spec.js tests/network.spec.js` checks all four legs, synchronized cars, stopping accuracy, door interlocks, terminal destination displays, boarding and alighting at every station, rider/platform collisions, directional departure predictions, and Central's shared network node. The network test attaches a second line to an isolated copy of Central to verify future interchange support without adding U2 to the live game.
+
+For real-time production-browser evidence, run `METRO_URL=http://127.0.0.1:4173/metro-station-game/ node tests/u1-network-inspect.mjs`. This runner follows the normal animation loop without changing service timing or moving the train artificially. Real keyboard and mouse input boards, rides all four legs, and leaves/reboards at each stop; screenshots and diagnostics are written under `/tmp/metro-u1-network`. The previous `tests/journey-inspect.mjs` command remains available as an alias. On a software-rendered cloud machine, set `SOFTWARE_WEBGL=1`; `METRO_VIEWPORT_WIDTH` and `METRO_VIEWPORT_HEIGHT` optionally adjust the inspection viewport.
+
+`SOFTWARE_WEBGL=1 node tests/station-inspect.mjs` additionally captures wide Central/Rosenheimer station views and their high-resolution board textures. This supplemental inspection advances the real service in small steps and positions a diagnostic camera; it does not replace the separate live journey test.
 
 ## Architecture
 
@@ -73,7 +79,8 @@ For browser-level rendering diagnostics, run `node tests/render-diagnostics.mjs`
 | `src/player.js` | Input, drag look, movement, collision, reset |
 | `src/station.js` | Reusable `Station`, `Platform`, and `Track` |
 | `src/train.js` | Reusable `Train` / `TrainCar`, cabs, interiors, separate doors |
-| `src/route.js` | Route sampling, Central station, continuous connecting track and tunnel |
+| `src/network.js` | Shared station nodes, physical links, line definitions, future interchange metadata |
+| `src/route.js` | Route sampling, Central/Rosenheimer stations, continuous connecting tracks and tunnels |
 | `src/service.js` | Door/dwell sequence, acceleration/braking, exact stops, reversing service |
 | `src/departures.js` | Timetable data and updateable canvas display |
 | `src/lighting.js` | Ambient, directional, point lights and physical fixtures |
@@ -88,6 +95,6 @@ Tiles, tactile strips, sleepers, roof vents, and ceiling slats use instancing. O
 
 For future systems, `Train.openDoors()`, `Train.closeDoors()`, `Train.update(delta)`, `DeparturesBoard.setDepartures(rows)`, and `DeparturesBoard.setClock(value)` are available. `window.metro.snapshot()` exposes read-only diagnostic snapshots; `window.metro.world` and `.player` support development inspection. Timetable updates also refresh the next-departure HUD.
 
-Passenger NPCs, ambient audio, ticketing, and additional lines remain future work. Riders explore one car at a time; gangway traversal is not implemented. The station clock advances from a fixed scenario time. U1 is a live local service; the other timetable rows remain illustrative.
+Passenger NPCs, ambient audio, ticketing, and additional lines remain future work. Central is a shared, interchange-capable network node with U2 reserved in its planning metadata, but no U2 track or service exists yet. Riders explore one car at a time; gangway traversal is not implemented. The station clock advances from a fixed scenario time. U1 is a live local service; the other timetable rows remain illustrative.
 
 The existing `.github/workflows/pages.yml` builds and deploys pushes to `main`. Production asset URLs use `/metro-station-game/`; local development uses the root path. GitHub Pages serves the generated self-contained `dist/index.html`.

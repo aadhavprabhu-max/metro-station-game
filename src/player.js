@@ -96,7 +96,7 @@ export class PlayerController {
     if (this.ridingCar) {
       return service.canBoard
         ? { text: `E · Leave train at ${service.currentStop.name}`, enabled: true, action: 'alight' }
-        : { text: `On board · Next stop ${service.destinationStop.name}`, enabled: false, action: null };
+        : { text: `On board · Next stop ${(service.nextStop ?? service.destinationStop).name}`, enabled: false, action: null };
     }
     if (service.canBoard && service.currentStop.id === this.station.stationId) {
       const door = service.train.nearestBoardingDoor(this.camera.position.x, this.camera.position.z);

@@ -9,6 +9,7 @@ export class TrainService {
     }
     this.train = train;
     this.route = route;
+    this.lineId = route.lineId ?? route.id ?? 'U1';
     this.maxSpeed = options.maxSpeed ?? 10;
     this.acceleration = options.acceleration ?? 0.9;
     this.braking = options.braking ?? 1.1;
@@ -24,9 +25,10 @@ export class TrainService {
   reset() {
     this.stopIndex = 0;
     this.currentStop = this.route.stops[0];
-    this.destinationStop = this.route.stops[1];
+    this.nextStop = this.route.stops[1];
     this.distance = this.currentStop.distance;
     this.direction = 1;
+    this.destinationStop = this.terminusFor(this.direction);
     this.speed = 0;
     this.state = 'boarding';
     this.stateTime = 0;
@@ -46,16 +48,33 @@ export class TrainService {
     return this.state === 'boarding' && this.atStation && this.train.doorsOpen;
   }
 
+  get directionName() { return this.direction > 0 ? 'Northbound' : 'Southbound'; }
+
+  get isTerminus() {
+    return this.currentStop === this.route.stops[0]
+      || this.currentStop === this.route.stops[this.route.stops.length - 1];
+  }
+
+  terminusFor(direction) {
+    return this.route.getTerminus?.(direction)
+      ?? this.route.stops[direction > 0 ? this.route.stops.length - 1 : 0];
+  }
+
   get departureSeconds() {
     if (this.state === 'boarding') return this.dwellRemaining + this.closingDuration + this.departurePause;
     if (this.state === 'closing') return Math.max(0, this.closingDuration - this.stateTime) + this.departurePause;
     if (this.state === 'departing') return Math.max(0, this.departurePause - this.stateTime);
+    if (this.state === 'stopped') return Math.max(0, this.stopPause - this.stateTime)
+      + this.dwellDuration + this.closingDuration + this.departurePause;
     return 0;
   }
 
   get arrivalSeconds() {
-    const distance = Math.abs(this.destinationStop.distance - this.distance);
-    const { speed, acceleration: a, braking: b, maxSpeed } = this;
+    return this.departureSeconds + this.motionSeconds(Math.abs(this.nextStop.distance - this.distance), this.speed);
+  }
+
+  motionSeconds(distance, speed = 0) {
+    const { acceleration: a, braking: b, maxSpeed } = this;
     const peakSpeed = Math.sqrt((2 * a * b * distance + b * speed * speed) / (a + b));
     let motionTime;
     if (peakSpeed <= maxSpeed) {
@@ -66,8 +85,69 @@ export class TrainService {
       motionTime = Math.max(0, (maxSpeed - speed) / a)
         + Math.max(0, distance - accelerationDistance - brakingDistance) / maxSpeed + maxSpeed / b;
     }
-    return this.departureSeconds + motionTime;
+    return motionTime;
   }
+
+  /**
+   * Upcoming departures on this line, predicted by walking the same ordered
+   * stops and reversal rules as the live service. Intermediate stations offer
+   * both directions; termini offer the one direction into the line.
+   * dueSeconds counts down to door closing, when the departure sequence starts.
+   */
+  departuresFor(stationId) {
+    const stationIndex = this.route.stops.findIndex(stop => stop.id === stationId);
+    if (stationIndex < 0) return [];
+    const lastIndex = this.route.stops.length - 1;
+    const directions = stationIndex === 0 ? [1] : stationIndex === lastIndex ? [-1] : [1, -1];
+    const upcoming = new Map();
+    const record = (index, direction, dueSeconds) => {
+      if (index !== stationIndex || upcoming.has(direction)) return;
+      const stop = this.route.stops[index];
+      const nextStop = this.route.stops[index + direction];
+      const destinationStop = this.terminusFor(direction);
+      const atPlatform = this.atStation && this.currentStop.id === stationId && this.direction === direction;
+      const arrivingDirection = index === lastIndex ? -1 : index === 0 ? 1 : this.direction;
+      upcoming.set(direction, {
+        lineId: this.lineId,
+        route: this.lineId,
+        stationId,
+        direction,
+        directionName: direction > 0 ? 'Northbound' : 'Southbound',
+        destination: destinationStop.name,
+        destinationStop,
+        nextStation: nextStop.name,
+        nextStop,
+        platform: stop.platform,
+        dueSeconds: Math.max(0, dueSeconds),
+        atPlatform,
+        state: atPlatform ? this.state
+          : this.nextStop.id === stationId && direction === arrivingDirection && this.state === 'arriving' ? 'arriving' : 'scheduled',
+      });
+    };
+
+    if (this.atStation) {
+      const untilClosing = this.state === 'boarding' ? this.dwellRemaining
+        : this.state === 'stopped' ? Math.max(0, this.stopPause - this.stateTime) + this.dwellDuration : 0;
+      record(this.stopIndex, this.direction, untilClosing);
+    }
+    let index = this.route.stops.indexOf(this.nextStop);
+    let direction = this.direction;
+    let arrivalTime = this.arrivalSeconds;
+    // One complete reversal cycle contains every station/direction combination.
+    for (let visited = 0; visited < this.route.stops.length * 2 && upcoming.size < directions.length; visited++) {
+      if (index === lastIndex) direction = -1;
+      else if (index === 0) direction = 1;
+      const closingTime = arrivalTime + this.stopPause + this.dwellDuration;
+      record(index, direction, closingTime);
+      const nextIndex = index + direction;
+      const legDistance = Math.abs(this.route.stops[nextIndex].distance - this.route.stops[index].distance);
+      arrivalTime = closingTime + this.closingDuration + this.departurePause + this.motionSeconds(legDistance);
+      index = nextIndex;
+    }
+    return directions.map(direction => upcoming.get(direction)).filter(Boolean);
+  }
+
+  getDepartures(stationId) { return this.departuresFor(stationId); }
 
   requestDeparture() {
     if (!this.canBoard) return false;
@@ -90,14 +170,15 @@ export class TrainService {
   }
 
   arrive() {
-    this.distance = this.destinationStop.distance;
+    this.distance = this.nextStop.distance;
     this.speed = 0;
-    this.currentStop = this.destinationStop;
+    this.currentStop = this.nextStop;
     this.stopIndex = this.route.stops.indexOf(this.currentStop);
     this.completedLegs += 1;
     if (this.stopIndex === this.route.stops.length - 1) this.direction = -1;
     else if (this.stopIndex === 0) this.direction = 1;
-    this.destinationStop = this.route.stops[this.stopIndex + this.direction];
+    this.nextStop = this.route.stops[this.stopIndex + this.direction];
+    this.destinationStop = this.terminusFor(this.direction);
     this.train.setDirection(this.direction);
     this.train.setDestination(this.destinationStop.name);
     this.changeState('stopped');
@@ -106,7 +187,7 @@ export class TrainService {
 
   move(delta) {
     // Braking is based on stopping distance, with a small integration margin.
-    const remaining = Math.abs(this.destinationStop.distance - this.distance);
+    const remaining = Math.abs(this.nextStop.distance - this.distance);
     const stoppingDistance = this.speed * this.speed / (2 * this.braking);
     const shouldBrake = this.state === 'arriving' || remaining <= stoppingDistance + this.speed * delta + 0.02;
     if (shouldBrake && this.state !== 'arriving') this.changeState('arriving');
@@ -173,13 +254,25 @@ export class TrainService {
   }
 
   snapshot() {
-    const describeStop = stop => ({ id: stop.id, name: stop.name, distance: stop.distance, platform: stop.platform });
+    const describeStop = stop => ({
+      id: stop.id, name: stop.name, distance: stop.distance, platform: stop.platform,
+      nodeId: stop.node?.id ?? stop.id,
+      isTerminus: stop === this.route.stops[0] || stop === this.route.stops[this.route.stops.length - 1],
+      interchange: Boolean(stop.interchange || (stop.node?.lineIds?.length ?? 0) > 1),
+      interchangeCapable: Boolean(stop.interchangeCapable ?? stop.node?.interchangeCapable),
+      servedLines: [...(stop.node?.lineIds ?? stop.servedLines ?? [this.lineId])],
+      plannedLines: [...(stop.node?.plannedLines ?? stop.plannedLines ?? [])],
+    });
     return {
       state: this.state,
       speed: this.speed,
       distance: this.distance,
       direction: this.direction,
+      directionName: this.directionName,
+      lineId: this.lineId,
+      isTerminus: this.isTerminus,
       currentStop: describeStop(this.currentStop),
+      nextStop: describeStop(this.nextStop),
       destinationStop: describeStop(this.destinationStop),
       stateTime: this.stateTime,
       dwellRemaining: this.dwellRemaining,

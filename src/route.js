@@ -2,22 +2,36 @@ import * as THREE from 'three';
 import { box, instances, label } from './geometry.js';
 import { Station } from './station.js';
 import { batchStaticGeometry } from './optimize.js';
+import { createMetroNetwork } from './network.js';
 
 /** Route distance is measured along the rails, independently of train state. */
 export class MetroRoute {
-  constructor() {
-    this.length = 240;
-    this.stops = [
-      { id: 'station-1', name: 'Nordplatz', distance: 0, platform: '01', z: 0 },
-      { id: 'station-2', name: 'Central', distance: this.length, platform: '01', z: -this.length },
-    ];
+  constructor(network = createMetroNetwork(), lineId = 'U1') {
+    this.network = network;
+    this.lineId = lineId;
+    this.line = network.lines.get(lineId);
+    this.stops = network.getLineStops(lineId);
+    this.length = this.stops.at(-1).distance;
+  }
+
+  getTerminus(direction) {
+    return direction > 0 ? this.stops.at(-1) : this.stops[0];
   }
 
   sample(distance) {
     const alongTrack = THREE.MathUtils.clamp(distance, 0, this.length);
-    // This is a two-way line: the cab changes direction, while the consist keeps
-    // its orientation. Additional route sections can replace this sampler later.
-    return { position: new THREE.Vector3(1.57, 0, -alongTrack), yaw: 0 };
+    const nextIndex = this.stops.findIndex((stop, index) => index > 0 && stop.distance >= alongTrack);
+    const end = this.stops[nextIndex < 0 ? this.stops.length - 1 : nextIndex];
+    const start = this.stops[this.stops.indexOf(end) - 1];
+    const origin = start.node.position, destination = end.node.position;
+    const fraction = (alongTrack - start.distance) / (end.distance - start.distance);
+    const position = new THREE.Vector3(origin.x, origin.y, origin.z).lerp(
+      new THREE.Vector3(destination.x, destination.y, destination.z), fraction,
+    );
+    // Route orientation follows the track, regardless of service direction. The
+    // existing straight U1 keeps yaw 0 on every leg, including the return trip.
+    const heading = Math.atan2(origin.x - destination.x, origin.z - destination.z);
+    return { position, yaw: heading === 0 ? 0 : heading };
   }
 }
 
@@ -33,6 +47,18 @@ function createCentralMaterials(materials) {
   return central;
 }
 
+function createRosenheimerMaterials(materials) {
+  const rosenheimer = { ...materials };
+  for (const [name, color] of Object.entries({
+    greenTile: '#88745d', wallTile: '#ddd7cd', wall: '#b5aea1',
+    concrete: '#bfb7aa', tile: '#c8c0b2',
+  })) {
+    rosenheimer[name] = materials[name].clone();
+    rosenheimer[name].color.set(color);
+  }
+  return rosenheimer;
+}
+
 /** Existing Nordplatz remains in the scene; this group only adds the new world. */
 export class RouteWorld extends THREE.Group {
   constructor(materials, station1, route = new MetroRoute()) {
@@ -42,27 +68,44 @@ export class RouteWorld extends THREE.Group {
     this.station2 = new Station(createCentralMaterials(materials), {
       id: route.stops[1].id,
       displayName: route.stops[1].name,
-      destinationName: route.stops[0].name,
-      northCap: true,
+      destinationName: route.stops.at(-1).name,
+      routeNames: route.stops.map(stop => stop.name),
+      northCap: false,
       southCap: false,
       signageColor: '#365c78',
     });
     this.station2.position.z = route.stops[1].z;
-    this.stations = [station1, this.station2];
-    this.add(this.station2);
-    this.buildConnectingTrack(materials);
-    this.buildTunnel(materials);
+    this.station3 = new Station(createRosenheimerMaterials(materials), {
+      id: route.stops[2].id,
+      displayName: route.stops[2].name,
+      destinationName: route.stops[0].name,
+      routeNames: route.stops.map(stop => stop.name),
+      northCap: true,
+      southCap: false,
+      signageColor: '#735e46',
+    });
+    this.station3.position.z = route.stops[2].z;
+    this.stations = [station1, this.station2, this.station3];
+    this.stations.forEach((station, index) => {
+      station.networkNode = route.stops[index].node;
+      station.isTerminus = route.stops[index].isTerminus;
+    });
+    this.add(this.station2, this.station3);
+    for (let index = 0; index < route.stops.length - 1; index++) {
+      this.buildConnectingTrack(materials, route.stops[index], route.stops[index + 1], index);
+      this.buildTunnel(materials, route.stops[index], route.stops[index + 1], index);
+    }
   }
 
-  buildConnectingTrack(m) {
+  buildConnectingTrack(m, fromStop, toStop, legIndex) {
     // Both original stations already own 100 m of rail. Fill the remaining gap
     // exactly, so no duplicate rail faces or sleeper rows flicker at the joins.
-    const startZ = -50;
-    const endZ = this.route.stops[1].z + 50;
+    const startZ = fromStop.z - 50;
+    const endZ = toStop.z + 50;
     const length = startZ - endZ;
     const centerZ = (startZ + endZ) / 2;
     const track = new THREE.Group();
-    track.name = 'ConnectingTrack';
+    track.name = legIndex === 0 ? 'ConnectingTrack' : `ConnectingTrack-${legIndex}`;
     this.add(track);
     box(track, m.trackBed, [4.98, 0.14, length], [2.5, -1.37, centerZ]);
     const sleepers = [], clips = [], thirdRailBrackets = [];
@@ -84,9 +127,9 @@ export class RouteWorld extends THREE.Group {
     batchStaticGeometry(track);
   }
 
-  buildTunnel(m) {
-    const portalStart = -44;
-    const portalEnd = this.route.stops[1].z + 44;
+  buildTunnel(m, fromStop, toStop, legIndex) {
+    const portalStart = fromStop.z - 44;
+    const portalEnd = toStop.z + 44;
     const ribsMaterial = m.concrete.clone();
     ribsMaterial.color.set('#828c8d');
     const lining = m.wall.clone();
@@ -98,7 +141,7 @@ export class RouteWorld extends THREE.Group {
       const sectionLength = Math.min(16, totalLength - offset);
       const centerZ = portalStart - offset - sectionLength / 2;
       const section = new THREE.Group();
-      section.name = `TunnelSection-${Math.floor(offset / 16)}`;
+      section.name = legIndex === 0 ? `TunnelSection-${Math.floor(offset / 16)}` : `TunnelSection-${legIndex}-${Math.floor(offset / 16)}`;
       section.position.z = centerZ;
       this.add(section);
       box(section, lining, [0.28, 5.55, sectionLength], [-0.42, 1.52, 0]);
@@ -117,7 +160,7 @@ export class RouteWorld extends THREE.Group {
       }
       instances(section, m.tubeLight, fixtures, undefined, false);
       // A small emergency wayfinding panel reads naturally through the windows.
-      if (offset % 32 === 0) label(section, '← NORDPLATZ   •   CENTRAL →', 2.2, 0.21, [5.024, 1.72, 0], {
+      if (offset % 32 === 0) label(section, `← ${fromStop.name.toUpperCase()}   •   ${toStop.name.toUpperCase()} →`, 2.2, 0.21, [5.024, 1.72, 0], {
         rotation: [0, -Math.PI / 2, 0], background: '#285944', fontSize: 66,
       });
       batchStaticGeometry(section);

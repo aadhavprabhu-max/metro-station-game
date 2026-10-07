@@ -17,12 +17,15 @@ test('the connected train completes both directions continuously with doors shut
     let previousSpeed = service.speed;
     let maxStep = 0, maxSpeedChange = 0, movingSamples = 0;
     let outwardSamples = 0, returnSamples = 0;
-    let centralStopped = false, nordplatzReturned = false;
+    let centralStopped = false, rosenheimerStopped = false, nordplatzReturned = false;
     let centralDisplayDestinations = [];
+    let returningCentralDisplays = [];
+    let recordedLegs = 0;
+    const stopSequence = [];
     let departurePause = 0;
     const failures = [];
     const check = (condition, message) => { if (!condition && failures.length < 12) failures.push(message); };
-    for (let step = 0; step < 180 / dt; step++) {
+    for (let step = 0; step < 330 / dt; step++) {
       world.update(dt);
       const distance = service.distance;
       const change = distance - previousDistance;
@@ -37,13 +40,24 @@ test('the connected train completes both directions continuously with doors shut
         movingSamples++;
         if (change > 1e-6) outwardSamples++;
         if (change < -1e-6) returnSamples++;
-        check(train.cars.every(car => car.doorTarget === 0 && car.doorProgress < 0.002), 'Train moved with an open door.');
+        check(train.cars.every(car => car.doorTarget === 0 && Object.values(car.doorProgressBySide).every(value => value < 0.002)), 'Train moved with an open door.');
       } else if (service.state === 'departing') departurePause += dt;
-      if (distance === route.length && service.speed === 0 && service.state === 'boarding') {
-        centralStopped = true;
-        centralDisplayDestinations = train.cars.flatMap(car => car.destinationDisplays.map(({ display }) => display.userData.destination));
+      check(train.cars.every(car => car.doorProgressBySide[1] === 0), 'Track-side doors opened.');
+      if (service.completedLegs > recordedLegs && service.speed === 0 && service.state === 'boarding') {
+        recordedLegs = service.completedLegs;
+        const displays = train.cars.flatMap(car => car.destinationDisplays.map(({ display }) => display.userData.destination));
+        stopSequence.push({
+          id: service.currentStop.id, distance, direction: service.direction,
+          next: service.nextStop.name, terminal: service.destinationStop.name,
+        });
+        if (service.currentStop.id === 'station-2') {
+          centralStopped = true;
+          if (service.direction === 1) centralDisplayDestinations = displays;
+          else returningCentralDisplays = displays;
+        }
+        if (service.currentStop.id === 'station-3') rosenheimerStopped = true;
       }
-      if (centralStopped && distance === 0 && service.speed === 0 && service.state === 'boarding') {
+      if (service.completedLegs === 4 && distance === 0 && service.speed === 0 && service.state === 'boarding') {
         nordplatzReturned = true;
         for (let i = 0; i < 120; i++) world.update(dt);
         break;
@@ -54,8 +68,8 @@ test('the connected train completes both directions continuously with doors shut
     return {
       failures, states: [...states], maxStep, maxSpeedChange,
       movingSamples, outwardSamples, returnSamples, departurePause,
-      centralStopped, nordplatzReturned,
-      centralDisplayDestinations,
+      centralStopped, rosenheimerStopped, nordplatzReturned, stopSequence,
+      centralDisplayDestinations, returningCentralDisplays,
       finalDisplayDestinations: train.cars.flatMap(car => car.destinationDisplays.map(({ display }) => display.userData.destination)),
       stops: route.stops, finalDistance: service.distance, finalSpeed: service.speed,
       finalDoors: train.cars.map(car => ({ target: car.doorTarget, progress: car.doorProgress })),
@@ -64,11 +78,18 @@ test('the connected train completes both directions continuously with doors shut
     };
   });
   expect(result.failures).toEqual([]);
-  expect(result.stops.map(stop => stop.id)).toEqual(['station-1', 'station-2']);
-  expect(result.stops.map(stop => stop.distance)).toEqual([0, 240]);
+  expect(result.stops.map(stop => stop.id)).toEqual(['station-1', 'station-2', 'station-3']);
+  expect(result.stops.map(stop => stop.distance)).toEqual([0, 240, 480]);
   expect(result.states).toEqual(expect.arrayContaining(['boarding', 'closing', 'departing', 'travelling', 'arriving', 'stopped']));
   expect(result.centralStopped).toBe(true);
+  expect(result.rosenheimerStopped).toBe(true);
   expect(result.nordplatzReturned).toBe(true);
+  expect(result.stopSequence).toEqual([
+    { id: 'station-2', distance: 240, direction: 1, next: 'Rosenheimer Platz', terminal: 'Rosenheimer Platz' },
+    { id: 'station-3', distance: 480, direction: -1, next: 'Central', terminal: 'Nordplatz' },
+    { id: 'station-2', distance: 240, direction: -1, next: 'Nordplatz', terminal: 'Nordplatz' },
+    { id: 'station-1', distance: 0, direction: 1, next: 'Central', terminal: 'Rosenheimer Platz' },
+  ]);
   expect(result.outwardSamples).toBeGreaterThan(1000);
   expect(result.returnSamples).toBeGreaterThan(1000);
   expect(result.maxStep).toBeLessThanOrEqual(10 / 60 + 1e-6);
@@ -77,10 +98,11 @@ test('the connected train completes both directions continuously with doors shut
   expect(result.finalDistance).toBe(0);
   expect(result.finalSpeed).toBe(0);
   expect(result.finalDoors.every(door => door.target === 1 && door.progress > 0.99)).toBe(true);
-  expect(result.destinations).toEqual(['Central', 'Nordplatz']);
+  expect(result.destinations).toEqual(['Rosenheimer Platz', 'Rosenheimer Platz', 'Nordplatz']);
   expect(result.centralDisplayDestinations.length).toBeGreaterThanOrEqual(8);
-  expect(result.centralDisplayDestinations.every(name => name === 'Nordplatz')).toBe(true);
-  expect(result.finalDisplayDestinations.every(name => name === 'Central')).toBe(true);
+  expect(result.centralDisplayDestinations.every(name => name === 'Rosenheimer Platz')).toBe(true);
+  expect(result.returningCentralDisplays.every(name => name === 'Nordplatz')).toBe(true);
+  expect(result.finalDisplayDestinations.every(name => name === 'Rosenheimer Platz')).toBe(true);
   expect(result.glError).toBe(0);
 });
 
@@ -110,12 +132,14 @@ test('keyboard boarding and the action button work only at a stopped open door',
     const startingLocal = player.ridingOffset.toArray();
     const steps = seconds => { for (let i = 0; i < seconds * 60; i++) world.update(1 / 60); };
     let blockedWhileMoving = false;
+    let movingHint = '';
     for (let frame = 0; frame < 90 * 60; frame++) {
       world.update(1 / 60);
       if (world.service.speed > 2 && !blockedWhileMoving) {
+        movingHint = player.interactionHint().text;
         blockedWhileMoving = !player.interact();
       }
-      if (world.service.distance === world.route.length && world.service.state === 'boarding') break;
+      if (world.service.currentStop.id === 'station-2' && world.service.distance === 240 && world.service.state === 'boarding') break;
     }
     steps(2);
     const arrived = {
@@ -128,13 +152,14 @@ test('keyboard boarding and the action button work only at a stopped open door',
     };
     const leftAtCentral = player.interact();
     return {
-      blockedWhileMoving, startingLocal, arrived, leftAtCentral,
+      blockedWhileMoving, movingHint, startingLocal, arrived, leftAtCentral,
       ridingAfterExit: Boolean(player.ridingCar), stationAfterExit: player.station.stationId,
       positionAfterExit: player.camera.position.toArray(),
       centralBounds: { ...world.stations[1].bounds }, centralZ: world.stations[1].position.z,
     };
   });
   expect(travel.blockedWhileMoving).toBe(true);
+  expect(travel.movingHint).toContain('Next stop Central');
   expect(travel.arrived.distance).toBe(240);
   expect(travel.arrived.speed).toBe(0);
   expect(travel.arrived.sameCar).toBe(true);

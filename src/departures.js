@@ -63,12 +63,20 @@ export class DeparturesBoard extends THREE.Group {
     ctx.fillStyle = '#cedecc'; ctx.font = '600 43px Arial'; ctx.fillText('DEPARTURES', 56, 65);
     ctx.fillStyle = '#e0e6d9'; ctx.font = '500 39px monospace'; ctx.textAlign = 'right'; ctx.fillText(this.clock, w - 54, 65); ctx.textAlign = 'left';
     ctx.fillStyle = '#7b9990'; ctx.fillRect(54, 93, w - 108, 2);
-    ctx.font = '22px Arial'; ctx.fillText('LINE', 59, 131); ctx.fillText('DESTINATION', 218, 131); ctx.fillText('PLATFORM', 1058, 131); ctx.fillText('DUE', 1360, 131);
+    ctx.font = '22px Arial'; ctx.fillText('LINE', 59, 131); ctx.fillText('DESTINATION / NEXT STOP', 218, 131); ctx.fillText('PLATFORM', 1058, 131); ctx.fillText('DUE', 1360, 131);
     this.departures.slice(0, 5).forEach((item, index) => {
       const y = 190 + index * 84;
       ctx.fillStyle = item.color; ctx.beginPath(); ctx.roundRect(56, y - 29, 100, 51, 7); ctx.fill();
       ctx.font = 'bold 32px Arial'; ctx.fillStyle = '#fff7e9'; ctx.fillText(item.route, 81, y + 8);
-      ctx.font = '500 43px Arial'; ctx.fillStyle = '#f0efd7'; ctx.fillText(item.destination.toUpperCase(), 218, y + 8);
+      const destination = item.destination.toUpperCase();
+      let fontSize = item.nextStop ? 37 : 43;
+      ctx.font = `500 ${fontSize}px Arial`;
+      while (ctx.measureText(destination).width > 790 && fontSize > 28) ctx.font = `500 ${--fontSize}px Arial`;
+      ctx.fillStyle = '#f0efd7'; ctx.fillText(destination, 218, item.nextStop ? y - 3 : y + 8);
+      if (item.nextStop) {
+        ctx.font = '22px Arial'; ctx.fillStyle = '#b6c9bd';
+        ctx.fillText(`${item.direction}  ·  Next ${item.nextStop}`, 218, y + 25, 790);
+      }
       ctx.font = '37px monospace'; ctx.fillStyle = '#abc2b7'; ctx.fillText(item.platform, 1106, y + 8);
       ctx.textAlign = 'right'; ctx.fillStyle = '#e8c779'; ctx.font = item.due && item.due.length > 7 ? '32px monospace' : '40px monospace'; ctx.fillText(item.due ?? `${item.minutes} min`, w - 56, y + 8); ctx.textAlign = 'left';
       ctx.fillStyle = '#263a34'; ctx.fillRect(56, y + 38, w - 112, 1);

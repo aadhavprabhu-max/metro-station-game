@@ -1,3 +1,5 @@
+import { INITIAL_DEPARTURES } from './departures.js';
+
 const STATE_LABELS = Object.freeze({ boarding: 'Boarding', closing: 'Doors closing', departing: 'Departing', travelling: 'Travelling', arriving: 'Arriving', stopped: 'Stopped' });
 
 export class UI {
@@ -17,6 +19,8 @@ export class UI {
     this.platformElement = document.querySelector('#service-platform') ?? document.querySelector('.service-footer > span:last-child');
     this.statusElement = document.querySelector('#train-status');
     this.detailElement = document.querySelector('#service-detail');
+    this.nextStopElement = document.querySelector('#service-next-stop');
+    this.countdownLabel = document.querySelector('#countdown-label');
     this.locationElement = document.querySelector('#location-name');
     this.locationPlatform = document.querySelector('#location-platform');
     this.locationDirection = document.querySelector('#location-direction');
@@ -49,7 +53,7 @@ export class UI {
 
   update(delta) {
     this.elapsed += delta;
-    // Use one station clock for the HUD and both physical timetables.
+    // Use one station clock for the HUD and all physical timetables.
     const minutes = 14 * 60 + 32 + Math.floor(this.elapsed / 60);
     const clock = `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
     if (clock !== this.lastClock) {
@@ -84,7 +88,9 @@ export class UI {
     const service = this.service;
     const state = service.snapshot();
     const current = service.currentStop;
+    const nextStop = service.nextStop;
     const destination = service.destinationStop;
+    const direction = state.directionName ?? (service.direction > 0 ? 'Northbound' : 'Southbound');
     const docked = Math.abs(service.distance - current.distance) < 0.2 && service.speed < 0.01;
     const riding = Boolean(this.player.ridingCar);
     const station = riding && docked
@@ -93,16 +99,18 @@ export class UI {
     const stationName = riding && !docked ? 'On board' : station?.displayName ?? current.name;
     this.setText(this.locationElement, stationName);
     this.setText(this.locationPlatform, riding && !docked ? 'U1 · Connecting tunnel' : `Platform ${station?.platformNumber ?? current.platform ?? '01'}`);
-    this.setText(this.locationDirection, `Direction ${destination.name}`);
+    this.setText(this.locationDirection, direction);
     this.setText(this.destinationElement, destination.name);
     this.setText(this.routeElement, 'U1');
     this.setText(this.statusElement, STATE_LABELS[service.state] ?? service.state);
-    this.setText(this.detailElement, riding ? (docked ? `${current.name} · Doors ${service.canBoard ? 'open' : 'closed'}` : `On board · ${current.name} → ${destination.name}`) : `${current.name} → ${destination.name}`);
+    this.setText(this.detailElement, `${direction} · ${docked ? 'At ' + current.name : 'From ' + current.name}`);
+    this.setText(this.nextStopElement, `Next stop · ${nextStop.name}`);
     this.setText(this.platformElement, docked ? `Platform ${current.platform ?? '01'} →` : 'U1 · In service');
     const countdown = service.state === 'boarding' ? service.dwellRemaining
       : ['travelling', 'arriving', 'departing'].includes(service.state) ? state.arrivalSeconds : null;
     this.setText(this.minutesElement, countdown === null || !Number.isFinite(countdown) ? '—' : String(Math.max(0, Math.ceil(countdown))));
     this.setText(this.countdownUnit, countdown === null || !Number.isFinite(countdown) ? '' : 'sec');
+    this.setText(this.countdownLabel, service.state === 'boarding' ? 'DOORS CLOSE' : ['travelling', 'arriving', 'departing'].includes(service.state) ? 'NEXT STOP' : '');
 
     const hint = this.player.interactionHint?.() ?? { text: 'Approach an open train door to board.', enabled: false };
     this.setText(this.interactionElement, typeof hint === 'string' ? hint : hint.text);
@@ -114,29 +122,30 @@ export class UI {
 
     // A screen texture update costs much more than a HUD label. Each station's
     // departure row updates once per second, or immediately when state changes.
-    const key = `${Math.floor(this.elapsed)}:${service.state}:${current.id}:${destination.id}`;
+    const key = `${Math.floor(this.elapsed)}:${service.state}:${current.id}:${nextStop.id}:${destination.id}:${service.direction}`;
     if (key === this.lastTimetableKey) return;
     this.lastTimetableKey = key;
     for (const station of this.stations) {
       const board = station.departures;
       if (!board) continue;
-      const next = this.stations.find(item => item.stationId !== station.stationId);
-      if (!next) continue;
-      let due;
-      if (docked && station.stationId === current.id) {
-        due = service.state === 'boarding' ? `${Math.max(0, Math.ceil(service.dwellRemaining))} s`
-          : service.state === 'closing' ? 'Closing' : service.state === 'stopped' ? 'Stopped' : 'Now';
-      } else if (station.stationId === destination.id) {
-        due = service.state === 'arriving' ? 'Arriving' : `${Math.max(1, Math.ceil(state.arrivalSeconds ?? Math.abs(destination.distance - service.distance) / service.maxSpeed))} s`;
-      } else {
-        const otherDistance = Math.abs(destination.distance - current.distance);
-        const nextVisit = (state.arrivalSeconds ?? 35) + 20 + otherDistance / service.maxSpeed + 12;
-        due = `${Math.max(1, Math.ceil(nextVisit / 60))} min`;
-      }
-      board.setDepartures([
-        { ...board.departures[0], route: 'U1', destination: next.displayName, platform: station.platformNumber ?? '01', color: '#c8784d', due },
-        ...board.departures.slice(1),
-      ]);
+      const rows = service.departuresFor(station.stationId).map(departure => {
+        let due;
+        if (departure.atPlatform) {
+          due = departure.state === 'boarding' ? `${Math.max(0, Math.ceil(service.dwellRemaining))} s`
+            : departure.state === 'closing' ? 'Closing' : departure.state === 'stopped' ? 'Stopped' : 'Now';
+        } else if (departure.state === 'arriving') {
+          due = 'Arriving';
+        } else {
+          const seconds = Math.max(1, Math.ceil(departure.dueSeconds));
+          due = seconds < 60 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`;
+        }
+        return {
+          route: 'U1', destination: departure.destinationStop.name,
+          nextStop: departure.nextStop.name, direction: departure.directionName,
+          platform: departure.platform ?? station.platformNumber ?? '01', color: '#c8784d', due,
+        };
+      });
+      board.setDepartures([...rows, ...INITIAL_DEPARTURES.filter(item => item.route !== 'U1')].slice(0, 5));
     }
   }
 

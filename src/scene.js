@@ -51,15 +51,17 @@ export function createScene(container) {
   scene.environmentIntensity = 0.48;
   room.dispose(); pmrem.dispose();
   const materials = createMaterials();
-  const station = new Station(materials, { northCap: false });
-  const train = new Train(materials);
   const route = new MetroRoute();
+  const station = new Station(materials, { northCap: false, destinationName: route.getTerminus(1).name, routeNames: route.stops.map(stop => stop.name) });
+  const train = new Train(materials);
   const routeWorld = new RouteWorld(materials, station, route);
   const service = new TrainService(train, route);
   const lighting = new Lighting(scene, materials);
-  lighting.addStationFixtures(-240, { cool: true, pointLights: 2 });
+  for (const nextStation of routeWorld.stations.slice(1)) {
+    lighting.addStationFixtures(nextStation.position.z, { cool: nextStation.stationId === 'station-2', pointLights: 2 });
+  }
   scene.add(station, train, lighting, routeWorld);
-  const world = { scene, renderer, camera, station, stations: routeWorld.stations, train, route, routeWorld, service, lighting, resize, environment, viewport, onResize: null };
+  const world = { scene, renderer, camera, station, stations: routeWorld.stations, train, route, network: route.network, routeWorld, service, lighting, resize, environment, viewport, onResize: null };
   const handleResize = () => { if (resize()) world.onResize?.(); };
   const resizeObserver = new ResizeObserver(handleResize);
   resizeObserver.observe(container);

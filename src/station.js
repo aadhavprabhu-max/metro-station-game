@@ -207,7 +207,7 @@ export class Station extends THREE.Group {
         const circle = new THREE.Mesh(new THREE.CircleGeometry(0.035, 12), i === 1 ? m.yellow : m.whitePaint);
         circle.position.set(x, 0.04, 0.051); diagram.add(circle);
       }
-      label(diagram, 'Nordplatz   Museum   Rathaus   Central', 1.34, 0.13, [0, -0.17, 0.037], { background: '#d7dfd4', color: '#364c41', fontSize: 45 });
+      label(diagram, this.options.routeNames?.join('   •   ') ?? 'Nordplatz   Museum   Rathaus   Central', 1.34, 0.13, [0, -0.17, 0.037], { background: '#d7dfd4', color: '#364c41', fontSize: 45 });
       label(diagram, 'CITY METRO  •  INFORMATION', 1.34, 0.14, [0, -0.44, 0.037], { background: '#d7dfd4', color: '#697b6c', fontSize: 54 });
     }
   }
