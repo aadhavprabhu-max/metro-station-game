@@ -1,12 +1,12 @@
-import { INITIAL_DEPARTURES } from './departures.js';
-
 const STATE_LABELS = Object.freeze({ boarding: 'Boarding', closing: 'Doors closing', departing: 'Departing', travelling: 'Travelling', arriving: 'Arriving', stopped: 'Stopped' });
+const LINE_COLORS = Object.freeze({ U1: '#bb6343', U2: '#b4443d' });
 
 export class UI {
-  constructor(player, board, service = null, stations = []) {
+  constructor(player, board, service = null, stations = [], services = []) {
     this.player = player;
     this.board = board;
     this.service = service;
+    this.services = services.length ? services : service ? [service] : [];
     this.stations = stations;
     this.helpPanel = document.querySelector('#help-panel');
     this.helpButton = document.querySelector('#help-button');
@@ -14,6 +14,9 @@ export class UI {
     this.clockElement = document.querySelector('#station-clock');
     this.destinationElement = document.querySelector('.service-main strong');
     this.routeElement = document.querySelector('.service-main .line-badge');
+    this.locationLineElement = document.querySelector('#location-line');
+    this.serviceLabel = document.querySelector('#service-label');
+    this.startButtons = [...document.querySelectorAll('[data-start-line]')];
     this.minutesElement = document.querySelector('#service-countdown') ?? document.querySelector('.arrival').firstChild;
     this.countdownUnit = document.querySelector('#service-countdown-unit');
     this.platformElement = document.querySelector('#service-platform') ?? document.querySelector('.service-footer > span:last-child');
@@ -30,6 +33,15 @@ export class UI {
     this.lastTimetableKey = '';
     this.boardRevision = -1;
     this.lastClock = '';
+    const networkInfo = this.services.map(item => ({
+      id: item.lineId,
+      color: LINE_COLORS[item.lineId] ?? '#6094be',
+      stations: item.route.stops.map(stop => stop.name),
+    }));
+    for (const station of stations) {
+      station.departures?.setNetworkInfo(networkInfo);
+      station.departures?.setPlatformInfo(station.lineId ?? 'U1', station.platformNumber ?? '01', station.stationId === 'station-2');
+    }
     document.querySelector('#reset-button').addEventListener('click', () => { this.showHelp(false); this.player.reset(); });
     document.querySelector('.identity').addEventListener('click', event => { event.preventDefault(); this.player.reset(); });
     this.helpButton.addEventListener('click', () => this.showHelp(this.helpPanel.hidden));
@@ -38,6 +50,14 @@ export class UI {
     this.interactButton?.addEventListener('click', () => {
       if (this.player.enabled) this.player.interact?.();
     });
+    for (const button of this.startButtons) {
+      button.addEventListener('click', () => {
+        this.showHelp(false);
+        this.player.startAt?.(button.dataset.startLine, button.dataset.startStation);
+        this.lastRouteUpdate = -Infinity;
+        this.updateRoute();
+      });
+    }
     for (const button of document.querySelectorAll('[data-move]')) {
       button.addEventListener('pointerdown', event => { event.preventDefault(); if (!this.player.enabled) return; button.setPointerCapture(event.pointerId); this.player.keys.add(button.dataset.move); });
       for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => this.player.keys.delete(button.dataset.move));
@@ -61,7 +81,7 @@ export class UI {
       for (const board of this.boards()) board.setClock(clock);
       this.lastClock = clock;
     }
-    if (this.service) {
+    if (this.player.service ?? this.service) {
       // Movement is smooth every frame; text only needs a modest refresh rate.
       if (this.elapsed - this.lastRouteUpdate >= 0.12) {
         this.updateRoute();
@@ -85,8 +105,10 @@ export class UI {
   }
 
   updateRoute() {
-    const service = this.service;
+    const service = this.player.service ?? this.service;
+    if (!service) return;
     const state = service.snapshot();
+    const lineId = service.lineId ?? state.lineId ?? 'U1';
     const current = service.currentStop;
     const nextStop = service.nextStop;
     const destination = service.destinationStop;
@@ -94,18 +116,23 @@ export class UI {
     const docked = Math.abs(service.distance - current.distance) < 0.2 && service.speed < 0.01;
     const riding = Boolean(this.player.ridingCar);
     const station = riding && docked
-      ? this.stations.find(item => item.stationId === current.id)
+      ? this.stations.find(item => item.stationId === current.id && (item.lineId ?? 'U1') === lineId)
       : this.player.station;
     const stationName = riding && !docked ? 'On board' : station?.displayName ?? current.name;
     this.setText(this.locationElement, stationName);
-    this.setText(this.locationPlatform, riding && !docked ? 'U1 · Connecting tunnel' : `Platform ${station?.platformNumber ?? current.platform ?? '01'}`);
+    this.setText(this.locationPlatform, riding && !docked ? `${lineId} · Connecting tunnel` : `${station?.lineId ?? lineId} · Platform ${station?.platformNumber ?? current.platform ?? '01'}`);
     this.setText(this.locationDirection, direction);
     this.setText(this.destinationElement, destination.name);
-    this.setText(this.routeElement, 'U1');
+    for (const badge of [this.routeElement, this.locationLineElement]) {
+      this.setText(badge, lineId);
+      if (badge) badge.style.backgroundColor = LINE_COLORS[lineId] ?? '#6094be';
+    }
+    this.setText(this.serviceLabel, `${lineId} LIVE SERVICE`);
+    document.querySelector('.service-card')?.setAttribute('aria-label', `Live ${lineId} train service`);
     this.setText(this.statusElement, STATE_LABELS[service.state] ?? service.state);
     this.setText(this.detailElement, `${direction} · ${docked ? 'At ' + current.name : 'From ' + current.name}`);
     this.setText(this.nextStopElement, `Next stop · ${nextStop.name}`);
-    this.setText(this.platformElement, docked ? `Platform ${current.platform ?? '01'} →` : 'U1 · In service');
+    this.setText(this.platformElement, docked ? `Platform ${current.platform ?? '01'} →` : `${lineId} · In service`);
     const countdown = service.state === 'boarding' ? service.dwellRemaining
       : ['travelling', 'arriving', 'departing'].includes(service.state) ? state.arrivalSeconds : null;
     this.setText(this.minutesElement, countdown === null || !Number.isFinite(countdown) ? '—' : String(Math.max(0, Math.ceil(countdown))));
@@ -119,19 +146,20 @@ export class UI {
       this.interactButton.disabled = !this.player.enabled;
       this.setText(this.interactButton.querySelector('span'), hint.action === 'alight' ? 'Leave train' : 'Board train');
     }
+    for (const button of this.startButtons) button.setAttribute('aria-pressed', String(button.dataset.startLine === (this.player.startLineId ?? 'U1')));
 
     // A screen texture update costs much more than a HUD label. Each station's
     // departure row updates once per second, or immediately when state changes.
-    const key = `${Math.floor(this.elapsed)}:${service.state}:${current.id}:${nextStop.id}:${destination.id}:${service.direction}`;
+    const key = `${Math.floor(this.elapsed)}:${this.services.map(item => `${item.lineId}:${item.state}:${item.currentStop.id}:${item.nextStop.id}:${item.destinationStop.id}:${item.direction}`).join('|')}`;
     if (key === this.lastTimetableKey) return;
     this.lastTimetableKey = key;
     for (const station of this.stations) {
       const board = station.departures;
       if (!board) continue;
-      const rows = service.departuresFor(station.stationId).map(departure => {
+      const rows = this.services.flatMap(item => item.departuresFor(station.stationId).map(departure => {
         let due;
         if (departure.atPlatform) {
-          due = departure.state === 'boarding' ? `${Math.max(0, Math.ceil(service.dwellRemaining))} s`
+          due = departure.state === 'boarding' ? `${Math.max(0, Math.ceil(item.dwellRemaining))} s`
             : departure.state === 'closing' ? 'Closing' : departure.state === 'stopped' ? 'Stopped' : 'Now';
         } else if (departure.state === 'arriving') {
           due = 'Arriving';
@@ -140,12 +168,12 @@ export class UI {
           due = seconds < 60 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`;
         }
         return {
-          route: 'U1', destination: departure.destinationStop.name,
+          route: item.lineId, destination: departure.destinationStop.name,
           nextStop: departure.nextStop.name, direction: departure.directionName,
-          platform: departure.platform ?? station.platformNumber ?? '01', color: '#c8784d', due,
+          platform: departure.platform ?? station.platformNumber ?? '01', color: item.lineId === 'U1' ? '#c8784d' : LINE_COLORS[item.lineId] ?? '#6094be', due,
         };
-      });
-      board.setDepartures([...rows, ...INITIAL_DEPARTURES.filter(item => item.route !== 'U1')].slice(0, 5));
+      }));
+      board.setDepartures(rows.slice(0, 5));
     }
   }
 

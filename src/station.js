@@ -69,10 +69,14 @@ export class Station extends THREE.Group {
     this.displayName = options.displayName ?? 'Nordplatz';
     this.destinationName = options.destinationName ?? 'Central';
     this.platformNumber = options.platformNumber ?? '01';
+    this.lineId = options.lineId ?? 'U1';
+    this.lineIds = [this.lineId];
+    this.platformId = `${this.stationId}:${this.lineId}`;
     this.name = `${this.displayName}Station`;
     this.options = { northCap: true, southCap: true, signageColor: '#396057', ...options };
     this.colliders = [];
     this.bounds = { minX: -9.65, maxX: -0.68, minZ: -42.7, maxZ: 42.7 };
+    this.walkableAreas = [this.bounds, ...(options.walkableAreas ?? [])];
     this.platform = new Platform(materials);
     this.track = new Track(materials);
     this.add(this.platform, this.track);
@@ -89,7 +93,15 @@ export class Station extends THREE.Group {
   }
 
   buildArchitecture(m) {
-    box(this, m.concrete, [0.35, 5.7, 90], [-10.1, 2.77, 0]);
+    const opening = this.options.backwallOpening;
+    if (opening) {
+      const leftEdge = opening.z - opening.width / 2, rightEdge = opening.z + opening.width / 2;
+      const height = opening.height ?? 3.05;
+      for (const [start, end] of [[-45, leftEdge], [rightEdge, 45]]) {
+        if (end > start) box(this, m.concrete, [0.35, 5.7, end - start], [-10.1, 2.77, (start + end) / 2]);
+      }
+      box(this, m.concrete, [0.35, 5.62 - height, opening.width], [-10.1, (height + 5.62) / 2, opening.z]);
+    } else box(this, m.concrete, [0.35, 5.7, 90], [-10.1, 2.77, 0]);
     box(this, m.concrete, [0.4, 5.7, 90], [7.85, 2.77, 0]);
     box(this, m.concrete, [18.1, 0.3, 90], [-1.1, 5.53, 0]);
     // Open track portals anchor the ends of the platform.
@@ -103,8 +115,17 @@ export class Station extends THREE.Group {
     const panels = [], lowerPanels = [], crossBeams = [], ceilingSlats = [];
     for (let z = -42; z <= 42; z += 3) {
       for (const x of [-9.9, 7.62]) {
-        panels.push({ size: [0.07, 2.44, 2.965], position: [x, 2.33, z] });
-        lowerPanels.push({ size: [0.095, 1.11, 2.965], position: [x, 0.6, z] });
+        const sections = this.wallPanelSections(x, z, 2.965);
+        for (const section of sections) {
+          panels.push({ size: [0.07, 2.44, section.depth], position: [x, 2.33, section.z] });
+          lowerPanels.push({ size: [0.095, 1.11, section.depth], position: [x, 0.6, section.z] });
+        }
+        if (opening && x < 0 && Math.abs(z - opening.z) < (opening.width + 2.965) / 2) {
+          const left = Math.max(z - 2.965 / 2, opening.z - opening.width / 2);
+          const right = Math.min(z + 2.965 / 2, opening.z + opening.width / 2);
+          const bottom = opening.height ?? 3.05;
+          if (right > left && bottom < 3.55) panels.push({ size: [0.07, 3.55 - bottom, right - left], position: [x, (bottom + 3.55) / 2, (left + right) / 2] });
+        }
       }
     }
     instances(this, m.wallTile, panels);
@@ -117,7 +138,7 @@ export class Station extends THREE.Group {
       box(this, m.concrete, [0.62, 5.23, 0.72], [-8.3, 2.6, z]);
       box(this, m.steel, [0.67, 0.72, 0.77], [-8.3, 0.36, z]);
       box(this, m.greenTile, [0.64, 1.07, 0.74], [-8.3, 1.65, z]);
-      label(this, '01', 0.38, 0.22, [-7.97, 1.8, z], { rotation: [0, Math.PI / 2, 0], fontSize: 250, background: '#496a60' });
+      label(this, this.platformNumber, 0.38, 0.22, [-7.97, 1.8, z], { rotation: [0, Math.PI / 2, 0], fontSize: 250, background: this.options.platformSignColor ?? '#496a60' });
       this.addCollider(-8.3, z, 0.67, 0.77);
     }
     // Cable trays, conduit, and ventilation stay close to the far wall.
@@ -129,6 +150,18 @@ export class Station extends THREE.Group {
       for (let i = 0; i < 7; i++) ventSlats.push({ size: [0.07, 0.035, 2.33], position: [7.475, 3.46 + i * 0.065, z] });
     }
     instances(this, m.aluminum, ventSlats, undefined, false);
+  }
+
+  wallPanelSections(x, z, depth) {
+    const opening = this.options.backwallOpening;
+    if (!opening || x > 0) return [{ z, depth }];
+    const start = z - depth / 2, end = z + depth / 2;
+    const gapStart = opening.z - opening.width / 2, gapEnd = opening.z + opening.width / 2;
+    if (end <= gapStart || start >= gapEnd) return [{ z, depth }];
+    const sections = [];
+    if (start < gapStart) sections.push({ z: (start + gapStart) / 2, depth: gapStart - start });
+    if (end > gapEnd) sections.push({ z: (gapEnd + end) / 2, depth: end - gapEnd });
+    return sections;
   }
 
   buildFurniture(m) {
@@ -175,7 +208,10 @@ export class Station extends THREE.Group {
   buildSignage(m) {
     for (const z of [-27, -8, 12, 32]) {
       label(this, this.displayName.toUpperCase(), 4.65, 0.65, [7.58, 2.6, z], { rotation: [0, -Math.PI / 2, 0], background: this.options.signageColor, color: '#f0f0e0', fontSize: 94 });
-      label(this, this.displayName.toUpperCase(), 3.35, 0.48, [-9.85, 2.73, z + 3], { rotation: [0, Math.PI / 2, 0], background: this.options.signageColor, color: '#f0f0e0', fontSize: 94 });
+      const opening = this.options.backwallOpening;
+      if (!opening || Math.abs(z + 3 - opening.z) > (opening.width + 3.35) / 2) {
+        label(this, this.displayName.toUpperCase(), 3.35, 0.48, [-9.85, 2.73, z + 3], { rotation: [0, Math.PI / 2, 0], background: this.options.signageColor, color: '#f0f0e0', fontSize: 94 });
+      }
     }
     for (const z of [-6, 18, 38]) {
       const sign = new THREE.Group();
@@ -191,7 +227,7 @@ export class Station extends THREE.Group {
     platformSign.rotation.y = -2.65;
     this.add(platformSign);
     box(platformSign, m.dark, [2.62, 0.61, 0.11], [0, 0, 0]);
-    label(platformSign, `${this.platformNumber}   U1  → ${this.destinationName.toUpperCase()}`, 2.5, 0.49, [0, 0, 0.062], { fontSize: 75 });
+    label(platformSign, `${this.platformNumber}   ${this.lineId}  → ${this.destinationName.toUpperCase()}`, 2.5, 0.49, [0, 0, 0.062], { fontSize: 75 });
     for (const x of [-0.9, 0.9]) box(platformSign, m.steel, [0.035, 1.3, 0.035], [x, 0.97, 0]);
     // A self-contained route diagram; no external fonts or image assets.
     for (const z of [-21, 9]) {
@@ -200,7 +236,7 @@ export class Station extends THREE.Group {
       diagram.rotation.y = Math.PI / 2;
       this.add(diagram);
       box(diagram, m.aluminum, [1.58, 1.24, 0.04], [0, 0, 0]);
-      label(diagram, 'U1  /  THE CENTRAL LINE', 1.42, 0.18, [0, 0.44, 0.03], { background: '#d7dfd4', color: '#2c594e', fontSize: 71 });
+      label(diagram, `${this.lineId}  /  ${this.options.lineName ?? 'THE CENTRAL LINE'}`, 1.42, 0.18, [0, 0.44, 0.03], { background: '#d7dfd4', color: '#2c594e', fontSize: 71 });
       box(diagram, m.trainAccent, [1.13, 0.026, 0.023], [0, 0.04, 0.033], { shadow: false });
       for (let i = 0; i < 5; i++) {
         const x = -0.55 + i * 0.275;

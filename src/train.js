@@ -17,10 +17,13 @@ function windowAssembly(parent, materials, side, z, width, height = 1.16, y = 1.
 }
 
 export class TrainCar extends THREE.Group {
-  constructor(materials, { index = 0, leading = false, trailing = false } = {}) {
+  constructor(materials, { index = 0, leading = false, trailing = false, lineId = 'U1', platformSide = -1 } = {}) {
     super();
     this.name = `TrainCar-${index + 1}`;
     this.carNumber = 101 + index;
+    this.lineId = lineId;
+    this.platformSide = platformSide;
+    this.destination = 'Central';
     this.doors = [];
     this.doorways = [];
     this.destinationDisplays = [];
@@ -203,14 +206,17 @@ export class TrainCar extends THREE.Group {
   }
 
   addDestinationDisplay(parent, width, height, position, options) {
-    const display = label(parent, 'U1   CENTRAL', width, height, position, options);
+    const display = label(parent, `${this.lineId}   ${this.destination.toUpperCase()}`, width, height, position, options);
     display.name = 'DestinationDisplay';
     display.userData.dynamic = true;
+    display.userData.lineId = this.lineId;
+    display.userData.destination = this.destination;
     this.destinationDisplays.push({ display, options });
     return display;
   }
 
   setDestination(destination) {
+    this.destination = destination;
     for (const { display, options } of this.destinationDisplays) {
       const texture = display.material.map;
       const canvas = texture.image;
@@ -220,10 +226,23 @@ export class TrainCar extends THREE.Group {
       ctx.fillStyle = options.color;
       ctx.font = `600 ${options.fontSize}px Arial, sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(`U1   ${destination.toUpperCase()}`, canvas.width / 2, canvas.height / 2, canvas.width - 50);
+      ctx.fillText(`${this.lineId}   ${destination.toUpperCase()}`, canvas.width / 2, canvas.height / 2, canvas.width - 50);
       texture.needsUpdate = true;
       display.userData.destination = destination;
+      display.userData.lineId = this.lineId;
     }
+  }
+
+  setLineId(lineId) {
+    if (this.lineId === lineId) return;
+    this.lineId = lineId;
+    this.setDestination(this.destination);
+  }
+
+  setPlatformSide(side) {
+    if (side !== -1 && side !== 1) throw new Error('A train platform side must be -1 or 1.');
+    this.platformSide = side;
+    this.applyDoorPositions();
   }
 
   setDirection(direction) {
@@ -237,19 +256,19 @@ export class TrainCar extends THREE.Group {
     }
   }
 
-  openDoors(side = -1) {
+  openDoors(side = this.platformSide) {
     if (side == null) { this.doorTargets[-1] = 1; this.doorTargets[1] = 1; }
     else this.doorTargets[side] = 1;
-    this.doorTarget = this.doorTargets[-1];
+    this.doorTarget = this.doorTargets[this.platformSide];
   }
 
   closeDoors(side = null) {
     if (side == null) { this.doorTargets[-1] = 0; this.doorTargets[1] = 0; }
     else this.doorTargets[side] = 0;
-    this.doorTarget = this.doorTargets[-1];
+    this.doorTarget = this.doorTargets[this.platformSide];
   }
 
-  setDoorsOpen(side = -1) {
+  setDoorsOpen(side = this.platformSide) {
     this.closeDoors();
     this.doorTargets[side] = 1;
     this.doorProgressBySide[-1] = side === -1 ? 1 : 0;
@@ -258,8 +277,8 @@ export class TrainCar extends THREE.Group {
   }
 
   applyDoorPositions() {
-    this.doorProgress = this.doorProgressBySide[-1];
-    this.doorTarget = this.doorTargets[-1];
+    this.doorProgress = this.doorProgressBySide[this.platformSide];
+    this.doorTarget = this.doorTargets[this.platformSide];
     for (const leaf of this.doors) {
       leaf.position.z = leaf.userData.closedZ + leaf.userData.direction * this.doorProgressBySide[leaf.userData.side] * 0.81;
     }
@@ -277,13 +296,23 @@ export class TrainCar extends THREE.Group {
 }
 
 export class Train extends THREE.Group {
-  constructor(materials, { carCount = 3, position = [1.57, 0, 0] } = {}) {
+  constructor(materials, { carCount = 3, position = [1.57, 0, 0], lineId = 'U1', platformSide = -1, accentColor = null } = {}) {
     super();
-    this.name = 'MetroTrain';
+    this.name = lineId === 'U1' ? 'MetroTrain' : `${lineId}-MetroTrain`;
+    this.lineId = lineId;
+    this.platformSide = platformSide;
+    this.direction = 1;
+    this.destination = 'Central';
+    if (accentColor) {
+      const trainAccent = materials.trainAccent.clone();
+      trainAccent.color.set(accentColor);
+      materials = { ...materials, trainAccent };
+    }
+    this.materials = materials;
     this.position.set(...position);
     this.cars = [];
     for (let i = 0; i < carCount; i++) {
-      const car = new TrainCar(materials, { index: i, leading: i === 0, trailing: i === carCount - 1 });
+      const car = new TrainCar(materials, { index: i, leading: i === 0, trailing: i === carCount - 1, lineId, platformSide });
       car.position.z = (i - (carCount - 1) / 2) * CAR_SPACING;
       this.cars.push(car); this.add(car);
       if (i < carCount - 1) {
@@ -300,14 +329,19 @@ export class Train extends THREE.Group {
       }
     }
   }
-  get doorsOpen() { return this.cars.every(car => car.doorProgressBySide[-1] >= 0.98); }
+  get doorsOpen() { return this.cars.every(car => car.doorProgressBySide[this.platformSide] >= 0.98); }
   get doorsClosed() { return this.cars.every(car => Object.values(car.doorProgressBySide).every(progress => progress === 0)); }
+  get doorsMoving() { return this.cars.some(car => [-1, 1].some(side => car.doorProgressBySide[side] !== car.doorTargets[side])); }
 
   get boardingDoors() {
+    return this.getBoardingDoors();
+  }
+
+  getBoardingDoors(side = this.platformSide) {
     this.updateWorldMatrix(true, true);
-    return this.cars.flatMap((car, carIndex) => car.doorways.filter(door => door.side === -1).map(door => ({
-      carIndex, localZ: door.localZ, side: -1, width: 1.72,
-      position: car.localToWorld(new THREE.Vector3(-1.397, 0.1, door.localZ)),
+    return this.cars.flatMap((car, carIndex) => car.doorways.filter(door => door.side === side).map(door => ({
+      carIndex, localZ: door.localZ, side, width: 1.72,
+      position: car.localToWorld(new THREE.Vector3(side * 1.397, 0.1, door.localZ)),
     })));
   }
 
@@ -327,10 +361,19 @@ export class Train extends THREE.Group {
     return { minX: center.x - 1.02, maxX: center.x + 1.02, minZ: center.z - 6.75, maxZ: center.z + 6.75, floorY: center.y + 0.095 };
   }
 
-  openDoors(side = -1) { this.cars.forEach(car => car.openDoors(side)); }
+  setPlatformSide(side) {
+    if (side !== -1 && side !== 1) throw new Error('A train platform side must be -1 or 1.');
+    this.platformSide = side;
+    this.cars.forEach(car => car.setPlatformSide(side));
+  }
+  setLineId(lineId) {
+    this.lineId = lineId;
+    this.cars.forEach(car => car.setLineId(lineId));
+  }
+  openDoors(side = this.platformSide) { this.cars.forEach(car => car.openDoors(side)); }
   closeDoors(side = null) { this.cars.forEach(car => car.closeDoors(side)); }
-  setDoorsOpen(side = -1) { this.cars.forEach(car => car.setDoorsOpen(side)); }
-  setDestination(destination) { this.cars.forEach(car => car.setDestination(destination)); }
-  setDirection(direction) { this.cars.forEach(car => car.setDirection(direction)); }
+  setDoorsOpen(side = this.platformSide) { this.cars.forEach(car => car.setDoorsOpen(side)); }
+  setDestination(destination) { this.destination = destination; this.cars.forEach(car => car.setDestination(destination)); }
+  setDirection(direction) { this.direction = direction; this.cars.forEach(car => car.setDirection(direction)); }
   update(delta) { this.cars.forEach(car => car.update(delta)); }
 }

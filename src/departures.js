@@ -1,13 +1,8 @@
 import * as THREE from 'three';
 import { box, canvasTexture } from './geometry.js';
 
-export const INITIAL_DEPARTURES = [
-  { route: 'U1', destination: 'Central', minutes: 2, platform: '01', color: '#c8784d' },
-  { route: 'U3', destination: 'Airport', minutes: 6, platform: '01', color: '#509b91' },
-  { route: 'U6', destination: 'City Centre', minutes: 11, platform: '02', color: '#a28abb' },
-  { route: 'U2', destination: 'North Park', minutes: 16, platform: '02', color: '#6094be' },
-  { route: 'U4', destination: 'West End', minutes: 22, platform: '01', color: '#c9ab58' },
-];
+// Live rows come from each running train service; no sample timetable is shown.
+export const INITIAL_DEPARTURES = [];
 
 /** The same data feeds the physical display and the small HUD. */
 export class DeparturesBoard extends THREE.Group {
@@ -19,6 +14,10 @@ export class DeparturesBoard extends THREE.Group {
     this.departures = INITIAL_DEPARTURES.map(item => ({ ...item }));
     this.clock = '14:32';
     this.stationName = stationName;
+    this.networkInfo = [];
+    this.platformLineId = 'U1';
+    this.platformNumber = '01';
+    this.interchange = false;
     this.revision = 0;
     box(this, materials.dark, [4.35, 1.88, 0.18], [0, 0, 0]);
     box(this, materials.aluminum, [4.4, 0.03, 0.18], [0, -0.93, 0]);
@@ -56,6 +55,20 @@ export class DeparturesBoard extends THREE.Group {
     this.renderDisplay();
   }
 
+  setNetworkInfo(lines) {
+    if (JSON.stringify(lines) === JSON.stringify(this.networkInfo)) return;
+    this.networkInfo = lines.map(line => ({ ...line, stations: [...line.stations] }));
+    this.renderDisplay();
+  }
+
+  setPlatformInfo(lineId, platform, interchange = false) {
+    if (lineId === this.platformLineId && platform === this.platformNumber && interchange === this.interchange) return;
+    this.platformLineId = lineId;
+    this.platformNumber = platform;
+    this.interchange = interchange;
+    this.renderDisplay();
+  }
+
   renderDisplay() {
     const ctx = this.canvas.getContext('2d');
     const w = this.canvas.width;
@@ -81,7 +94,16 @@ export class DeparturesBoard extends THREE.Group {
       ctx.textAlign = 'right'; ctx.fillStyle = '#e8c779'; ctx.font = item.due && item.due.length > 7 ? '32px monospace' : '40px monospace'; ctx.fillText(item.due ?? `${item.minutes} min`, w - 56, y + 8); ctx.textAlign = 'left';
       ctx.fillStyle = '#263a34'; ctx.fillRect(56, y + 38, w - 112, 1);
     });
-    ctx.fillStyle = '#86a296'; ctx.font = '20px Arial'; ctx.fillText(`${this.stationName.toUpperCase()}     •     Please stand behind the safety line`, 56, 620);
+    if (this.networkInfo.length && this.departures.length < 5) {
+      const y = 190 + this.departures.length * 84;
+      ctx.fillStyle = '#7fa398'; ctx.font = '20px Arial'; ctx.fillText('LIVE NETWORK · CHANGE AT CENTRAL', 56, y - 3);
+      this.networkInfo.slice(0, 2).forEach((line, index) => {
+        ctx.fillStyle = line.color; ctx.font = 'bold 24px Arial'; ctx.fillText(line.id, 56, y + 25 + index * 27);
+        ctx.fillStyle = '#b6c9bd'; ctx.font = '22px Arial'; ctx.fillText(line.stations.join('  →  '), 128, y + 25 + index * 27, w - 184);
+      });
+    }
+    const guidance = this.interchange ? 'U1 / U2 transfer · Follow passage signs' : 'Please stand behind the safety line';
+    ctx.fillStyle = '#86a296'; ctx.font = '20px Arial'; ctx.fillText(`${this.stationName.toUpperCase()}  ·  ${this.platformLineId} PLATFORM ${this.platformNumber}  ·  ${guidance}`, 56, 620, w - 112);
     this.texture.needsUpdate = true;
   }
 }

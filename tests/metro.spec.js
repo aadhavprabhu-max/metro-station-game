@@ -26,7 +26,8 @@ test('renders the train, station, and readable board at the exact spawn without 
   });
   expect(result.ready).toBe(true);
   expect(result.carCount).toBe(3);
-  expect(result.departures).toHaveLength(5);
+  expect(result.departures).toHaveLength(1);
+  expect(result.departures[0]).toMatchObject({ route: 'U1', destination: 'Rosenheimer Platz', nextStop: 'Central', platform: '01' });
   expect(result.trainVisible).toEqual([true, true, true]);
   expect(result.boardVisible).toBe(true);
   expect(result.glError).toBe(0);

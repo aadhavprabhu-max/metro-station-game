@@ -2,29 +2,47 @@ import './style.css';
 import { createScene } from './scene.js';
 import { PlayerController } from './player.js';
 import { UI, showError } from './ui.js';
+import { WorldVisibility } from './visibility.js';
 
 try {
   const world = createScene(document.querySelector('#scene'));
   const player = new PlayerController(world.camera, world.renderer.domElement, world.station);
-  player.configureService(world.service, world.stations);
-  const ui = new UI(player, world.station.departures, world.service, world.stations);
+  player.configureServices(world.services, world.stations);
+  if (new URLSearchParams(location.search).get('line') === 'U2') player.startAt('U2', 'u2-stadtzentrum');
+  const ui = new UI(player, world.station.departures, world.service, world.stations, world.services);
+  const visibility = new WorldVisibility(world);
+  world.visibility = visibility;
   let shadowTimer = 0;
   let shadowAnchor = 0;
+  let shadowAnchorX = 0;
+  let shadowLine = 'U1';
   world.update = delta => {
-    world.service.update(delta);
+    for (const service of world.services) service.update(delta);
     player.update(delta);
+    visibility.update(player);
     ui.update(delta);
     shadowTimer += delta;
-    const anchor = player.ridingCar ? world.train.position.z : player.station.position.z;
-    if (Math.abs(anchor - shadowAnchor) > 0.75) {
-      world.lighting.keyLight.position.z = -25 + anchor;
-      world.lighting.keyLight.target.position.z = -12 + anchor;
+    const active = player.service ?? world.service;
+    const closestStop = player.ridingCar ? active.route.stops.reduce((nearest, stop) =>
+      Math.abs(stop.distance - active.distance) < Math.abs(nearest.distance - active.distance) ? stop : nearest,
+    ) : null;
+    const platform = closestStop ? world.stations.find(station => station.stationId === closestStop.id && station.lineId === active.lineId) : player.station;
+    world.lighting.usePlatform(platform.platformId);
+    platform.updateWorldMatrix(true, false);
+    const matrix = platform.matrixWorld.elements;
+    const anchor = player.ridingCar ? active.train.position.z : matrix[14];
+    const anchorX = matrix[12];
+    if (Math.abs(anchor - shadowAnchor) > 0.75 || Math.abs(anchorX - shadowAnchorX) > 0.75 || active.lineId !== shadowLine) {
+      world.lighting.keyLight.position.set(anchorX - 5 * matrix[0] - 25 * matrix[8], 4.8, anchor - 5 * matrix[2] - 25 * matrix[10]);
+      world.lighting.keyLight.target.position.set(anchorX + matrix[0] - 12 * matrix[8], 0, anchor + matrix[2] - 12 * matrix[10]);
       shadowAnchor = anchor;
+      shadowAnchorX = anchorX;
+      shadowLine = active.lineId;
       world.renderer.shadowMap.needsUpdate = true;
     }
     // Refresh moving train and door shadows at a limited rate.
     if (shadowTimer >= 0.12) {
-      if (world.service.speed > 0 || world.train.cars.some(car => car.doorProgress !== car.doorTarget)) world.renderer.shadowMap.needsUpdate = true;
+      if (world.services.some(service => service.speed > 0 || service.train.doorsMoving)) world.renderer.shadowMap.needsUpdate = true;
       shadowTimer = 0;
     }
   };
@@ -49,7 +67,10 @@ try {
         status: this.status,
         position: world.camera.position.toArray(), yaw: player.yaw, pitch: player.pitch,
         dragging: Boolean(player.drag), carCount: world.train.cars.length,
-        service: world.service.snapshot(),
+        service: (player.service ?? world.service).snapshot(),
+        services: world.services.map(service => service.snapshot()),
+        activeLineId: player.service?.lineId ?? 'U1',
+        stationCount: world.network.nodes.size, trainCount: world.trains.length,
         riding: Boolean(player.ridingCar), currentStation: player.station.displayName,
         departures: world.station.departures.departures.map(item => ({ ...item })),
         drawCalls: world.renderer.info.render.calls,

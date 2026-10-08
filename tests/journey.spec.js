@@ -73,7 +73,7 @@ test('the connected train completes both directions continuously with doors shut
       finalDisplayDestinations: train.cars.flatMap(car => car.destinationDisplays.map(({ display }) => display.userData.destination)),
       stops: route.stops, finalDistance: service.distance, finalSpeed: service.speed,
       finalDoors: train.cars.map(car => ({ target: car.doorTarget, progress: car.doorProgress })),
-      destinations: world.stations.map(station => station.departures.departures[0].destination),
+      destinations: world.stations.filter(station => station.lineId === 'U1').map(station => station.departures.departures.find(row => row.route === 'U1').destination),
       glError: world.renderer.getContext().getError(),
     };
   });

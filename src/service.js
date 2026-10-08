@@ -10,6 +10,7 @@ export class TrainService {
     this.train = train;
     this.route = route;
     this.lineId = route.lineId ?? route.id ?? 'U1';
+    this.deferReversal = options.deferReversal ?? false;
     this.maxSpeed = options.maxSpeed ?? 10;
     this.acceleration = options.acceleration ?? 0.9;
     this.braking = options.braking ?? 1.1;
@@ -28,15 +29,19 @@ export class TrainService {
     this.nextStop = this.route.stops[1];
     this.distance = this.currentStop.distance;
     this.direction = 1;
+    this.cabDirection = this.direction;
+    this.reversalPending = false;
     this.destinationStop = this.terminusFor(this.direction);
     this.speed = 0;
     this.state = 'boarding';
     this.stateTime = 0;
     this.dwellRemaining = this.initialDwell;
     this.completedLegs = 0;
-    this.train.setDirection(this.direction);
+    this.train.setLineId?.(this.lineId);
+    this.train.setPlatformSide?.(this.platformSide);
+    this.train.setDirection(this.cabDirection);
     this.train.setDestination(this.destinationStop.name);
-    this.train.setDoorsOpen(-1);
+    this.train.setDoorsOpen(this.platformSide);
     this.placeTrain();
   }
 
@@ -48,7 +53,15 @@ export class TrainService {
     return this.state === 'boarding' && this.atStation && this.train.doorsOpen;
   }
 
-  get directionName() { return this.direction > 0 ? 'Northbound' : 'Southbound'; }
+  get directionName() { return this.directionLabel(this.direction); }
+
+  directionLabel(direction) {
+    return this.route.directionNames?.[direction] ?? (direction > 0 ? 'Northbound' : 'Southbound');
+  }
+
+  get platformSide() {
+    return this.currentStop.platformSide ?? this.route.platformSide ?? this.train.platformSide ?? -1;
+  }
 
   get isTerminus() {
     return this.currentStop === this.route.stops[0]
@@ -112,12 +125,13 @@ export class TrainService {
         route: this.lineId,
         stationId,
         direction,
-        directionName: direction > 0 ? 'Northbound' : 'Southbound',
+        directionName: this.directionLabel(direction),
         destination: destinationStop.name,
         destinationStop,
         nextStation: nextStop.name,
         nextStop,
         platform: stop.platform,
+        platformSide: stop.platformSide ?? this.route.platformSide ?? this.train.platformSide ?? -1,
         dueSeconds: Math.max(0, dueSeconds),
         atPlatform,
         state: atPlatform ? this.state
@@ -179,7 +193,12 @@ export class TrainService {
     else if (this.stopIndex === 0) this.direction = 1;
     this.nextStop = this.route.stops[this.stopIndex + this.direction];
     this.destinationStop = this.terminusFor(this.direction);
-    this.train.setDirection(this.direction);
+    this.train.setPlatformSide?.(this.platformSide);
+    this.reversalPending = this.deferReversal && this.cabDirection !== this.direction;
+    if (!this.reversalPending) {
+      this.cabDirection = this.direction;
+      this.train.setDirection(this.cabDirection);
+    }
     this.train.setDestination(this.destinationStop.name);
     this.changeState('stopped');
     this.placeTrain();
@@ -221,7 +240,16 @@ export class TrainService {
         }
         break;
       case 'closing':
-        if (this.stateTime >= this.closingDuration && this.train.doorsClosed) this.changeState('departing');
+        if (this.stateTime >= this.closingDuration && this.train.doorsClosed) {
+          // A reversing service switches the active cab only after its dwell
+          // and complete door closure. Its connected cars never turn around.
+          if (this.reversalPending) {
+            this.cabDirection = this.direction;
+            this.train.setDirection(this.cabDirection);
+            this.reversalPending = false;
+          }
+          this.changeState('departing');
+        }
         break;
       case 'departing':
         if (this.stateTime >= this.departurePause && this.train.doorsClosed) this.move(delta);
@@ -233,7 +261,7 @@ export class TrainService {
       case 'stopped':
         if (this.stateTime >= this.stopPause) {
           this.dwellRemaining = this.dwellDuration;
-          this.train.openDoors(-1);
+          this.train.openDoors(this.platformSide);
           this.changeState('boarding');
         }
         break;
@@ -256,6 +284,7 @@ export class TrainService {
   snapshot() {
     const describeStop = stop => ({
       id: stop.id, name: stop.name, distance: stop.distance, platform: stop.platform,
+      platformSide: stop.platformSide ?? this.route.platformSide ?? this.train.platformSide ?? -1,
       nodeId: stop.node?.id ?? stop.id,
       isTerminus: stop === this.route.stops[0] || stop === this.route.stops[this.route.stops.length - 1],
       interchange: Boolean(stop.interchange || (stop.node?.lineIds?.length ?? 0) > 1),
@@ -268,8 +297,11 @@ export class TrainService {
       speed: this.speed,
       distance: this.distance,
       direction: this.direction,
+      cabDirection: this.cabDirection,
+      reversalPending: this.reversalPending,
       directionName: this.directionName,
       lineId: this.lineId,
+      platformSide: this.platformSide,
       isTerminus: this.isTerminus,
       currentStop: describeStop(this.currentStop),
       nextStop: describeStop(this.nextStop),

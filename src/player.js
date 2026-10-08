@@ -11,7 +11,10 @@ export class PlayerController {
     this.bounds = station.bounds;
     this.colliders = station.colliders;
     this.stations = [station];
+    this.services = [];
     this.service = null;
+    this.startLineId = station.lineId ?? 'U1';
+    this.startStationId = station.stationId;
     this.ridingCar = null;
     this.ridingOffset = new THREE.Vector3();
     this.interiorObstacles = [];
@@ -80,14 +83,30 @@ export class PlayerController {
   applyLook() { this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ'); }
 
   configureService(service, stations) {
-    this.service = service;
+    this.configureServices([service], stations);
+  }
+
+  configureServices(services, stations) {
+    this.services = services;
     this.stations = stations;
+    this.service = services.find(service => service.lineId === (this.station.lineId ?? 'U1')) ?? services[0];
   }
 
   useStation(station) {
     this.station = station;
     this.bounds = station.bounds;
     this.colliders = station.colliders;
+    if (!this.ridingCar) this.service = this.services.find(service => service.lineId === (station.lineId ?? 'U1')) ?? this.service;
+  }
+
+  startAt(lineId, stationId = null) {
+    const service = this.services.find(item => item.lineId === lineId);
+    const id = stationId ?? service?.route.stops[0].id;
+    if (!service || !this.stations.some(station => station.stationId === id && station.lineId === lineId)) return false;
+    this.startLineId = lineId;
+    this.startStationId = id;
+    this.reset();
+    return true;
   }
 
   interactionHint() {
@@ -110,19 +129,21 @@ export class PlayerController {
     if (!this.enabled || !this.interactionHint().enabled) return false;
     const { service } = this;
     if (this.ridingCar) {
-      const station = this.stations.find(item => item.stationId === service.currentStop.id);
+      const station = this.stations.find(item => item.stationId === service.currentStop.id && (item.lineId ?? 'U1') === service.lineId);
       const train = service.train;
       const doors = train.boardingDoors.filter(door => train.cars[door.carIndex] === this.ridingCar);
       const door = doors.reduce((best, item) => Math.abs(item.position.z - this.camera.position.z) < Math.abs(best.position.z - this.camera.position.z) ? item : best);
       this.ridingCar = null;
       this.useStation(station);
-      this.camera.position.set(-1.3 + station.position.x, SPAWN.y + station.position.y, door.position.z);
+      const localDoor = station.worldToLocal(door.position.clone());
+      this.camera.position.set(-1.3, SPAWN.y, localDoor.z);
+      station.localToWorld(this.camera.position);
       this.keys.clear();
       return true;
     }
     const door = service.train.nearestBoardingDoor(this.camera.position.x, this.camera.position.z);
     this.ridingCar = service.train.cars[door.carIndex];
-    this.ridingOffset.set(-0.45, 1.85, this.ridingCar.position.z + door.localZ);
+    this.ridingOffset.set(door.side * 0.45, 1.85, this.ridingCar.position.z + door.localZ);
     this.interiorObstacles = [];
     // Seats and grab poles keep the rider in the aisle and vestibules.
     for (const side of [-1, 1]) for (const z of [-7.2, -3.5, -2.55, -1.6, 1.6, 2.55, 3.5, 7.2]) {
@@ -144,9 +165,12 @@ export class PlayerController {
     this.releaseDrag();
     this.keys.clear();
     this.ridingCar = null;
-    this.useStation(this.stations[0]);
+    const start = this.stations.find(station => station.stationId === this.startStationId && (station.lineId ?? 'U1') === this.startLineId) ?? this.stations[0];
+    this.useStation(start);
     this.camera.position.set(SPAWN.x, SPAWN.y, SPAWN.z);
-    this.yaw = Math.atan2(-(SPAWN.targetX - SPAWN.x), -(SPAWN.targetZ - SPAWN.z));
+    start.localToWorld(this.camera.position);
+    const target = start.localToWorld(new THREE.Vector3(SPAWN.targetX, SPAWN.y, SPAWN.targetZ));
+    this.yaw = Math.atan2(-(target.x - this.camera.position.x), -(target.z - this.camera.position.z));
     this.pitch = -0.005;
     this.distanceTravelled = 0;
     this.applyLook();
@@ -158,6 +182,34 @@ export class PlayerController {
       const closestZ = THREE.MathUtils.clamp(z, rect.minZ, rect.maxZ);
       return (x - closestX) ** 2 + (z - closestZ) ** 2 < this.radius ** 2;
     });
+  }
+
+  constrainPlatformAxis(value, fixed, axis, fallback) {
+    const other = axis === 'X' ? 'Z' : 'X';
+    const areas = this.station.walkableAreas ?? [this.bounds];
+    let nearest = fallback, nearestDistance = Infinity;
+    for (const area of areas) {
+      if (fixed < area[`min${other}`] + this.radius || fixed > area[`max${other}`] - this.radius) continue;
+      const candidate = THREE.MathUtils.clamp(value, area[`min${axis}`] + this.radius, area[`max${axis}`] - this.radius);
+      const distance = Math.abs(candidate - value);
+      if (distance < nearestDistance) { nearest = candidate; nearestDistance = distance; }
+    }
+    return nearest;
+  }
+
+  updatePlatformContext() {
+    // The interchange is one station with connected physical platforms. Change
+    // the boarding context only after actually walking onto the other platform.
+    for (const station of this.stations) {
+      if (station === this.station || station.stationId !== this.station.stationId) continue;
+      const local = station.worldToLocal(this.camera.position.clone());
+      const { minX, maxX, minZ, maxZ } = station.bounds;
+      if (local.x >= minX + this.radius && local.x <= maxX - this.radius
+        && local.z >= minZ + this.radius && local.z <= maxZ - this.radius) {
+        this.useStation(station);
+        break;
+      }
+    }
   }
 
   update(delta) {
@@ -179,24 +231,33 @@ export class PlayerController {
     if (this.ridingCar) {
       const offset = this.ridingOffset;
       const center = this.ridingCar.position.z;
+      this.service.train.updateWorldMatrix(true, false);
+      const matrix = this.service.train.matrixWorld.elements;
+      const localDx = matrix[0] * dx + matrix[2] * dz;
+      const localDz = matrix[8] * dx + matrix[10] * dz;
       for (let i = 0; i < steps; i++) {
-        const x = THREE.MathUtils.clamp(offset.x + dx / steps, -1.08, 1.08);
+        const x = THREE.MathUtils.clamp(offset.x + localDx / steps, -1.08, 1.08);
         if (!this.collides(x, offset.z - center, this.interiorObstacles)) offset.x = x;
-        const z = THREE.MathUtils.clamp(offset.z + dz / steps, center - 7.05, center + 7.05);
+        const z = THREE.MathUtils.clamp(offset.z + localDz / steps, center - 7.05, center + 7.05);
         if (!this.collides(offset.x, z - center, this.interiorObstacles)) offset.z = z;
       }
       this.syncRide();
       this.distanceTravelled += Math.hypot(position.x - oldX, position.z - oldZ);
       return;
     }
-    const stationX = this.station.position.x, stationZ = this.station.position.z;
+    const local = this.station.worldToLocal(position.clone());
+    const matrix = this.station.matrixWorld.elements;
+    const localDx = matrix[0] * dx + matrix[2] * dz;
+    const localDz = matrix[8] * dx + matrix[10] * dz;
     for (let i = 0; i < steps; i++) {
-      const x = THREE.MathUtils.clamp(position.x + dx / steps, stationX + this.bounds.minX + this.radius, stationX + this.bounds.maxX - this.radius);
-      if (!this.collides(x - stationX, position.z - stationZ)) position.x = x;
-      const z = THREE.MathUtils.clamp(position.z + dz / steps, stationZ + this.bounds.minZ + this.radius, stationZ + this.bounds.maxZ - this.radius);
-      if (!this.collides(position.x - stationX, z - stationZ)) position.z = z;
+      const x = this.constrainPlatformAxis(local.x + localDx / steps, local.z, 'X', local.x);
+      if (!this.collides(x, local.z)) local.x = x;
+      const z = this.constrainPlatformAxis(local.z + localDz / steps, local.x, 'Z', local.z);
+      if (!this.collides(local.x, z)) local.z = z;
     }
-    position.y = SPAWN.y;
+    local.y = SPAWN.y;
+    position.copy(this.station.localToWorld(local));
+    this.updatePlatformContext();
     this.distanceTravelled += Math.hypot(position.x - oldX, position.z - oldZ);
   }
 

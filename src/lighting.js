@@ -19,31 +19,65 @@ export class Lighting extends THREE.Group {
     this.scene = scene;
     this.materials = materials;
     this.stationLights = [];
-    this.addStationFixtures(0, { pointLights: 4 });
+    this.lightDefinitions = new Map();
+    this.currentPlatformId = null;
+    // A fixed pool avoids adding shader work for every distant station. The
+    // selected platform retains its original light positions and intensities.
+    for (let index = 0; index < 4; index++) {
+      const point = new THREE.PointLight('#f6f3df', 0, 34, 2);
+      scene.add(point);
+      this.stationLights.push(point);
+    }
+    this.addStationFixtures(0, { pointLights: 4, platformId: 'station-1:U1' });
+    this.usePlatform('station-1:U1');
   }
 
   /** Each station reuses the fixtures; the system's ambient and shadow key stay global. */
-  addStationFixtures(offsetZ, { cool = false, pointLights = 2 } = {}) {
+  addStationFixtures(offsetZ, {
+    cool = false, pointLights = 2, offsetX = 0, rotationY = 0,
+    platformId = `platform-${offsetX}-${offsetZ}`, fixtures: buildFixtures = true,
+    pointDefinitions = null,
+  } = {}) {
     const fixturesGroup = new THREE.Group();
     fixturesGroup.name = `StationFixtures-${offsetZ}`;
-    fixturesGroup.position.z = offsetZ;
+    fixturesGroup.userData.platformId = platformId;
+    fixturesGroup.position.set(offsetX, 0, offsetZ);
+    fixturesGroup.rotation.y = rotationY;
     this.add(fixturesGroup);
     const fixtures = [], housings = [];
-    for (let z = -40; z <= 40; z += 8) {
+    for (let z = -40; buildFixtures && z <= 40; z += 8) {
       for (const x of [-6.0, -1.3, 5.7]) {
         housings.push({ size: [0.23, 0.11, 4.3], position: [x, 5.02, z] });
         fixtures.push({ size: [0.17, 0.025, 4.1], position: [x, 4.955, z] });
       }
     }
-    instances(fixturesGroup, this.materials.dark, housings, undefined, false);
-    instances(fixturesGroup, this.materials.tubeLight, fixtures, undefined, false);
-    const positions = pointLights >= 4 ? [-28, -7, 14, 35] : [-21, 21].slice(0, pointLights);
-    for (const z of positions) {
-      const point = new THREE.PointLight(cool ? '#dfeaf5' : '#f6f3df', pointLights >= 4 ? 65 : 90, pointLights >= 4 ? 23 : 34, 2);
-      point.position.set(-2.7, 4.65, z + offsetZ);
-      this.scene.add(point);
-      this.stationLights.push(point);
+    if (buildFixtures) {
+      instances(fixturesGroup, this.materials.dark, housings, undefined, false);
+      instances(fixturesGroup, this.materials.tubeLight, fixtures, undefined, false);
     }
+    const positions = pointLights >= 4 ? [-28, -7, 14, 35] : [-21, 21].slice(0, pointLights);
+    const definitions = pointDefinitions ?? positions.map(z => ({
+      position: [-2.7, 4.65, z], color: cool ? '#dfeaf5' : '#f6f3df',
+      intensity: pointLights >= 4 ? 65 : 90, distance: pointLights >= 4 ? 23 : 34,
+    }));
+    this.lightDefinitions.set(platformId, definitions.slice(0, 4).map(definition => ({
+      ...definition,
+      position: fixturesGroup.localToWorld(new THREE.Vector3(...definition.position)),
+    })));
     return fixturesGroup;
+  }
+
+  usePlatform(platformId) {
+    if (this.currentPlatformId === platformId) return;
+    this.currentPlatformId = platformId;
+    const definitions = this.lightDefinitions.get(platformId) ?? [];
+    this.stationLights.forEach((point, index) => {
+      const definition = definitions[index];
+      point.intensity = definition?.intensity ?? 0;
+      if (!definition) return;
+      point.position.copy(definition.position);
+      point.color.set(definition.color);
+      point.distance = definition.distance;
+    });
   }
 }

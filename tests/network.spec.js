@@ -26,6 +26,7 @@ test('U1 uses three shared station nodes and Central can support a second line w
       terminalFlags: route.stops.map(stop => stop.isTerminus),
       central: { name: node.name, lineIds: [...node.lineIds], plannedLines: [...node.plannedLines], interchangeCapable: node.interchangeCapable },
       sharedCentral: route.stops[1].node === node,
+      sharedU2Central: window.metro.world.routes.U2.stops[1].node === node,
       liveLines: [...network.lines.keys()],
       before, after: isolated.getLineStops('U1').map(project),
       u2Ids: u2Stops.map(stop => stop.id),
@@ -34,14 +35,15 @@ test('U1 uses three shared station nodes and Central can support a second line w
       interchange: isolated.getLineStops('U1')[1].interchange,
     };
   });
-  expect(graph.stationCount).toBe(3);
+  expect(graph.stationCount).toBe(6);
   expect(graph.routeIds).toEqual(['station-1', 'station-2', 'station-3']);
   expect(graph.distances).toEqual([0, 240, 480]);
   expect(graph.length).toBe(480);
   expect(graph.terminalFlags).toEqual([true, false, true]);
-  expect(graph.central).toEqual({ name: 'Central', lineIds: ['U1'], plannedLines: ['U2'], interchangeCapable: true });
+  expect(graph.central).toEqual({ name: 'Central', lineIds: ['U1', 'U2'], plannedLines: [], interchangeCapable: true });
   expect(graph.sharedCentral).toBe(true);
-  expect(graph.liveLines).toEqual(['U1']);
+  expect(graph.sharedU2Central).toBe(true);
+  expect(graph.liveLines).toEqual(['U1', 'U2']);
   expect(graph.after).toEqual(graph.before);
   expect(graph.u2Ids).toEqual(['station-2', 'u2-test-stop']);
   expect(graph.u2CentralSameObject).toBe(true);
@@ -68,7 +70,7 @@ test('station departures predict both Central directions and distinguish next st
         world.update(1 / 60);
         if (service.currentStop.id === id && service.state === 'boarding') {
           for (let j = 0; j < 120; j++) world.update(1 / 60);
-          return { service: service.snapshot(), rows: rows(id), boards: world.stations.map(station => ({ id: station.stationId, rows: station.departures.departures.filter(row => row.route === 'U1').map(row => ({ ...row })) })) };
+          return { service: service.snapshot(), rows: rows(id), boards: world.stations.filter(station => station.lineId === 'U1').map(station => ({ id: station.stationId, rows: station.departures.departures.filter(row => row.route === 'U1').map(row => ({ ...row })) })) };
         }
       }
       throw new Error(`U1 never boarded at ${id}.`);
@@ -135,7 +137,9 @@ test('a passenger can board, alight, and walk with correct collisions at every U
         return player.camera.position.toArray();
       };
       const edge = walk([-3, 1.76, station.position.z - 25], -Math.PI / 2);
-      const wall = walk([-6, 1.76, station.position.z - 25], Math.PI / 2);
+      // Central's wall at z=-24 now has a real transfer opening; inspect a solid
+      // wall section so this keeps checking collision rather than blocking access.
+      const wall = walk([-6, 1.76, station.position.z - 21], Math.PI / 2);
       const column = walk([-6, 1.76, station.position.z], Math.PI / 2, 2);
       const north = walk([-4, 1.76, station.position.z - 35], 0);
       const south = walk([-4, 1.76, station.position.z + 35], Math.PI);
