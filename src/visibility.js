@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
 /** Cull remote geometry and the adjacent hall behind its opaque dividing wall.
- * Both services continue simulating. Central's pedestrian passage reveals both
- * halls while crossing; nothing is moved or rebuilt when visibility changes.
+ * Every service continues simulating. Pedestrian passages reveal the connected
+ * halls on their actual floor; nothing moves when visibility changes.
  */
 export class WorldVisibility {
   constructor(world) {
@@ -10,9 +10,9 @@ export class WorldVisibility {
     this.range = 145;
     this.sections = [];
     world.scene.updateMatrixWorld(true);
-    for (const [lineId, root] of [['U1', world.routeWorld], ['U2', world.u2World]]) {
+    for (const [lineId, root] of Object.entries(world.lineWorlds)) {
       for (const group of root.children) {
-        if (group.stationId || group === world.u2World.interchange) continue;
+        if (group.stationId || world.interchanges.includes(group)) continue;
         this.sections.push({ lineId, group, bounds: new THREE.Box3().setFromObject(group) });
       }
     }
@@ -24,10 +24,20 @@ export class WorldVisibility {
     const { world } = this;
     const camera = player.camera.position;
     const lineId = player.service?.lineId ?? 'U1';
-    const passage = world.u2World.interchange.worldBounds;
-    const inPassage = !player.ridingCar && camera.x >= passage.minX - 0.8 && camera.x <= passage.maxX + 0.8
-      && camera.z >= passage.minZ - 1 && camera.z <= passage.maxZ + 1;
-    const showsLine = id => id === lineId || inPassage;
+    const feetY = camera.y - 1.76;
+    const visibleLines = new Set([lineId]);
+    if (player.transferSurface) {
+      visibleLines.clear();
+      for (const id of feetY > -6 ? ['U1', 'U2'] : ['U3', 'U4']) visibleLines.add(id);
+    }
+    if (!player.ridingCar) for (const interchange of world.interchanges) {
+      const passage = interchange.worldBounds;
+      const inPassage = Math.abs(feetY - interchange.floorY) < 0.6
+        && camera.x >= passage.minX - 0.8 && camera.x <= passage.maxX + 0.8
+        && camera.z >= passage.minZ - 1 && camera.z <= passage.maxZ + 1;
+      if (inPassage) for (const platform of interchange.platforms) visibleLines.add(platform.lineId);
+    }
+    const showsLine = id => visibleLines.has(id);
     let changed = false;
     const show = (object, visible) => {
       if (object.visible !== visible) { object.visible = visible; changed = true; }
@@ -44,7 +54,12 @@ export class WorldVisibility {
       const station = world.stations.find(item => item.platformId === group.userData.platformId);
       if (station) show(group, station.visible);
     });
-    show(world.u2World.interchange, Math.abs(camera.z + 264) < this.range);
+    for (const interchange of world.interchanges) {
+      show(interchange, interchange.platforms.some(platform => showsLine(platform.lineId))
+        && Math.abs(camera.z + 264) < this.range);
+    }
+    show(world.verticalInterchange, Math.abs(camera.z + 288) < this.range
+      && (player.station.stationId === 'station-2' || Boolean(player.transferSurface)));
     if (changed) world.renderer.shadowMap.needsUpdate = true;
   }
 }

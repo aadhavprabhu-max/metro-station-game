@@ -14,11 +14,17 @@ export class MetroNetwork {
   }
 
   /** Different lines can have separate physical platforms in one shared station. */
-  addPlatform(nodeId, { lineId, number = '01', position, yaw = 0 }) {
+  addPlatform(nodeId, { lineId, number = '01', position, yaw = 0, floorY = null, level = null, platformSide = null }) {
     const node = this.nodes.get(nodeId);
     if (!node) throw new Error(`Unknown station for platform: ${nodeId}`);
     if (node.platforms[lineId]) throw new Error(`Platform already exists: ${nodeId}:${lineId}`);
-    const platform = { id: `${nodeId}:${lineId}`, lineId, number, position: { ...(position ?? node.position) }, yaw };
+    const platformPosition = { ...(position ?? node.position) };
+    const elevation = floorY ?? platformPosition.y;
+    const platform = {
+      id: `${nodeId}:${lineId}`, lineId, number, position: platformPosition, yaw,
+      floorY: elevation, level: level ?? (elevation < 0 ? 'lower' : 'upper'),
+      ...(platformSide === null ? {} : { platformSide }),
+    };
     node.platforms[lineId] = platform;
     return platform;
   }
@@ -74,6 +80,9 @@ export class MetroNetwork {
         id: node.id, name: node.name, platform: platform?.number ?? node.platform, distance,
         platformId: platform?.id ?? `${node.id}:${lineId}`,
         position, yaw: platform?.yaw,
+        floorY: platform?.floorY ?? position.y,
+        level: platform?.level ?? (position.y < 0 ? 'lower' : 'upper'),
+        ...(platform?.platformSide === undefined ? {} : { platformSide: platform.platformSide }),
         z: position.z, node,
         isTerminus: index === 0 || index === line.nodeIds.length - 1,
         get interchange() { return node.lineIds.length > 1; },
@@ -126,4 +135,52 @@ export function addU2ToNetwork(network) {
     id: 'U2', name: 'The Industrial Line', color: '#b4443d',
     nodeIds: u2Stations.map(station => station.id), linkIds,
   });
+}
+
+export const LOWER_FLOOR_Y = -12;
+
+/** Add both lower railway lines through the original shared Central node. */
+export function addLowerLinesToNetwork(network) {
+  const definitions = [
+    {
+      id: 'U3', name: 'The Modern Line', color: '#3e71b6', x: 1.57, platform: '03', side: -1,
+      stops: [
+        { id: 'u3-schattenufer', name: 'Schattenufer', z: 150 },
+        { id: 'station-2', name: 'Central', z: -240 },
+        { id: 'u3-ostbahnhof', name: 'Ostbahnhof', z: -480 },
+        { id: 'u3-stadtbruecke', name: 'Stadtbrücke', z: -720 },
+      ],
+      links: ['u3-schattenufer-central', 'u3-central-ostbahnhof', 'u3-ostbahnhof-stadtbruecke'],
+    },
+    {
+      id: 'U4', name: 'The Historic Line', color: '#8d58ac', x: -23.57, platform: '04', side: 1,
+      stops: [
+        { id: 'u4-kaiser-humboldt', name: 'Kaiser-Humboldt-Platz', z: 240 },
+        { id: 'u4-westbahnhof', name: 'Westbahnhof', z: 0 },
+        { id: 'station-2', name: 'Central', z: -240 },
+        { id: 'u4-arabellapark', name: 'Arabellapark', z: -480 },
+      ],
+      links: ['u4-kaiser-humboldt-westbahnhof', 'u4-westbahnhof-central', 'u4-central-arabellapark'],
+    },
+  ];
+  for (const definition of definitions) {
+    if (network.lines.has(definition.id)) continue;
+    for (const stop of definition.stops) {
+      const position = { x: definition.x, y: LOWER_FLOOR_Y, z: stop.z };
+      if (!network.nodes.has(stop.id)) network.addNode({ id: stop.id, name: stop.name, platform: definition.platform, position });
+      network.addPlatform(stop.id, {
+        lineId: definition.id, number: definition.platform, position,
+        floorY: LOWER_FLOOR_Y, level: 'lower', platformSide: definition.side,
+      });
+    }
+    definition.links.forEach((id, index) => network.addLink({
+      id, from: definition.stops[index].id, to: definition.stops[index + 1].id,
+      length: Math.abs(definition.stops[index + 1].z - definition.stops[index].z),
+    }));
+    network.addLine({
+      id: definition.id, name: definition.name, color: definition.color,
+      nodeIds: definition.stops.map(stop => stop.id), linkIds: definition.links,
+    });
+  }
+  return { U3: network.lines.get('U3'), U4: network.lines.get('U4') };
 }

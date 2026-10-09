@@ -71,6 +71,8 @@ export class Station extends THREE.Group {
     this.platformNumber = options.platformNumber ?? '01';
     this.lineId = options.lineId ?? 'U1';
     this.lineIds = [this.lineId];
+    this.floorY = options.floorY ?? 0;
+    this.level = options.level ?? (this.floorY < 0 ? 'lower' : 'upper');
     this.platformId = `${this.stationId}:${this.lineId}`;
     this.name = `${this.displayName}Station`;
     this.options = { northCap: true, southCap: true, signageColor: '#396057', ...options };
@@ -106,7 +108,7 @@ export class Station extends THREE.Group {
     box(this, m.concrete, [18.1, 0.3, 90], [-1.1, 5.53, 0]);
     // Open track portals anchor the ends of the platform.
     for (const z of [-44, 44]) {
-      box(this, m.wall, [10.1, 5.4, 0.4], [-5, 2.7, z]);
+      this.buildPlatformEndWall(m, z);
       box(this, m.wall, [2.9, 5.4, 0.4], [6.4, 2.7, z]);
       box(this, m.wall, [4.9, 1.5, 0.4], [2.45, 4.7, z]);
       const hasCap = z < 0 ? this.options.northCap : this.options.southCap;
@@ -150,6 +152,19 @@ export class Station extends THREE.Group {
       for (let i = 0; i < 7; i++) ventSlats.push({ size: [0.07, 0.035, 2.33], position: [7.475, 3.46 + i * 0.065, z] });
     }
     instances(this, m.aluminum, ventSlats, undefined, false);
+  }
+
+  buildPlatformEndWall(m, z) {
+    const opening = this.options.platformEndOpenings?.find(item => Math.abs(item.z - z) < 0.01);
+    if (!opening) {
+      box(this, m.wall, [10.1, 5.4, 0.4], [-5, 2.7, z]);
+      return;
+    }
+    const height = opening.height ?? 3.05;
+    for (const [start, end] of [[-10.05, opening.minX], [opening.maxX, 0.05]]) {
+      if (end > start) box(this, m.wall, [end - start, 5.4, 0.4], [(start + end) / 2, 2.7, z]);
+    }
+    box(this, m.wall, [opening.maxX - opening.minX, 5.4 - height, 0.4], [(opening.minX + opening.maxX) / 2, (5.4 + height) / 2, z]);
   }
 
   wallPanelSections(x, z, depth) {
@@ -244,7 +259,7 @@ export class Station extends THREE.Group {
         circle.position.set(x, 0.04, 0.051); diagram.add(circle);
       }
       label(diagram, this.options.routeNames?.join('   •   ') ?? 'Nordplatz   Museum   Rathaus   Central', 1.34, 0.13, [0, -0.17, 0.037], { background: '#d7dfd4', color: '#364c41', fontSize: 45 });
-      label(diagram, 'CITY METRO  •  INFORMATION', 1.34, 0.14, [0, -0.44, 0.037], { background: '#d7dfd4', color: '#697b6c', fontSize: 54 });
+      label(diagram, `${this.options.networkName ?? 'CITY METRO'}  •  INFORMATION`, 1.34, 0.14, [0, -0.44, 0.037], { background: '#d7dfd4', color: '#697b6c', fontSize: 54 });
     }
   }
 }

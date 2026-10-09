@@ -6,8 +6,10 @@ import { Train } from './train.js';
 import { Lighting } from './lighting.js';
 import { MetroRoute, RouteWorld } from './route.js';
 import { TrainService } from './service.js';
-import { createMetroNetwork, addU2ToNetwork } from './network.js';
+import { createMetroNetwork, addU2ToNetwork, addLowerLinesToNetwork } from './network.js';
 import { U2World } from './u2-world.js';
+import { LowerWorld } from './lower-world.js';
+import { VerticalInterchange } from './vertical-interchange.js';
 
 export function createScene(container) {
   if (!container) throw new Error('The 3D scene container is missing.');
@@ -55,6 +57,7 @@ export function createScene(container) {
   const materials = createMaterials();
   const network = createMetroNetwork();
   addU2ToNetwork(network);
+  addLowerLinesToNetwork(network);
   const route = new MetroRoute(network, 'U1');
   const u2Route = new MetroRoute(network, 'U2');
   u2Route.directionNames = { 1: 'Outbound', '-1': 'Inbound' };
@@ -65,8 +68,18 @@ export function createScene(container) {
   const u2World = new U2World(materials, u2Route, routeWorld.station2);
   const u2Train = new Train(materials, { lineId: 'U2', platformSide: 1, accentColor: u2Route.line.color });
   const u2Service = new TrainService(u2Train, u2Route, { initialDwell: 40, deferReversal: true });
-  const stations = [...routeWorld.stations, ...u2World.stations];
-  const services = [service, u2Service];
+  const routes = { U1: route, U2: u2Route, U3: new MetroRoute(network, 'U3'), U4: new MetroRoute(network, 'U4') };
+  for (const lowerRoute of [routes.U3, routes.U4]) lowerRoute.directionNames = { 1: 'Outbound', '-1': 'Inbound' };
+  const lowerWorld = new LowerWorld(materials, routes);
+  const lowerServices = ['U3', 'U4'].map(lineId => {
+    const nextRoute = routes[lineId];
+    const nextTrain = new Train(materials, { lineId, platformSide: nextRoute.platformSide ?? nextRoute.stops[0].platformSide, accentColor: nextRoute.line.color });
+    return new TrainService(nextTrain, nextRoute, { initialDwell: 40, deferReversal: true });
+  });
+  const verticalInterchange = new VerticalInterchange(materials, routeWorld.station2, lowerWorld.centralU3);
+  const stations = [...routeWorld.stations, ...u2World.stations, ...lowerWorld.stations];
+  const services = [service, u2Service, ...lowerServices];
+  const trains = services.map(nextService => nextService.train);
   const lighting = new Lighting(scene, materials);
   for (const nextStation of stations.slice(1)) {
     const position = nextStation.getWorldPosition(new THREE.Vector3());
@@ -74,15 +87,25 @@ export function createScene(container) {
     lighting.addStationFixtures(position.z, {
       cool: nextStation.stationId === 'station-2', pointLights: 2,
       ...nextStation.lightingOptions,
-      offsetX: position.x, rotationY: Math.atan2(matrix[8], matrix[10]),
+      offsetX: position.x, offsetY: position.y, rotationY: Math.atan2(matrix[8], matrix[10]),
       platformId: nextStation.platformId,
     });
   }
-  scene.add(station, train, u2Train, lighting, routeWorld, u2World);
+  lighting.addStationFixtures(0, {
+    platformId: 'central-stairs', fixtures: false,
+    pointDefinitions: [
+      { position: [-7.4, 1.9, -288], color: '#f5e4c7', intensity: 52, distance: 9 },
+      { position: [-4.2, -1.8, -288], color: '#e7edf1', intensity: 52, distance: 9 },
+      { position: [-7.4, -5.2, -288], color: '#f5e4c7', intensity: 52, distance: 9 },
+      { position: [-4.2, -8.8, -287], color: '#e7edf1', intensity: 52, distance: 9 },
+    ],
+  });
+  scene.add(station, ...trains, lighting, routeWorld, u2World, lowerWorld, verticalInterchange);
   const world = {
     scene, renderer, camera, station, stations, train, route, network, routeWorld, service,
-    routes: { U1: route, U2: u2Route }, services, trains: [train, u2Train], u2World,
-    interchanges: u2World.interchanges,
+    routes, services, trains, u2World, lowerWorld, verticalInterchange,
+    lineWorlds: { U1: routeWorld, U2: u2World, ...lowerWorld.lineWorlds },
+    interchanges: [...u2World.interchanges, ...lowerWorld.interchanges],
     lighting, resize, environment, viewport, onResize: null,
   };
   const handleResize = () => { if (resize()) world.onResize?.(); };

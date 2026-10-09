@@ -8,13 +8,16 @@ try {
   const world = createScene(document.querySelector('#scene'));
   const player = new PlayerController(world.camera, world.renderer.domElement, world.station);
   player.configureServices(world.services, world.stations);
-  if (new URLSearchParams(location.search).get('line') === 'U2') player.startAt('U2', 'u2-stadtzentrum');
+  player.configureTransfers(world.verticalInterchange);
+  const initialLine = new URLSearchParams(location.search).get('line');
+  if (initialLine && world.routes[initialLine]) player.startAt(initialLine);
   const ui = new UI(player, world.station.departures, world.service, world.stations, world.services);
   const visibility = new WorldVisibility(world);
   world.visibility = visibility;
   let shadowTimer = 0;
   let shadowAnchor = 0;
   let shadowAnchorX = 0;
+  let shadowAnchorY = 0;
   let shadowLine = 'U1';
   world.update = delta => {
     for (const service of world.services) service.update(delta);
@@ -27,16 +30,18 @@ try {
       Math.abs(stop.distance - active.distance) < Math.abs(nearest.distance - active.distance) ? stop : nearest,
     ) : null;
     const platform = closestStop ? world.stations.find(station => station.stationId === closestStop.id && station.lineId === active.lineId) : player.station;
-    world.lighting.usePlatform(platform.platformId);
+    world.lighting.usePlatform(player.transferSurface ? 'central-stairs' : platform.platformId);
     platform.updateWorldMatrix(true, false);
     const matrix = platform.matrixWorld.elements;
-    const anchor = player.ridingCar ? active.train.position.z : matrix[14];
-    const anchorX = matrix[12];
-    if (Math.abs(anchor - shadowAnchor) > 0.75 || Math.abs(anchorX - shadowAnchorX) > 0.75 || active.lineId !== shadowLine) {
-      world.lighting.keyLight.position.set(anchorX - 5 * matrix[0] - 25 * matrix[8], 4.8, anchor - 5 * matrix[2] - 25 * matrix[10]);
-      world.lighting.keyLight.target.position.set(anchorX + matrix[0] - 12 * matrix[8], 0, anchor + matrix[2] - 12 * matrix[10]);
+    const anchor = player.transferSurface ? player.camera.position.z : player.ridingCar ? active.train.position.z : matrix[14];
+    const anchorX = player.transferSurface ? player.camera.position.x : matrix[12];
+    const anchorY = player.transferSurface?.floorY ?? matrix[13];
+    if (Math.abs(anchor - shadowAnchor) > 0.75 || Math.abs(anchorX - shadowAnchorX) > 0.75 || Math.abs(anchorY - shadowAnchorY) > 0.3 || active.lineId !== shadowLine) {
+      world.lighting.keyLight.position.set(anchorX - 5 * matrix[0] - 25 * matrix[8], anchorY + 4.8, anchor - 5 * matrix[2] - 25 * matrix[10]);
+      world.lighting.keyLight.target.position.set(anchorX + matrix[0] - 12 * matrix[8], anchorY, anchor + matrix[2] - 12 * matrix[10]);
       shadowAnchor = anchor;
       shadowAnchorX = anchorX;
+      shadowAnchorY = anchorY;
       shadowLine = active.lineId;
       world.renderer.shadowMap.needsUpdate = true;
     }

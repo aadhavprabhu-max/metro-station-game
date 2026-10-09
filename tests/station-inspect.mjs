@@ -4,7 +4,7 @@ import { chromium } from '@playwright/test';
 
 // Supplemental visual inspection only. Unlike u1-network-inspect.mjs, this
 // pauses RAF, advances the real service in 1/60 s steps, and positions the
-// inspection camera at every U1/U2 platform's original spawn offsets. It never assigns
+// inspection camera at every platform's original spawn offsets. It never assigns
 // train poses or route distances and does not prove normal-speed journey timing.
 const url = process.env.METRO_URL || 'http://127.0.0.1:4173/metro-station-game/';
 const output = process.env.METRO_STATION_OUTPUT || '/tmp/metro-station-overviews';
@@ -24,7 +24,7 @@ page.on('response', response => { if (response.status() >= 400) failedRequests.p
 
 try {
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await page.waitForFunction(() => window.metro?.ready && window.metro.world.services?.length === 2, null, { timeout: 120000 });
+  await page.waitForFunction(() => window.metro?.ready && window.metro.world.services?.length === 4, null, { timeout: 120000 });
   await page.locator('#loading').waitFor({ state: 'hidden', timeout: 120000 });
   await page.evaluate(() => window.metro.world.renderer.setAnimationLoop(null));
   const platforms = [
@@ -35,6 +35,14 @@ try {
     { lineId: 'U2', stopId: 'station-2' },
     { lineId: 'U2', stopId: 'u2-schwarzkopf' },
     { lineId: 'U2', stopId: 'u2-eisenwerk' },
+    { lineId: 'U3', stopId: 'u3-schattenufer' },
+    { lineId: 'U3', stopId: 'station-2' },
+    { lineId: 'U3', stopId: 'u3-ostbahnhof' },
+    { lineId: 'U3', stopId: 'u3-stadtbruecke' },
+    { lineId: 'U4', stopId: 'u4-kaiser-humboldt' },
+    { lineId: 'U4', stopId: 'u4-westbahnhof' },
+    { lineId: 'U4', stopId: 'station-2' },
+    { lineId: 'U4', stopId: 'u4-arabellapark' },
   ];
   for (const { lineId, stopId } of platforms) {
     const diagnostic = await page.evaluate(({ stopId, lineId }) => {
@@ -44,7 +52,7 @@ try {
       if (!station) throw new Error(`Missing inspection station: ${stopId}`);
       let reached = false;
       let simulatedSeconds = 0;
-      for (let frame = 0; frame < 520 * 60; frame++) {
+      for (let frame = 0; frame < 900 * 60; frame++) {
         if (service.currentStop.id === stopId && service.canBoard && service.train.cars.every(car => car.doorProgressBySide[service.platformSide] > 0.99)) {
           reached = true;
           break;
@@ -82,6 +90,10 @@ try {
         hudLine: document.querySelector('#location-line')?.textContent,
         rockGeometry: station.rockShell ? { vertices: station.rockShell.geometry.attributes.position.count, ...station.rockShell.geometry.userData } : null,
         industrialArchitecture: station.userData.industrialArchitecture ?? null,
+        architecture: station.architecture ?? station.userData.architecture ?? null,
+        historicArchitecture: station.userData.historicArchitecture ?? null,
+        floorY: station.floorY,
+        drawCalls: world.renderer.info.render.calls,
         boardDataUrl: typeof boardCanvas?.toDataURL === 'function' ? boardCanvas.toDataURL('image/png') : null,
       };
     }, { stopId, lineId });
@@ -102,13 +114,13 @@ try {
     }
     captures.push(metadata);
     console.log(JSON.stringify({ captured: metadata.platformId, station: metadata.stationName, theme: metadata.theme, distance: metadata.service.distance, destination: metadata.service.destinationStop.name, colored: metadata.colored, boardCaptured: Boolean(boardDataUrl) }));
-    if (['rock', 'ironworks'].includes(metadata.theme)) {
-      await page.evaluate(() => {
+    if (['rock', 'ironworks'].includes(metadata.theme) || ['U3', 'U4'].includes(lineId)) {
+      await page.evaluate(theme => {
         const { player, world } = window.metro;
-        player.pitch = 0.2;
+        player.pitch = theme === 'modern-landmark' ? 0.45 : theme === 'historic-vaulted' ? 0.35 : 0.2;
         player.applyLook();
         world.renderer.render(world.scene, world.camera);
-      });
+      }, metadata.theme);
       await page.screenshot({ path: `${output}/${filePrefix}-architecture.png` });
     }
   }

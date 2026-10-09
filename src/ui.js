@@ -1,5 +1,5 @@
 const STATE_LABELS = Object.freeze({ boarding: 'Boarding', closing: 'Doors closing', departing: 'Departing', travelling: 'Travelling', arriving: 'Arriving', stopped: 'Stopped' });
-const LINE_COLORS = Object.freeze({ U1: '#bb6343', U2: '#b4443d' });
+const LINE_COLORS = Object.freeze({ U1: '#bb6343', U2: '#b4443d', U3: '#3e71b6', U4: '#8d58ac' });
 
 export class UI {
   constructor(player, board, service = null, stations = [], services = []) {
@@ -27,6 +27,7 @@ export class UI {
     this.locationElement = document.querySelector('#location-name');
     this.locationPlatform = document.querySelector('#location-platform');
     this.locationDirection = document.querySelector('#location-direction');
+    this.transferElement = document.querySelector('#location-transfer');
     this.interactionElement = document.querySelector('#interaction-hint');
     this.interactButton = document.querySelector('#interact-button');
     this.lastRouteUpdate = -Infinity;
@@ -40,7 +41,7 @@ export class UI {
     }));
     for (const station of stations) {
       station.departures?.setNetworkInfo(networkInfo);
-      station.departures?.setPlatformInfo(station.lineId ?? 'U1', station.platformNumber ?? '01', station.stationId === 'station-2');
+      station.departures?.setPlatformInfo(station.lineId ?? 'U1', station.platformNumber ?? '01', station.stationId === 'station-2', station.level ?? ((station.floorY ?? 0) < 0 ? 'lower' : 'upper'));
     }
     document.querySelector('#reset-button').addEventListener('click', () => { this.showHelp(false); this.player.reset(); });
     document.querySelector('.identity').addEventListener('click', event => { event.preventDefault(); this.player.reset(); });
@@ -119,9 +120,14 @@ export class UI {
       ? this.stations.find(item => item.stationId === current.id && (item.lineId ?? 'U1') === lineId)
       : this.player.station;
     const stationName = riding && !docked ? 'On board' : station?.displayName ?? current.name;
+    const floorY = station?.floorY ?? current.floorY ?? 0;
+    const lower = (station?.level ?? current.level ?? (floorY < 0 ? 'lower' : 'upper')) === 'lower';
+    const atCentral = !riding || docked ? station?.stationId === 'station-2' : false;
     this.setText(this.locationElement, stationName);
-    this.setText(this.locationPlatform, riding && !docked ? `${lineId} · Connecting tunnel` : `${station?.lineId ?? lineId} · Platform ${station?.platformNumber ?? current.platform ?? '01'}`);
+    this.setText(this.locationPlatform, riding && !docked ? `${lineId} · Connecting tunnel` : `${station?.lineId ?? lineId} · Platform ${station?.platformNumber ?? current.platform ?? '01'}${atCentral ? lower ? ' · Lower level' : ' · Upper level' : ''}`);
     this.setText(this.locationDirection, direction);
+    this.setText(this.transferElement, atCentral ? lower ? 'Upper: U1 / U2 ↑ stairs · Lower: U3 / U4' : 'Upper: U1 / U2 · Lower: U3 / U4 ↓ stairs' : '');
+    if (this.transferElement) this.transferElement.hidden = !atCentral;
     this.setText(this.destinationElement, destination.name);
     for (const badge of [this.routeElement, this.locationLineElement]) {
       this.setText(badge, lineId);
@@ -156,7 +162,15 @@ export class UI {
     for (const station of this.stations) {
       const board = station.departures;
       if (!board) continue;
-      const rows = this.services.flatMap(item => item.departuresFor(station.stationId).map(departure => {
+      const servicesAtStation = this.services.filter(item => {
+        const stop = item.route.stops.find(candidate => candidate.id === station.stationId);
+        if (!stop) return false;
+        if (station.stationId !== 'station-2') return true;
+        // Central is one network node with two railway levels. Each platform's
+        // display includes both services on its level, without dropping rows.
+        return Math.abs((stop.floorY ?? stop.position?.y ?? 0) - (station.floorY ?? station.position.y ?? 0)) < 0.1;
+      });
+      const rows = servicesAtStation.flatMap(item => item.departuresFor(station.stationId).map(departure => {
         let due;
         if (departure.atPlatform) {
           due = departure.state === 'boarding' ? `${Math.max(0, Math.ceil(item.dwellRemaining))} s`

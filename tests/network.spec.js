@@ -35,15 +35,15 @@ test('U1 uses three shared station nodes and Central can support a second line w
       interchange: isolated.getLineStops('U1')[1].interchange,
     };
   });
-  expect(graph.stationCount).toBe(6);
+  expect(graph.stationCount).toBe(12);
   expect(graph.routeIds).toEqual(['station-1', 'station-2', 'station-3']);
   expect(graph.distances).toEqual([0, 240, 480]);
   expect(graph.length).toBe(480);
   expect(graph.terminalFlags).toEqual([true, false, true]);
-  expect(graph.central).toEqual({ name: 'Central', lineIds: ['U1', 'U2'], plannedLines: [], interchangeCapable: true });
+  expect(graph.central).toEqual({ name: 'Central', lineIds: ['U1', 'U2', 'U3', 'U4'], plannedLines: [], interchangeCapable: true });
   expect(graph.sharedCentral).toBe(true);
   expect(graph.sharedU2Central).toBe(true);
-  expect(graph.liveLines).toEqual(['U1', 'U2']);
+  expect(graph.liveLines).toEqual(['U1', 'U2', 'U3', 'U4']);
   expect(graph.after).toEqual(graph.before);
   expect(graph.u2Ids).toEqual(['station-2', 'u2-test-stop']);
   expect(graph.u2CentralSameObject).toBe(true);
@@ -141,7 +141,10 @@ test('a passenger can board, alight, and walk with correct collisions at every U
       // wall section so this keeps checking collision rather than blocking access.
       const wall = walk([-6, 1.76, station.position.z - 21], Math.PI / 2);
       const column = walk([-6, 1.76, station.position.z], Math.PI / 2, 2);
-      const north = walk([-4, 1.76, station.position.z - 35], 0);
+      // Central's former north wall now contains the intentional stair entry.
+      // Probe its remaining solid section; lower-line tests traverse the entry.
+      const northX = station.stationId === 'station-2' ? -1.8 : -4;
+      const north = walk([northX, 1.76, station.position.z - 35], 0);
       const south = walk([-4, 1.76, station.position.z + 35], Math.PI);
       player.camera.position.set(...boardPosition);
       const reboarded = player.interact();

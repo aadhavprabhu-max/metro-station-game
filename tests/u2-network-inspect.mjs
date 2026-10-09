@@ -124,7 +124,7 @@ async function capture(name) {
 
 async function open(lineId) {
   await page.goto(urlFor(lineId), { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await wait(lineId => window.metro?.ready && window.metro.world.services?.length === 2 && window.metro.player.service.lineId === lineId, lineId, 120000);
+  await wait(lineId => window.metro?.ready && window.metro.world.services?.length >= 2 && window.metro.player.service.lineId === lineId, lineId, 120000);
   await page.locator('#loading').waitFor({ state: 'hidden', timeout: 120000 });
 }
 

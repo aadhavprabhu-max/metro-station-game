@@ -18,6 +18,7 @@ export class DeparturesBoard extends THREE.Group {
     this.platformLineId = 'U1';
     this.platformNumber = '01';
     this.interchange = false;
+    this.level = 'upper';
     this.revision = 0;
     box(this, materials.dark, [4.35, 1.88, 0.18], [0, 0, 0]);
     box(this, materials.aluminum, [4.4, 0.03, 0.18], [0, -0.93, 0]);
@@ -61,11 +62,12 @@ export class DeparturesBoard extends THREE.Group {
     this.renderDisplay();
   }
 
-  setPlatformInfo(lineId, platform, interchange = false) {
-    if (lineId === this.platformLineId && platform === this.platformNumber && interchange === this.interchange) return;
+  setPlatformInfo(lineId, platform, interchange = false, level = 'upper') {
+    if (lineId === this.platformLineId && platform === this.platformNumber && interchange === this.interchange && level === this.level) return;
     this.platformLineId = lineId;
     this.platformNumber = platform;
     this.interchange = interchange;
+    this.level = level;
     this.renderDisplay();
   }
 
@@ -96,13 +98,18 @@ export class DeparturesBoard extends THREE.Group {
     });
     if (this.networkInfo.length && this.departures.length < 5) {
       const y = 190 + this.departures.length * 84;
-      ctx.fillStyle = '#7fa398'; ctx.font = '20px Arial'; ctx.fillText('LIVE NETWORK · CHANGE AT CENTRAL', 56, y - 3);
-      this.networkInfo.slice(0, 2).forEach((line, index) => {
-        ctx.fillStyle = line.color; ctx.font = 'bold 24px Arial'; ctx.fillText(line.id, 56, y + 25 + index * 27);
-        ctx.fillStyle = '#b6c9bd'; ctx.font = '22px Arial'; ctx.fillText(line.stations.join('  →  '), 128, y + 25 + index * 27, w - 184);
+      const compact = this.departures.length >= 4;
+      const spacing = compact ? 19 : 27;
+      ctx.fillStyle = '#7fa398'; ctx.font = `${compact ? 17 : 20}px Arial`; ctx.fillText('AUREALIS-BAHN · CHANGE AT CENTRAL', 56, y - 3);
+      this.networkInfo.slice(0, 4).forEach((line, index) => {
+        const baseline = y + (compact ? 17 : 25) + index * spacing;
+        ctx.fillStyle = line.color; ctx.font = `bold ${compact ? 19 : 24}px Arial`; ctx.fillText(line.id, 56, baseline);
+        ctx.fillStyle = '#b6c9bd'; ctx.font = `${compact ? 18 : 22}px Arial`; ctx.fillText(line.stations.join('  →  '), 128, baseline, w - 184);
       });
     }
-    const guidance = this.interchange ? 'U1 / U2 transfer · Follow passage signs' : 'Please stand behind the safety line';
+    const guidance = this.interchange
+      ? this.level === 'lower' ? 'Lower U3 / U4 · U1 / U2 ↑ stairs' : 'Upper U1 / U2 · U3 / U4 ↓ stairs'
+      : 'Please stand behind the safety line';
     ctx.fillStyle = '#86a296'; ctx.font = '20px Arial'; ctx.fillText(`${this.stationName.toUpperCase()}  ·  ${this.platformLineId} PLATFORM ${this.platformNumber}  ·  ${guidance}`, 56, 620, w - 112);
     this.texture.needsUpdate = true;
   }

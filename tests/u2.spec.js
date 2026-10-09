@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   await page.goto('/?line=U2');
-  await page.waitForFunction(() => window.metro?.ready && window.metro.world.services?.length === 2);
+  await page.waitForFunction(() => window.metro?.ready && window.metro.world.services?.length === 4);
 });
 
 test.afterEach(async ({ page }) => {
@@ -46,9 +46,9 @@ test('U2 shares Central, adds three stations, and line start buttons leave both 
       trainPositions: world.trains.map(train => train.position.toArray()),
     };
   });
-  expect(graph.nodes).toBe(6);
-  expect(graph.physicalPlatforms).toBe(7);
-  expect(graph.lines).toEqual(['U1', 'U2']);
+  expect(graph.nodes).toBe(12);
+  expect(graph.physicalPlatforms).toBe(15);
+  expect(graph.lines).toEqual(['U1', 'U2', 'U3', 'U4']);
   expect(graph.u1Ids).toEqual(['station-1', 'station-2', 'station-3']);
   expect(graph.u2Ids).toEqual(['u2-stadtzentrum', 'station-2', 'u2-schwarzkopf', 'u2-eisenwerk']);
   expect(graph.u2Distances).toEqual([0, 240, 480, 720]);
@@ -60,7 +60,7 @@ test('U2 shares Central, adds three stations, and line start buttons leave both 
   }
   expect(graph.sameNode).toBe(true);
   expect(graph.physicalCentralShared).toBe(true);
-  expect(graph.centralPlatformIds).toEqual(['station-2:U1', 'station-2:U2']);
+  expect(graph.centralPlatformIds).toEqual(['station-2:U1', 'station-2:U2', 'station-2:U3', 'station-2:U4']);
   expect(graph.aliases).toBe(true);
   expect(graph.separate).toBe(true);
   expect(graph.accents.shared).toBe(false);
@@ -285,7 +285,7 @@ test('Central transfer is a continuous walk with real keyboard input and live bo
   expect(crossing.platformId).toBe('station-2:U2');
   expect(crossing.service).toBe('U2');
   await expect(page.locator('#location-line')).toHaveText('U2');
-  const boards = await page.evaluate(() => window.metro.world.stations.filter(station => station.stationId === 'station-2').map(station => station.departures.departures.map(row => ({ route: row.route, destination: row.destination, nextStop: row.nextStop, direction: row.direction, platform: row.platform }))));
+  const boards = await page.evaluate(() => window.metro.world.stations.filter(station => station.stationId === 'station-2' && ['U1', 'U2'].includes(station.lineId)).map(station => station.departures.departures.map(row => ({ route: row.route, destination: row.destination, nextStop: row.nextStop, direction: row.direction, platform: row.platform }))));
   expect(boards).toHaveLength(2);
   for (const rows of boards) {
     expect(rows).toHaveLength(4);

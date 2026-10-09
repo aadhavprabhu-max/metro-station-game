@@ -13,6 +13,8 @@ export class PlayerController {
     this.stations = [station];
     this.services = [];
     this.service = null;
+    this.transfers = [];
+    this.transferSurface = null;
     this.startLineId = station.lineId ?? 'U1';
     this.startStationId = station.stationId;
     this.ridingCar = null;
@@ -92,6 +94,11 @@ export class PlayerController {
     this.service = services.find(service => service.lineId === (this.station.lineId ?? 'U1')) ?? services[0];
   }
 
+  configureTransfers(transfers) {
+    this.transfers = (Array.isArray(transfers) ? transfers : [transfers]).filter(Boolean);
+    this.transferSurface = this.findTransferSurface(this.camera.position.x, this.camera.position.z, this.camera.position.y - SPAWN.y);
+  }
+
   useStation(station) {
     this.station = station;
     this.bounds = station.bounds;
@@ -119,7 +126,8 @@ export class PlayerController {
     }
     if (service.canBoard && service.currentStop.id === this.station.stationId) {
       const door = service.train.nearestBoardingDoor(this.camera.position.x, this.camera.position.z);
-      if (door?.distance <= 2.8) return { text: `E · Board train to ${service.destinationStop.name}`, enabled: true, action: 'board' };
+      const sameLevel = door && Math.abs(door.position.y - (this.camera.position.y - SPAWN.y)) <= 0.45;
+      if (door?.distance <= 2.8 && sameLevel) return { text: `E · Board train to ${service.destinationStop.name}`, enabled: true, action: 'board' };
       return { text: 'Walk up to an open door to board', enabled: false, action: null };
     }
     return { text: 'Stand behind the safety line · Train returns automatically', enabled: false, action: null };
@@ -134,6 +142,7 @@ export class PlayerController {
       const doors = train.boardingDoors.filter(door => train.cars[door.carIndex] === this.ridingCar);
       const door = doors.reduce((best, item) => Math.abs(item.position.z - this.camera.position.z) < Math.abs(best.position.z - this.camera.position.z) ? item : best);
       this.ridingCar = null;
+      this.transferSurface = null;
       this.useStation(station);
       const localDoor = station.worldToLocal(door.position.clone());
       this.camera.position.set(-1.3, SPAWN.y, localDoor.z);
@@ -142,6 +151,7 @@ export class PlayerController {
       return true;
     }
     const door = service.train.nearestBoardingDoor(this.camera.position.x, this.camera.position.z);
+    this.transferSurface = null;
     this.ridingCar = service.train.cars[door.carIndex];
     this.ridingOffset.set(door.side * 0.45, 1.85, this.ridingCar.position.z + door.localZ);
     this.interiorObstacles = [];
@@ -165,6 +175,7 @@ export class PlayerController {
     this.releaseDrag();
     this.keys.clear();
     this.ridingCar = null;
+    this.transferSurface = null;
     const start = this.stations.find(station => station.stationId === this.startStationId && (station.lineId ?? 'U1') === this.startLineId) ?? this.stations[0];
     this.useStation(start);
     this.camera.position.set(SPAWN.x, SPAWN.y, SPAWN.z);
@@ -203,6 +214,9 @@ export class PlayerController {
     for (const station of this.stations) {
       if (station === this.station || station.stationId !== this.station.stationId) continue;
       const local = station.worldToLocal(this.camera.position.clone());
+      // Shared Central has platforms at different elevations. Matching only
+      // X/Z would select the upper hall while standing on the lower railway.
+      if (Math.abs(local.y - SPAWN.y) > 0.45) continue;
       const { minX, maxX, minZ, maxZ } = station.bounds;
       if (local.x >= minX + this.radius && local.x <= maxX - this.radius
         && local.z >= minZ + this.radius && local.z <= maxZ - this.radius) {
@@ -212,9 +226,61 @@ export class PlayerController {
     }
   }
 
+  findTransferSurface(x, z, feetY) {
+    let best = null;
+    for (const transfer of this.transfers) {
+      const candidate = transfer.findSurface(x, z, feetY, 0.45, this.radius);
+      if (candidate && (!best || candidate.difference < best.difference)) best = candidate;
+    }
+    return best;
+  }
+
+  findPlatformSurface(x, z, feetY) {
+    for (const station of this.stations) {
+      if (station.stationId !== this.station.stationId) continue;
+      const local = station.worldToLocal(new THREE.Vector3(x, feetY, z));
+      if (Math.abs(local.y) > 0.45) continue;
+      const { minX, maxX, minZ, maxZ } = station.bounds;
+      if (local.x < minX + this.radius || local.x > maxX - this.radius
+        || local.z < minZ + this.radius || local.z > maxZ - this.radius
+        || this.collides(local.x, local.z, station.colliders)) continue;
+      const floorY = station.localToWorld(new THREE.Vector3(local.x, 0, local.z)).y;
+      return { station, floorY };
+    }
+    return null;
+  }
+
+  moveOnTransfer(dx, dz, steps) {
+    const position = this.camera.position;
+    for (let step = 0; step < steps; step++) {
+      for (const [axis, amount] of [['x', dx / steps], ['z', dz / steps]]) {
+        const x = position.x + (axis === 'x' ? amount : 0);
+        const z = position.z + (axis === 'z' ? amount : 0);
+        const feetY = position.y - SPAWN.y;
+        const surface = this.findTransferSurface(x, z, feetY);
+        if (surface) {
+          position.set(x, surface.floorY + SPAWN.y, z);
+          this.transferSurface = surface;
+          continue;
+        }
+        const platform = this.findPlatformSurface(x, z, feetY);
+        if (platform) {
+          position.set(x, platform.floorY + SPAWN.y, z);
+          this.transferSurface = null;
+          this.useStation(platform.station);
+        }
+      }
+    }
+    this.updatePlatformContext();
+  }
+
   update(delta) {
     this.syncRide();
     if (!this.enabled) return;
+    if (!this.ridingCar) {
+      this.transferSurface = this.findTransferSurface(this.camera.position.x, this.camera.position.z, this.camera.position.y - SPAWN.y);
+      this.updatePlatformContext();
+    }
     let forward = Number(this.keys.has('KeyW') || this.keys.has('ArrowUp')) - Number(this.keys.has('KeyS') || this.keys.has('ArrowDown'));
     let strafe = Number(this.keys.has('KeyD') || this.keys.has('ArrowRight')) - Number(this.keys.has('KeyA') || this.keys.has('ArrowLeft'));
     const length = Math.hypot(forward, strafe);
@@ -227,7 +293,7 @@ export class PlayerController {
     // Small, independent axis steps prevent tunnelling and let the player slide along obstacles.
     const steps = Math.max(1, Math.ceil(distance / 0.09));
     const position = this.camera.position;
-    const oldX = position.x, oldZ = position.z;
+    const oldX = position.x, oldY = position.y, oldZ = position.z;
     if (this.ridingCar) {
       const offset = this.ridingOffset;
       const center = this.ridingCar.position.z;
@@ -245,6 +311,11 @@ export class PlayerController {
       this.distanceTravelled += Math.hypot(position.x - oldX, position.z - oldZ);
       return;
     }
+    if (this.transferSurface) {
+      this.moveOnTransfer(dx, dz, steps);
+      this.distanceTravelled += Math.hypot(position.x - oldX, position.y - oldY, position.z - oldZ);
+      return;
+    }
     const local = this.station.worldToLocal(position.clone());
     const matrix = this.station.matrixWorld.elements;
     const localDx = matrix[0] * dx + matrix[2] * dz;
@@ -257,6 +328,7 @@ export class PlayerController {
     }
     local.y = SPAWN.y;
     position.copy(this.station.localToWorld(local));
+    this.transferSurface = this.findTransferSurface(position.x, position.z, position.y - SPAWN.y);
     this.updatePlatformContext();
     this.distanceTravelled += Math.hypot(position.x - oldX, position.z - oldZ);
   }

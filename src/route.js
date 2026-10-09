@@ -142,6 +142,7 @@ export class RouteWorld extends RouteGeometry {
     this.name = 'MetroRouteWorld';
     this.route = route;
     const hasU2 = route.network.lines.has('U2');
+    const hasLower = route.network.lines.has('U3');
     this.station2 = new Station(createCentralMaterials(materials), {
       id: route.stops[1].id,
       displayName: route.stops[1].name,
@@ -152,8 +153,12 @@ export class RouteWorld extends RouteGeometry {
       signageColor: '#365c78',
       ...(hasU2 ? {
         backwallOpening: { z: -24, width: 4, height: 3.05 },
-        walkableAreas: [{ minX: -13.4, maxX: -8.8, minZ: -26, maxZ: -22 }],
       } : {}),
+      walkableAreas: [
+        ...(hasU2 ? [{ minX: -13.4, maxX: -8.8, minZ: -26, maxZ: -22 }] : []),
+        ...(hasLower ? [{ minX: -8.8, maxX: -2.8, minZ: -45.3, maxZ: -41.5 }] : []),
+      ],
+      ...(hasLower ? { platformEndOpenings: [{ z: -44, minX: -8.8, maxX: -2.8, height: 3.05 }] } : {}),
     });
     this.station2.position.z = route.stops[1].z;
     this.station3 = new Station(createRosenheimerMaterials(materials), {

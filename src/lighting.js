@@ -34,14 +34,14 @@ export class Lighting extends THREE.Group {
 
   /** Each station reuses the fixtures; the system's ambient and shadow key stay global. */
   addStationFixtures(offsetZ, {
-    cool = false, pointLights = 2, offsetX = 0, rotationY = 0,
+    cool = false, pointLights = 2, offsetX = 0, offsetY = 0, rotationY = 0,
     platformId = `platform-${offsetX}-${offsetZ}`, fixtures: buildFixtures = true,
     pointDefinitions = null,
   } = {}) {
     const fixturesGroup = new THREE.Group();
     fixturesGroup.name = `StationFixtures-${offsetZ}`;
     fixturesGroup.userData.platformId = platformId;
-    fixturesGroup.position.set(offsetX, 0, offsetZ);
+    fixturesGroup.position.set(offsetX, offsetY, offsetZ);
     fixturesGroup.rotation.y = rotationY;
     this.add(fixturesGroup);
     const fixtures = [], housings = [];

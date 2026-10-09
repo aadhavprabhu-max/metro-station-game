@@ -4,13 +4,21 @@ import { batchStaticGeometry } from './optimize.js';
 
 /** A level pedestrian connection between Central's two back-to-back platforms. */
 export class CentralInterchange extends THREE.Group {
-  constructor(materials, u1Platform, u2Platform) {
+  constructor(materials, u1Platform, u2Platform, {
+    floorY = 0,
+    firstLine = 'U1', secondLine = 'U2',
+    firstDestinations = 'NORDPLATZ / ROSENHEIMER PLATZ',
+    secondDestinations = 'STADTZENTRUM / EISENWERK',
+    firstColor = '#965735', secondColor = '#8e3530',
+  } = {}) {
     super();
-    this.name = 'CentralTransferPassage';
+    this.name = floorY < 0 ? 'CentralLowerTransferPassage' : 'CentralTransferPassage';
     this.stationId = 'station-2';
+    this.floorY = floorY;
+    this.level = floorY < 0 ? 'lower' : 'upper';
     this.platforms = [u1Platform, u2Platform];
     this.platformIds = this.platforms.map(station => station.platformId);
-    this.worldBounds = { minX: -13.4, maxX: -8.8, minZ: -266, maxZ: -262 };
+    this.worldBounds = { minX: -13.4, maxX: -8.8, minZ: -266, maxZ: -262, minY: floorY, maxY: floorY + 3.65, floorY };
     // Geometry is in U2World's mirrored coordinates. Its world position is
     // x=-11.1, z=-264; the floor overlaps each platform with no step or track.
     this.localBounds = { minX: -13.2, maxX: -8.6, minZ: 262, maxZ: 266 };
@@ -26,18 +34,18 @@ export class CentralInterchange extends THREE.Group {
     box(this, materials.concrete, [4.6, 0.22, 4.25], [-10.9, 3.24, 264]);
     box(this, materials.dark, [0.2, 0.06, 2.7], [-10.9, 3.1, 264], { shadow: false });
     box(this, materials.tubeLight, [0.15, 0.025, 2.6], [-10.9, 3.055, 264], { shadow: false });
-    label(this, 'U2  →  STADTZENTRUM / EISENWERK', 3.75, 0.35, [-12.22, 3.46, 264], {
-      rotation: [0, -Math.PI / 2, 0], background: '#8e3530', fontSize: 63,
+    label(this, `${secondLine}  →  ${secondDestinations}`, 3.75, 0.35, [-12.22, 3.46, 264], {
+      rotation: [0, -Math.PI / 2, 0], background: secondColor, fontSize: 63,
     });
-    label(this, 'U1  →  NORDPLATZ / ROSENHEIMER PLATZ', 3.75, 0.35, [-9.6, 3.46, 264], {
-      rotation: [0, Math.PI / 2, 0], background: '#965735', fontSize: 59,
+    label(this, `${firstLine}  →  ${firstDestinations}`, 3.75, 0.35, [-9.6, 3.46, 264], {
+      rotation: [0, Math.PI / 2, 0], background: firstColor, fontSize: 59,
     });
     // Two floor arrows make the connection easy to find from either hall.
-    label(this, 'U2  →', 1.4, 0.48, [-12.6, 0.027, 264], {
-      rotation: [-Math.PI / 2, 0, Math.PI / 2], background: '#b5beb8', color: '#8e3530', fontSize: 190,
+    label(this, `${secondLine}  →`, 1.4, 0.48, [-12.6, 0.027, 264], {
+      rotation: [-Math.PI / 2, 0, Math.PI / 2], background: '#b5beb8', color: secondColor, fontSize: 190,
     });
-    label(this, '←  U1', 1.4, 0.48, [-9.2, 0.027, 264], {
-      rotation: [-Math.PI / 2, 0, Math.PI / 2], background: '#b5beb8', color: '#795336', fontSize: 190,
+    label(this, `←  ${firstLine}`, 1.4, 0.48, [-9.2, 0.027, 264], {
+      rotation: [-Math.PI / 2, 0, Math.PI / 2], background: '#b5beb8', color: floorY === 0 ? '#795336' : firstColor, fontSize: 190,
     });
     batchStaticGeometry(this);
   }
