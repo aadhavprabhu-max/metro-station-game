@@ -154,12 +154,17 @@ export class PlayerController {
     this.transferSurface = null;
     this.ridingCar = service.train.cars[door.carIndex];
     this.ridingOffset.set(door.side * 0.45, 1.85, this.ridingCar.position.z + door.localZ);
-    this.interiorObstacles = [];
-    // Seats and grab poles keep the rider in the aisle and vestibules.
-    for (const side of [-1, 1]) for (const z of [-7.2, -3.5, -2.55, -1.6, 1.6, 2.55, 3.5, 7.2]) {
-      this.interiorObstacles.push({ minX: side * 0.95 - 0.3, maxX: side * 0.95 + 0.3, minZ: z - 0.39, maxZ: z + 0.39 });
+    if (this.ridingCar.userData.interiorLayout) {
+      // Furniture and driver partitions supply their own car-local bounds.
+      this.interiorObstacles = this.ridingCar.interiorColliders;
+    } else {
+      this.interiorObstacles = [];
+      for (const side of [-1, 1]) for (const z of [-7.2, -3.5, -2.55, -1.6, 1.6, 2.55, 3.5, 7.2]) {
+        this.interiorObstacles.push({ minX: side * 0.95 - 0.3, maxX: side * 0.95 + 0.3, minZ: z - 0.39, maxZ: z + 0.39 });
+      }
+      for (const z of [-5.5, 0, 5.5]) this.interiorObstacles.push({ minX: -0.024, maxX: 0.024, minZ: z - 0.024, maxZ: z + 0.024 });
+      this.interiorObstacles.push(...(this.ridingCar.interiorColliders ?? []));
     }
-    for (const z of [-5.5, 0, 5.5]) this.interiorObstacles.push({ minX: -0.024, maxX: 0.024, minZ: z - 0.024, maxZ: z + 0.024 });
     this.keys.clear();
     this.syncRide();
     return true;

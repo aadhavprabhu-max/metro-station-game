@@ -3,6 +3,7 @@ import { createScene } from './scene.js';
 import { PlayerController } from './player.js';
 import { UI, showError } from './ui.js';
 import { WorldVisibility } from './visibility.js';
+import { AnnouncementController } from './announcements.js';
 
 try {
   const world = createScene(document.querySelector('#scene'));
@@ -12,6 +13,9 @@ try {
   const initialLine = new URLSearchParams(location.search).get('line');
   if (initialLine && world.routes[initialLine]) player.startAt(initialLine);
   const ui = new UI(player, world.station.departures, world.service, world.stations, world.services);
+  const announcer = new AnnouncementController(world.passengerInformation, player);
+  ui.configureAnnouncements(announcer);
+  world.announcer = announcer;
   const visibility = new WorldVisibility(world);
   world.visibility = visibility;
   let shadowTimer = 0;
@@ -21,7 +25,10 @@ try {
   let shadowLine = 'U1';
   world.update = delta => {
     for (const service of world.services) service.update(delta);
+    for (const info of world.passengerInformation) info.update(delta);
     player.update(delta);
+    announcer.update(delta);
+    for (const displays of world.passengerDisplays) displays.update();
     visibility.update(player);
     ui.update(delta);
     shadowTimer += delta;

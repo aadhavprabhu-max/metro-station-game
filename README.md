@@ -1,6 +1,6 @@
 # Aurealis-Bahn — Four-Line Metro Network
 
-A playable first-person metro network built with Three.js, JavaScript, HTML, and CSS. The original Nordplatz opening view faces the same green three-car U1 train and physical departures board. U1 runs Nordplatz → Central → Rosenheimer Platz. The independent red U2 train runs Stadtzentrum → Central → Schwarzkopf-Tunnel → Eisenwerk. U3 adds Schattenufer → Central → Ostbahnhof → Stadtbrücke with a blue train. U4 adds Kaiser-Humboldt-Platz → Westbahnhof → Central → Arabellapark with a purple train. All four independent services stop at every station, reverse at their endpoints, and repeat automatically. Central has one shared network node with upper U1/U2 platforms and lower U3/U4 platforms 12 metres below. Level passages and a physical four-flight staircase connect all four platforms. Everything in the scene, including textures and signs, is generated locally; there are no remote models, image assets, fonts, or runtime APIs.
+A playable first-person metro network built with Three.js, JavaScript, HTML, and CSS. The original Nordplatz opening view faces the three-car U1 train and physical departures board. U1 runs Nordplatz → Central → Rosenheimer Platz. Independent U2 runs Stadtzentrum → Central → Schwarzkopf-Tunnel → Eisenwerk. U3 runs Schattenufer → Central → Ostbahnhof → Stadtbrücke. U4 runs Kaiser-Humboldt-Platz → Westbahnhof → Central → Arabellapark. The fleet now shares rounded blue-and-silver Aurealis C-series bodywork inspired by modern Munich metro trains, with narrow green/red/blue/purple line stripes and identifiers. All four independent services stop at every station, reverse at their endpoints, and repeat automatically. Central has one shared network node with upper U1/U2 platforms and lower U3/U4 platforms 12 metres below. Level passages and a physical four-flight staircase connect all four platforms. Everything in the scene, including textures and signs, is generated locally; there are no remote models, image assets, fonts, or runtime APIs.
 
 ## Open the standalone game
 
@@ -36,6 +36,7 @@ npm run dev -- --port 5173 --strictPort
 | E / Board train button | Board near an open platform-side door, or leave at a station |
 | Start U1 / U2 / U3 / U4 | Select Nordplatz / Stadtzentrum / Schattenufer / Kaiser-Humboldt-Platz as the player start |
 | R or Reset view | Return to the selected starting view |
+| Sound button | Enable optional native stop announcements and door chimes; captions work without sound |
 | Escape | Release dragging / close controls |
 | Touch movement pad | Walk on a touch screen |
 
@@ -51,6 +52,29 @@ U2 stops at distances 0, 240, 480, and 720 m. Its physical track is parallel to 
 
 Stadtzentrum is a modern tiled station. Schwarzkopf-Tunnel has a continuous irregular rock shell, mineral strata, a dark level platform, and suspended industrial strip lights inspired by the supplied natural-rock station reference. Eisenwerk has heavy steel trusses, riveted frames, pipes, a bridge crane, and inaccessible machinery. The original seven platform boards retain their U1/U2 service information; both upper Central boards show both directions of those lines. The eight lower platforms add their own U3/U4 information. The HUD follows the player's current platform or ridden train. Simulation pauses when the browser tab is hidden.
 
+
+### Aurealis C-series fleet
+
+The reference-inspired fleet uses original Aurealis branding throughout. Each end cab has an actual rounded, sloping profile-ring shell with a compound-curved panoramic windshield, blue framing, silver roof shoulders, charcoal lower nose, integrated reversible lights and a curved digital destination display. The passenger cars have blue window surrounds and double-leaf doors, brushed silver lower panels, tinted windows, visible interiors and a coherent roofline. Hollow corrugated bellows and mechanical couplers connect the cars. Wheel treads meet the existing rail heads; the track gauge and train origins are unchanged.
+
+The nominal 16 m cars retain their 17 m spacing, all nine platform-side doorway positions, boarding anchors and roof equipment. New noses stay inside the original cab envelope. Only terminal passenger body/roof sections are trimmed to meet the cab seam, with real driver bulkheads and matching interior collision barriers; the centre car retains its existing walking area. Door leaves keep their independent animation and slide outside the cab shoulders without obstructing the apertures. Route sampling, service timing, stopping poses, destinations and GitHub Pages settings are unchanged. Geometry remains procedural and opaque static parts use the existing batching system.
+
+### Passenger interiors and information
+
+Every carriage has shaped blue upholstered seats with silver supports, stainless grab arches and handles, a clear aisle, speckled flooring, wall and ceiling liners, continuous light strips, priority seating notices, emergency instructions and separate glazed driver compartments at the two end cabs. Seats and floor-level poles supply collision bounds directly from the model, so furniture and player movement use the same layout. Doors retain their existing exterior geometry, animations and platform-side interlocks. Passengers can explore one carriage and look through its windows; walking between carriages remains outside the current controller's supported movement.
+
+Each car has two suspended, two-sided pairs of passenger screens. They show its actual line, next/following stop, destination, direction, door state/side and a complete live route map. Passed, current and upcoming stops change as the real train progresses and reverses. Screen textures are shared within each train and redraw only when information changes. The authoritative passenger model reads the existing `MetroRoute.stops` and network nodes; it does not keep another set of station arrays:
+
+| Line | Actual ordered stations | Terminus on return |
+| --- | --- | --- |
+| U1 | Nordplatz → Central → Rosenheimer Platz | Nordplatz |
+| U2 | Stadtzentrum → Central → Schwarzkopf-Tunnel → Eisenwerk | Stadtzentrum |
+| U3 | Schattenufer → Central → Ostbahnhof → Stadtbrücke | Schattenufer |
+| U4 | Kaiser-Humboldt-Platz → Westbahnhof → Central → Arabellapark | Kaiser-Humboldt-Platz |
+
+Central is the only current interchange. Passenger transfer records come from the actual upper/lower passages and staircase: platforms 01/02 are upper, 03/04 are lower, and the connecting stairs run between U1 and U3. Connections that require more than one passage retain that physical path. No route, station, service timing or stop position is changed by the information system. U1 retains the established orange system-signage colour and green exterior identification stripe.
+
+One announcement controller listens for genuine departure, braking approach, exact stopping, terminus and door transitions. It selects only the service the player is riding, deduplicates event IDs and cancels stale messages when leaving or switching trains. Captions work without audio; sound is off until the player clicks its control. Where the browser supplies a native speech voice, announcements can be spoken through `speechSynthesis`. Where it supplies no voice, the UI reports that explicitly and retains captions plus optional quiet WebAudio door chimes. No recorded speech assets or remote speech service are included. `subscribeAnnouncements()` provides an integration point for future recordings. Camera movement does not generate stop announcements.
 
 ### U3 / U4 and Central’s lower level
 
@@ -99,9 +123,25 @@ For the lower network, `npm test -- tests/lower-lines.spec.js` checks four-line 
 
 `SOFTWARE_WEBGL=1 node tests/u34-inspect.mjs` inspects the production version using normal animation frames and real input. It rides all six legs of U3 and U4, then rides U1 to Central, walks downstairs, transfers through the lower passage to U4, rides that service and returns upstairs. It saves screenshots, per-frame stair-height diagnostics, live timetable/state and runtime/WebGL/request diagnostics under `/tmp/metro-u34-network`. `METRO_INSPECT_MODE=ride|transfer` and `METRO_INSPECT_LINE=U3|U4` permit a focused retry; these do not change the game’s timetable.
 
+`npm test -- tests/train-model.spec.js tests/passenger.spec.js` adds curved-cab geometry, actual door apertures, driver barriers, wheel/rail alignment, station/tunnel clearance, interior furniture, complete onboard maps, genuine service events, exact arrival timing, both route directions, physical Central transfers, boarding/aisle walking/exit and honest no-voice audio fallback coverage. The existing cases remain unchanged.
+
+`SOFTWARE_WEBGL=1 node tests/train-model-inspect.mjs` captures production front, side and rear-quarter train views plus station/tunnel clearance evidence. Its `angles` mode is explicitly scripted: real services advance in small steps and only the diagnostic camera is placed. Its separate `ride` mode uses the normal animation loop and real input.
+
+`SOFTWARE_WEBGL=1 node tests/passenger-inspect.mjs` uses normal production animation frames, keyboard boarding, mouse-look, interior walking during movement and exit at Central. It records actual next-stop/approach/arrival events and audio availability, then separately captures all four lines' outbound/return screens, maps and termini using clearly labelled scripted diagnostics. `METRO_INSPECT_MODE=live|scripted|both`, `METRO_PASSENGER_OUTPUT`, `METRO_URL` and the viewport variables allow focused runs. Speech unavailable in a test browser is reported as unavailable, never counted as successful audible speech.
+
 U3/U4 validation on 9 October 2026: the original 23 tests passed before source edits, and all 30 tests passed after integration, including the retained U1/U2 cases. The production build succeeded. The normal-animation production browser completed all six U3 legs and all six U4 legs using real keyboard, mouse and boarding input. Both trains stopped exactly, opened the correct doors, changed terminal destinations and kept all three cars synchronized; U1 and U2 continued operating independently. The twelve live journey legs reported zero JavaScript errors, WebGL errors, failed asset requests or rail-position error. Supplemental rendered overviews covered all fifteen physical platforms and their departures displays. The production HTML served by the preview matched `dist/index.html` exactly, with SHA-256 `cdc35d3461487b171c7928b754713b6d4e16ccb596cfb261a85d267562461a57`.
 
 A separate focused production-browser transfer also passed: board U1 at Nordplatz, ride to Central, alight, walk all four stair flights to −12 m, cross the lower passage, board and ride U4, return to Central, alight and climb all four flights to the upper U1 platform. The descent and ascent monitors recorded every flight and landing, with maximum frame-to-frame height changes of 0.175 m and supported feet heights between −12 and 0 m. Its 15 rendered captures and two stair-monitor records reported zero JavaScript errors, WebGL errors, console warnings or failed requests. The rendered new station architecture, trains, departures displays, stairwell and both railway levels were visually inspected. These checks leave U2's original timetable unchanged.
+
+### Train and passenger upgrade validation — 10 October 2026
+
+The full browser suite ran all 37 cases: 36 passed, including all 30 unchanged existing regressions and all three exterior-model tests. One new caption test paused the animation loop without advancing the HUD's existing refresh interval. After correcting only that test harness to advance nine ordinary frames, all four passenger tests passed in a focused rerun. All 37 distinct cases have therefore passed across those runs; a second complete suite was not run after the test-only correction.
+
+The production build passed. Its standalone HTML and the actual production preview response matched exactly, with SHA-256 `e072c4ab2b7ded32403c98326b285bca651ffe354ee518388d2d38943baa8a28`. Chromium produced 28 exterior/station/tunnel captures and 29 passenger captures. The passenger inspection included a normal-animation U1 journey with genuine keyboard boarding, aisle walking while moving, smooth braking into Central, door opening and keyboard alighting. Separate scripted diagnostics covered each line's outbound and return information, terminal reversals and all physical platform clearances. The rendered front, side, interior, station, tunnel and route-map views were visually inspected. These two production inspections reported no JavaScript errors, WebGL errors, console warnings, failed requests or rail alignment errors.
+
+Door chimes were enabled through a real user click, and their unique events and running WebAudio context were verified. This cloud Chromium has no installed speech voices: spoken announcements were not audibly verified. Captions and the explicit no-voice fallback were verified; native speech on a browser with voices still needs an audible manual check. Carriage-to-carriage walking remains unsupported. Routes, service timings, the two-level Central layout and GitHub Pages configuration were unchanged.
+
+Files changed for this upgrade: `README.md`, `app.html`, generated `index.html`, `src/main.js`, `src/materials.js`, `src/player.js`, `src/scene.js`, `src/style.css`, `src/train.js`, `src/ui.js`; new modules `src/train-cab.js`, `src/train-interior.js`, `src/passenger-info.js`, `src/passenger-displays.js`, `src/announcements.js`; new checks `tests/train-model.spec.js`, `tests/train-model-inspect.mjs`, `tests/passenger.spec.js`, `tests/passenger-inspect.mjs`.
 
 ## Architecture
 
@@ -112,6 +152,11 @@ A separate focused production-browser transfer also passed: board U1 at Nordplat
 | `src/player.js` | Input, drag look, movement, collision, reset |
 | `src/station.js` | Reusable `Station`, `Platform`, and `Track` |
 | `src/train.js` | Reusable `Train` / `TrainCar`, cabs, interiors, separate doors |
+| `src/train-cab.js` | Rounded profile-ring cab shells, panoramic glazing, curved displays and integrated reversible lamps |
+| `src/train-interior.js` | Shared formed seating, interior finishes, grab rails, driver compartments and furniture collision bounds |
+| `src/passenger-info.js` | Route-derived passenger snapshots, physical interchange paths and deduplicated service events |
+| `src/passenger-displays.js` | Shared dynamic next-stop screens and complete onboard route maps |
+| `src/announcements.js` | Selected-train captions, optional native speech, door chimes and recorded-audio integration hook |
 | `src/network.js` | Shared station nodes, physical links, line definitions, future interchange metadata |
 | `src/route.js` | Route sampling, Central/Rosenheimer stations, continuous connecting tracks and tunnels |
 | `src/u2-world.js` | U2 platform definitions and continuous connecting tracks/tunnels |

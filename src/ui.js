@@ -17,6 +17,11 @@ export class UI {
     this.locationLineElement = document.querySelector('#location-line');
     this.serviceLabel = document.querySelector('#service-label');
     this.startButtons = [...document.querySelectorAll('[data-start-line]')];
+    this.soundButton = document.querySelector('#sound-button');
+    this.soundStatusElement = document.querySelector('#sound-status');
+    this.captionElement = document.querySelector('#announcement-caption');
+    this.captionTextElement = document.querySelector('#announcement-text');
+    this.announcer = null;
     this.minutesElement = document.querySelector('#service-countdown') ?? document.querySelector('.arrival').firstChild;
     this.countdownUnit = document.querySelector('#service-countdown-unit');
     this.platformElement = document.querySelector('#service-platform') ?? document.querySelector('.service-footer > span:last-child');
@@ -39,6 +44,14 @@ export class UI {
       color: LINE_COLORS[item.lineId] ?? '#6094be',
       stations: item.route.stops.map(stop => stop.name),
     }));
+    for (const row of document.querySelectorAll('#network-map [data-line]')) {
+      const line = networkInfo.find(item => item.id === row.dataset.line);
+      row.hidden = !line;
+      if (line) {
+        this.setText(row.querySelector('span:last-child'), line.stations.join(' ↔ '));
+        row.querySelector('.line-badge').style.backgroundColor = line.color;
+      }
+    }
     for (const station of stations) {
       station.departures?.setNetworkInfo(networkInfo);
       station.departures?.setPlatformInfo(station.lineId ?? 'U1', station.platformNumber ?? '01', station.stationId === 'station-2', station.level ?? ((station.floorY ?? 0) < 0 ? 'lower' : 'upper'));
@@ -50,6 +63,10 @@ export class UI {
     window.addEventListener('keydown', event => { if (event.code === 'Escape') this.showHelp(false); });
     this.interactButton?.addEventListener('click', () => {
       if (this.player.enabled) this.player.interact?.();
+    });
+    this.soundButton?.addEventListener('click', () => {
+      this.announcer?.toggle();
+      this.updateAnnouncements();
     });
     for (const button of this.startButtons) {
       button.addEventListener('click', () => {
@@ -70,6 +87,29 @@ export class UI {
     this.helpButton.setAttribute('aria-expanded', String(open));
     this.player.setEnabled(!open);
     if (open) document.querySelector('#close-help').focus();
+  }
+
+  configureAnnouncements(announcer) {
+    this.announcer = announcer;
+    this.updateAnnouncements();
+  }
+
+  updateAnnouncements() {
+    if (!this.announcer) return;
+    const status = this.announcer.getStatus();
+    this.setText(this.soundButton, status.enabled ? status.available ? 'Sound on' : 'Captions only' : 'Sound off');
+    this.soundButton?.setAttribute('aria-pressed', String(status.enabled));
+    const availability = !status.enabled ? 'Captions on board'
+      : !status.available ? 'Audio unavailable · captions only'
+      : status.voiceAvailable ? status.enabled ? status.audioAvailable ? 'Voice + chimes' : 'Voice announcements' : 'Captions on'
+      : status.audioAvailable && status.enabled ? 'Chimes · voice unavailable' : 'Voice unavailable · captions on';
+    this.setText(this.soundStatusElement, availability);
+    if (this.soundButton) this.soundButton.title = status.enabled ? `Mute announcements. ${availability}` : `Enable announcements. ${availability}`;
+    const ownLine = (this.player.service ?? this.service)?.lineId;
+    const caption = this.player.ridingCar && status.captionLineId === ownLine ? status.caption : '';
+    this.setText(this.captionTextElement, caption);
+    if (this.captionElement) this.captionElement.hidden = !caption;
+    if (this.captionTextElement) this.captionTextElement.title = caption || '';
   }
 
   update(delta) {
@@ -106,6 +146,7 @@ export class UI {
   }
 
   updateRoute() {
+    this.updateAnnouncements();
     const service = this.player.service ?? this.service;
     if (!service) return;
     const state = service.snapshot();

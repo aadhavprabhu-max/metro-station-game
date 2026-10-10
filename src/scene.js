@@ -10,6 +10,8 @@ import { createMetroNetwork, addU2ToNetwork, addLowerLinesToNetwork } from './ne
 import { U2World } from './u2-world.js';
 import { LowerWorld } from './lower-world.js';
 import { VerticalInterchange } from './vertical-interchange.js';
+import { PassengerInformation } from './passenger-info.js';
+import { attachPassengerDisplays } from './passenger-displays.js';
 
 export function createScene(container) {
   if (!container) throw new Error('The 3D scene container is missing.');
@@ -80,6 +82,13 @@ export function createScene(container) {
   const stations = [...routeWorld.stations, ...u2World.stations, ...lowerWorld.stations];
   const services = [service, u2Service, ...lowerServices];
   const trains = services.map(nextService => nextService.train);
+  const passengerInformation = services.map(nextService => new PassengerInformation(nextService, network));
+  const transferConnections = [
+    ...[...u2World.interchanges, ...lowerWorld.interchanges].map(passage => ({ type: 'passage', platformIds: passage.platformIds })),
+    { type: 'stairs', platformIds: verticalInterchange.platformIds },
+  ];
+  for (const info of passengerInformation) info.configureTransfers(transferConnections);
+  const passengerDisplays = trains.map((nextTrain, index) => attachPassengerDisplays(nextTrain, passengerInformation[index], nextTrain.materials));
   const lighting = new Lighting(scene, materials);
   for (const nextStation of stations.slice(1)) {
     const position = nextStation.getWorldPosition(new THREE.Vector3());
@@ -103,7 +112,7 @@ export function createScene(container) {
   scene.add(station, ...trains, lighting, routeWorld, u2World, lowerWorld, verticalInterchange);
   const world = {
     scene, renderer, camera, station, stations, train, route, network, routeWorld, service,
-    routes, services, trains, u2World, lowerWorld, verticalInterchange,
+    routes, services, trains, passengerInformation, passengerDisplays, u2World, lowerWorld, verticalInterchange,
     lineWorlds: { U1: routeWorld, U2: u2World, ...lowerWorld.lineWorlds },
     interchanges: [...u2World.interchanges, ...lowerWorld.interchanges],
     lighting, resize, environment, viewport, onResize: null,
