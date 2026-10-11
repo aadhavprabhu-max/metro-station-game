@@ -91,7 +91,10 @@ export class TrainCar extends THREE.Group {
     this.userData.vehicleDesign = { family: 'Aurealis C-series', carLength: CAR_LENGTH, spacing: CAR_SPACING, passengerMinZ: minZ, passengerMaxZ: maxZ };
     box(this, m.cabCharcoal, [2.58, 0.27, bodyLength - 0.1], [0, -0.15, centerZ]);
     const floorMin = leading ? -6.55 : -7.8, floorMax = trailing ? 6.55 : 7.8;
-    box(this, m.interior, [2.67, 0.08, floorMax - floorMin], [0, 0.055, (floorMin + floorMax) / 2]);
+    // The finish spans Y=0.084..0.095. Keep the structural slab below it,
+    // preserving its original underside at 0.015 and the walking surface.
+    // Two differently shaded opaque top faces at 0.095 caused z-fighting.
+    box(this, m.interior, [2.67, 0.069, floorMax - floorMin], [0, 0.0495, (floorMin + floorMax) / 2]);
     // A rounded shoulder and separate roof give the cars a real vehicle profile.
     const roofProfile = new THREE.Shape();
     roofProfile.moveTo(-1.42, 2.57);

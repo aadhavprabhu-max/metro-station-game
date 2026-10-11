@@ -209,7 +209,8 @@ export function buildPassengerInterior(car, base, { leading = false, trailing = 
   instances(interior, m.seatFrame, mounts).name = 'SilverSeatSupports';
   instances(interior, m.dark, feet, undefined, false).name = 'SeatSupportFeet';
 
-  // Cover the existing structural slab exactly; its top remains at 0.095 m.
+  // The structural slab ends at 0.084; this finish supplies the sole exposed
+  // walking surface at 0.095, without competing coplanar opaque faces.
   box(interior, m.floor, [2.61, 0.011, length - 0.025], [0, FLOOR_Y - 0.0055, centerZ], { shadow: false }).name = 'TexturedPassengerFloor';
   for (let z = Math.ceil(minZ / 2) * 2; z < maxZ; z += 2) {
     box(interior, m.dark, [2.60, 0.001, 0.005], [0, FLOOR_Y + 0.0005, z], { shadow: false });
