@@ -3,6 +3,7 @@ import { RouteGeometry } from './route.js';
 import { RockStation } from './rock-station.js';
 import { IronStation } from './iron-station.js';
 import { CentralInterchange } from './interchange.js';
+import { GlassCathedralStation } from './glass-cathedral-station.js';
 
 function createU2Materials(materials) {
   const palette = { ...materials };
@@ -39,7 +40,8 @@ export class U2World extends RouteGeometry {
           walkableAreas: [{ minX: -13.2, maxX: -8.6, minZ: 22, maxZ: 26 }],
         } : {}),
       };
-      const StationType = stop.id === 'u2-schwarzkopf' ? RockStation : stop.id === 'u2-eisenwerk' ? IronStation : Station;
+      const StationType = stop.id === 'u2-stadtzentrum' ? GlassCathedralStation
+        : stop.id === 'u2-schwarzkopf' ? RockStation : stop.id === 'u2-eisenwerk' ? IronStation : Station;
       const station = new StationType(palette, options);
       station.position.z = -stop.z;
       station.networkNode = stop.node;

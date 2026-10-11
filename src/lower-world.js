@@ -5,6 +5,7 @@ import { LOWER_FLOOR_Y } from './network.js';
 import { CentralInterchange } from './interchange.js';
 import { SchattenuferStation, OstbahnhofStation, StadtbrueckeStation } from './modern-stations.js';
 import { KaiserHumboldtStation, WestbahnhofStation, ArabellaparkStation } from './historic-stations.js';
+import { GoldenHiveStation } from './golden-hive-station.js';
 
 function createLineMaterials(materials, line) {
   const palette = { ...materials };
@@ -64,7 +65,7 @@ export class LowerLineWorld extends RouteGeometry {
           ...(mirrored ? {} : { platformEndOpenings: [{ z: -44, minX: -8.8, maxX: -2.8, height: 3.05 }] }),
         } : {}),
       };
-      const StationType = STATION_TYPES[stop.id] ?? Station;
+      const StationType = central ? GoldenHiveStation : STATION_TYPES[stop.id] ?? Station;
       const station = new StationType(this.materials, options);
       station.position.z = mirrored ? -stop.z : stop.z;
       station.networkNode = stop.node;
