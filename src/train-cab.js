@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { box, cylinder, label } from './geometry.js';
 
 const REAR_Z = 1.35;
@@ -12,6 +13,8 @@ const CORNER_ANGLE = 1.4;
 const SIDE_RADIUS = 0.11;
 const ROOF_RADIUS = 0.17;
 const ROOF_FRONT_Y = TOP_Y - ROOF_RADIUS;
+const faceGeometryCache = new Map();
+const faceMaterialCache = new WeakMap();
 
 // Value and derivative come from the same curve for every material patch.
 // Only the small lower edge and the unchanged body-width profile use Hermite.
@@ -235,16 +238,126 @@ function curvedLabel(parent, text, startAngle, endAngle, bottom, top, options) {
   return mesh;
 }
 
+function faceOutline(inset = 0) {
+  const bottom = 0.25 + inset, top = ROOF_FRONT_Y - inset;
+  const heights = [bottom, 0.45, 0.60, 0.95, 1.02, 1.30, 1.80, 2.10, 2.47, 2.57, 2.64, 2.74, 2.82, top]
+    .filter((y, index, values) => y >= bottom && y <= top && values.indexOf(y) === index).sort((a, b) => a - b);
+  const edge = y => widthAt(y)[0] - SIDE_RADIUS - inset;
+  const points = heights.map(y => new THREE.Vector2(edge(y), y));
+  points.push(...heights.slice().reverse().map(y => new THREE.Vector2(-edge(y), y)));
+  return new THREE.Shape(points);
+}
+
+function roundedRectangle(width, bottom, top, radius) {
+  const shape = new THREE.Shape(), half = width / 2;
+  shape.moveTo(-half + radius, bottom); shape.lineTo(half - radius, bottom);
+  shape.quadraticCurveTo(half, bottom, half, bottom + radius);
+  shape.lineTo(half, top - radius); shape.quadraticCurveTo(half, top, half - radius, top);
+  shape.lineTo(-half + radius, top); shape.quadraticCurveTo(-half, top, -half, top - radius);
+  shape.lineTo(-half, bottom + radius); shape.quadraticCurveTo(-half, bottom, -half + radius, bottom);
+  return shape;
+}
+
+function sidePane(side) {
+  const pane = new THREE.Shape();
+  pane.moveTo(0.46, 1.01); pane.lineTo(0.46, 2.67);
+  pane.quadraticCurveTo(0.46, 2.75, 0.56, 2.72);
+  pane.quadraticCurveTo(0.89, 2.67, 1.075, 2.55);
+  pane.quadraticCurveTo(1.12, 2.52, 1.12, 2.46);
+  pane.lineTo(1.12, 1.27); pane.quadraticCurveTo(1.12, 1.18, 1.06, 1.12);
+  pane.lineTo(0.92, 0.98); pane.quadraticCurveTo(0.89, 0.95, 0.83, 0.95);
+  pane.lineTo(0.51, 0.95); pane.quadraticCurveTo(0.46, 0.95, 0.46, 1.01);
+  return new THREE.Shape(pane.getPoints(12).map(point => new THREE.Vector2(point.x * side, point.y)));
+}
+
+function expandedOutline(shape, scaleX = 1.035, scaleY = 1.025) {
+  const points = shape.getPoints(12), bounds = new THREE.Box2().setFromPoints(points);
+  const center = bounds.getCenter(new THREE.Vector2());
+  return new THREE.Shape(points.map(point => new THREE.Vector2(
+    center.x + (point.x - center.x) * scaleX, center.y + (point.y - center.y) * scaleY)));
+}
+
+function planeGeometry(shape, offset = 0) {
+  const geometry = new THREE.ShapeGeometry(shape, 12);
+  geometry.rotateY(Math.PI); geometry.translate(0, 0, FRONT_Z - offset);
+  geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+  geometry.userData = { flatFront: true, compoundCurvature: false, opaqueBacking: false };
+  return geometry;
+}
+
+function faceGeometry(key, create) {
+  if (!faceGeometryCache.has(key)) faceGeometryCache.set(key, create());
+  return faceGeometryCache.get(key);
+}
+
+function referenceFaceGeometries() {
+  const panes = [sidePane(-1), roundedRectangle(0.50, 1.06, 2.47, 0.11), sidePane(1)];
+  const apertures = panes.map(pane => expandedOutline(pane));
+  return {
+    perimeter: faceGeometry('perimeter', () => {
+      const outline = faceOutline(); outline.holes.push(new THREE.Path(faceOutline(0.09).getPoints(12)));
+      return planeGeometry(outline);
+    }),
+    blue: faceGeometry('blue-field', () => {
+      const outline = faceOutline(0.09); outline.holes.push(...apertures.map(pane => new THREE.Path(pane.getPoints(12))));
+      return planeGeometry(outline);
+    }),
+    glass: faceGeometry('split-glazing', () => mergeGeometries(panes.map(pane => planeGeometry(pane, 0.010)))),
+    gaskets: faceGeometry('pane-gaskets', () => mergeGeometries(apertures.map((outline, index) => {
+      const rim = outline.clone(); rim.holes.push(new THREE.Path(panes[index].getPoints(12)));
+      return planeGeometry(rim, 0.007);
+    }))),
+    door: faceGeometry('front-door', () => {
+      const door = roundedRectangle(0.74, 0.33, 2.61, 0.025);
+      door.holes.push(new THREE.Path(apertures[1].getPoints(12)));
+      return planeGeometry(door, 0.004);
+    }),
+    doorFrame: faceGeometry('door-frame', () => {
+      const frame = roundedRectangle(0.80, 0.30, 2.65, 0.032);
+      frame.holes.push(new THREE.Path(roundedRectangle(0.74, 0.33, 2.61, 0.025).getPoints(12)));
+      return planeGeometry(frame, 0.006);
+    }),
+  };
+}
+
+function faceRod(parent, material, from, to, radius = 0.012) {
+  const first = new THREE.Vector3(...from), last = new THREE.Vector3(...to);
+  const direction = last.clone().sub(first);
+  const rod = cylinder(parent, material, radius, direction.length(), first.add(last).multiplyScalar(0.5).toArray());
+  rod.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
+  return rod;
+}
+
+function diagonalLampGeometry(side, radius, offset) {
+  const discs = [];
+  for (let index = 0; index < 7; index++) {
+    const fraction = index / 6;
+    const disc = new THREE.CircleGeometry(radius, 12);
+    disc.rotateY(Math.PI);
+    disc.translate(side * THREE.MathUtils.lerp(0.70, 1.08, fraction),
+      THREE.MathUtils.lerp(0.58, 1.035, fraction), FRONT_Z - offset);
+    discs.push(disc);
+  }
+  const geometry = mergeGeometries(discs);
+  geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+  return geometry;
+}
+
 export function buildRoundedCab(car, m, end, leading) {
   const cab = new THREE.Group();
   cab.name = leading ? 'FrontCab' : 'RearCab';
   cab.position.z = end * 7.9;
   if (end === 1) cab.rotation.y = Math.PI;
   cab.userData.end = end;
-  cab.userData.geometryRole = 'flat-front-cab';
+  cab.userData.geometryRole = 'split-window-reference-cab';
   const blue = m.trainBlue ?? m.whitePaint;
   const silver = m.trainSilver ?? m.aluminum;
   const charcoal = m.cabCharcoal ?? m.dark;
+  if (!faceMaterialCache.has(blue)) {
+    const paint = blue.clone(); paint.color.set('#23458d');
+    faceMaterialCache.set(blue, paint);
+  }
+  const faceBlue = faceMaterialCache.get(blue);
   const shellGeometries = [];
   const shellPart = (name, material, geometry) => {
     geometry.userData.role = 'cab-shell';
@@ -253,79 +366,103 @@ export function buildRoundedCab(car, m, end, leading) {
     return panel(cab, name, material, geometry);
   };
 
-  shellPart('RoundedCabLowerNose', charcoal, curvedGeometry(-Math.PI / 2, Math.PI / 2, BOTTOM_Y, 1.02, 42, 10));
-  shellPart('RoundedCabBlueApron', blue, curvedGeometry(-Math.PI / 2, Math.PI / 2, 1.02, glassBottom, 42, 5));
-  shellPart('RoundedCabBrow', blue, curvedGeometry(-Math.PI / 2, Math.PI / 2, glassTop, 2.74, 42, 4));
-  shellPart('RoundedCabRoofShoulder', silver, curvedGeometry(-Math.PI / 2, Math.PI / 2, CROWN_Y, TOP_Y, 42, 12, 0, true));
+  // Preserve the current side profile, rear body seam and upper roof. Replace
+  // only the central face; glass apertures remain physically open behind it.
+  shellPart('CabLowerEdge', charcoal, curvedGeometry(-Math.PI / 2, Math.PI / 2, BOTTOM_Y, 0.25, 42, 3));
   for (const side of [-1, 1]) {
-    const from = side < 0 ? -Math.PI / 2 : GLASS_ANGLE;
-    const to = side < 0 ? -GLASS_ANGLE : Math.PI / 2;
-    shellPart('RoundedCabWindowPillar', blue, curvedGeometry(from, to, glassBottom, glassTop, 7, 12));
+    const from = side < 0 ? -Math.PI / 2 : FACE_ANGLE;
+    const to = side < 0 ? -FACE_ANGLE : Math.PI / 2;
+    shellPart('CabLowerSide', charcoal, curvedGeometry(from, to, 0.25, 1.02, 8, 8));
+    shellPart('CabSideApron', blue, curvedGeometry(from, to, 1.02, glassBottom, 8, 5));
+    shellPart('CabSidePillar', blue, curvedGeometry(from, to, glassBottom, glassTop, 8, 12));
+    shellPart('CabSideBrow', blue, curvedGeometry(from, to, glassTop, CROWN_Y, 8, 4));
+    shellPart('CabSideRoofShoulder', silver, curvedGeometry(from, to, CROWN_Y, ROOF_FRONT_Y, 8, 6));
   }
-  shellPart('RoundedCabRoofCap', silver, profileCap(TOP_Y, true));
-  shellPart('RoundedCabFloorCap', charcoal, profileCap(BOTTOM_Y, false));
-
-  // Keep the real window aperture. The separate glass sheet now lies on the
-  // vertical face, without adding an opaque wall behind it.
-  const windshieldGeometry = curvedGeometry(-GLASS_ANGLE + 0.055, GLASS_ANGLE - 0.055,
-    angle => glassBottom(angle) + 0.043, angle => glassTop(angle) - 0.043, 40, 18, 0.010);
-  windshieldGeometry.userData = { ...windshieldGeometry.userData, role: 'panoramic-windshield', opaqueBacking: false };
-  const windshield = panel(cab, 'PanoramicWindshield', m.cabGlass, windshieldGeometry, { dynamic: true });
-  windshield.userData.geometryRole = 'panoramic-windshield';
+  shellPart('CabRoofEdge', silver, curvedGeometry(-Math.PI / 2, Math.PI / 2, ROOF_FRONT_Y, TOP_Y, 42, 10, 0, true));
+  shellPart('CabRoofCap', silver, profileCap(TOP_Y, true));
+  shellPart('CabFloorCap', charcoal, profileCap(BOTTOM_Y, false));
+  const face = referenceFaceGeometries();
+  shellPart('ReferenceSilverPerimeter', silver, face.perimeter);
+  shellPart('ReferenceBlueFace', faceBlue, face.blue);
+  panel(cab, 'ReferenceWindowGaskets', m.rubber, face.gaskets);
+  const windshield = panel(cab, 'ReferenceSplitGlazing', m.cabGlass, face.glass, { dynamic: true });
+  windshield.geometry.userData = { flatFront: true, compoundCurvature: false, role: 'split-cab-glazing', opaqueBacking: false };
+  windshield.userData.geometryRole = 'split-cab-glazing';
   windshield.userData.opaqueBacking = false;
-  // Metal perimeter and an inner rubber gasket follow the exact same surface;
-  // explicit offsets keep each layer separated without z-fighting.
-  for (const [name, material, angleInset, heightInset, offset] of [
-    ['CabSilverWindowPerimeter', silver, 0, 0, 0.006],
-    ['CabRubberWindowGasket', m.rubber, 0.026, 0.020, 0.008],
-  ]) {
-    const edge = GLASS_ANGLE - angleInset;
-    const strip = material === silver ? 0.026 : 0.030;
-    for (const side of [-1, 1]) {
-      const from = side < 0 ? -edge : edge - strip;
-      const to = side < 0 ? -edge + strip : edge;
-      panel(cab, name, material, curvedGeometry(from, to,
-        angle => glassBottom(angle) + heightInset, angle => glassTop(angle) - heightInset, 2, 14, offset));
-    }
-    panel(cab, name, material, curvedGeometry(-edge, edge,
-      angle => glassBottom(angle) + heightInset, angle => glassBottom(angle) + heightInset + strip, 40, 1, offset));
-    panel(cab, name, material, curvedGeometry(-edge, edge,
-      angle => glassTop(angle) - heightInset - strip, angle => glassTop(angle) - heightInset, 40, 1, offset));
-  }
+  panel(cab, 'ReferenceFrontDoorFrame', m.rubber, face.doorFrame);
+  const frontDoor = panel(cab, 'ReferenceFixedFrontDoor', faceBlue, face.door);
+  frontDoor.userData.interactive = false;
 
-  panel(cab, 'CabDestinationSurround', m.rubber, curvedGeometry(-0.69, 0.69, 2.625, 2.865, 28, 3, 0.007));
-  const display = car.addDestinationDisplay(cab, 1.8, 0.19, [0, 0, 0], {
+  box(cab, m.rubber, [0.90, 0.25, 0.014], [0, 2.735, FRONT_Z - 0.010]);
+  const display = car.addDestinationDisplay(cab, 0.82, 0.175, [0, 2.735, FRONT_Z - 0.023], {
+    rotation: [0, Math.PI, 0],
     background: '#101c25', color: '#ead4a0', fontSize: 81,
   });
-  display.geometry = curvedGeometry(-0.655, 0.655, 2.65, 2.84, 32, 3, 0.018);
-  display.scale.set(1, 1, 1);
-  display.name = 'CurvedCabDestinationDisplay';
-  display.geometry.userData.role = 'curved-destination-display';
+  display.name = 'ReferenceCabDestinationDisplay';
 
   const lamps = [];
   for (const side of [-1, 1]) {
-    const center = side * 0.77;
-    panel(cab, 'IntegratedCabLampSurround', m.rubber, lampGeometry(center, 1.105, 0.185, 0.185, 0.008));
-    panel(cab, 'IntegratedCabLampBezel', silver, lampGeometry(center, 1.105, 0.158, 0.158, 0.017, 0.84));
-    const main = panel(cab, 'CabHeadlightLens', leading ? m.warmLight : m.redLight,
-      lampGeometry(center, 1.105, 0.130, 0.130, 0.023), { shadow: false, dynamic: true });
-    const markerCenter = side * 0.88;
-    const marker = panel(cab, 'CabMarkerLens', leading ? m.redLight : m.warmLight,
-      curvedGeometry(markerCenter - 0.050, markerCenter + 0.050, 0.688, 0.728, 5, 1, 0.018), { shadow: false, dynamic: true });
+    const cheek = new THREE.Shape([
+      [0.40, 0.27], [1.19, 0.27], [1.23, 1.23], [1.11, 1.14], [0.68, 0.58],
+    ].map(([x, y]) => new THREE.Vector2(side * x, y)));
+    panel(cab, 'ReferenceSilverCheek', silver, faceGeometry(`cheek-${side}`, () => planeGeometry(cheek, 0.004)));
+    const housing = faceGeometry(`diagonal-housing-${side}`, () => {
+      const geometry = planeGeometry(roundedRectangle(0.17, -0.365, 0.365, 0.072), 0.010);
+      geometry.translate(0, 0, -FRONT_Z + 0.010);
+      geometry.rotateZ(-side * Math.atan2(0.38, 0.455));
+      geometry.translate(side * 0.89, 0.8075, FRONT_Z - 0.013);
+      return geometry;
+    });
+    panel(cab, 'ReferenceDiagonalLampHousing', m.rubber, housing);
+    panel(cab, 'ReferenceSevenLampBezels', silver,
+      faceGeometry(`lamp-bezels-${side}`, () => diagonalLampGeometry(side, 0.043, 0.018)));
+    const main = panel(cab, 'ReferenceSevenHeadlightLEDs', leading ? m.warmLight : m.redLight,
+      faceGeometry(`lamp-leds-${side}`, () => diagonalLampGeometry(side, 0.032, 0.026)), { shadow: false, dynamic: true });
+    const marker = box(cab, leading ? m.redLight : m.warmLight, [0.055, 0.025, 0.014],
+      [side * 1.11, 1.155, FRONT_Z - 0.020], { shadow: false });
+    marker.userData.dynamic = true;
     main.userData.side = marker.userData.side = side;
     lamps.push({ main, marker });
-    // Keep each wiper in front of the glass, using the same surface attachment.
-    const bottom = new THREE.Vector3(...surfacePoint(side * 0.27, 1.445, 0.047));
-    const top = new THREE.Vector3(...surfacePoint(side * 0.52, 2.055, 0.047));
-    const vector = top.clone().sub(bottom);
-    const wiper = cylinder(cab, m.rubber, 0.010, vector.length(), bottom.add(top).multiplyScalar(0.5).toArray());
-    wiper.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vector.normalize());
+    const wiper = faceRod(cab, m.rubber, [side * 0.75, 1.20, FRONT_Z - 0.034],
+      [side * 0.92, 2.63, FRONT_Z - 0.034], 0.009);
     wiper.name = 'CabWindshieldWiper';
+    for (const y of [0.55, 1.48, 2.36]) {
+      box(cab, m.dark, [0.047, 0.080, 0.022], [side * 0.386, y, FRONT_Z - 0.023]);
+      faceRod(cab, m.steel, [side * 0.405, y - 0.10, FRONT_Z - 0.039],
+        [side * 0.405, y + 0.10, FRONT_Z - 0.039], 0.010);
+    }
+    faceRod(cab, m.steel, [side * 0.405, 1.89, FRONT_Z - 0.039],
+      [side * 0.405, 2.32, FRONT_Z - 0.039], 0.010);
   }
-  panel(cab, 'CurvedCabBumper', m.rubber, curvedGeometry(-1.04, 1.04, 0.235, 0.315, 28, 2, 0.012));
-  box(cab, m.dark, [0.41, 0.16, 0.24], [0, 0.025, -0.54]);
-  curvedLabel(cab, 'AUREALIS', -0.46, 0.46, 0.405, 0.555, {
-    background: '#253039', color: '#d9e2e7', fontSize: 92,
+  for (const [endY, centerY] of [[1.55, 1.20], [1.22, 0.91], [0.96, 0.61]]) {
+    for (const side of [-1, 1]) {
+      const rail = faceRod(cab, m.steel, [side * 0.41, endY, FRONT_Z - 0.045], [0, centerY, FRONT_Z - 0.045]);
+      rail.name = 'ReferenceFrontSafetyRail';
+    }
+  }
+  box(cab, m.rubber, [2.56, 0.12, 0.070], [0, 0.185, FRONT_Z - 0.016]);
+  box(cab, silver, [2.56, 0.024, 0.065], [0, 0.241, FRONT_Z - 0.016]);
+  box(cab, m.dark, [0.45, 0.33, 0.22], [0, -0.25, -0.63]);
+  box(cab, silver, [0.43, 0.29, 0.05], [0, -0.25, -0.758]);
+  const couplingSocket = faceGeometry('coupling-socket', () => {
+    const socket = new THREE.CircleGeometry(0.078, 24); socket.rotateY(Math.PI);
+    socket.translate(0, -0.25, -0.795);
+    return socket;
+  });
+  panel(cab, 'ReferenceCouplingSocket', m.dark, couplingSocket);
+  box(cab, m.steel, [0.48, 0.065, 0.09], [0, -0.43, -0.74]);
+  for (const side of [-1, 1]) {
+    faceRod(cab, m.rubber, [side * 0.18, -0.18, -0.75], [side * 0.27, -0.41, -0.70], 0.018);
+  }
+
+  const badge = new THREE.CircleGeometry(0.218, 32); badge.rotateY(Math.PI);
+  badge.translate(-0.81, 1.96, FRONT_Z - 0.025);
+  panel(cab, 'ReferenceCircularLineBadge', faceBlue, badge, { shadow: false });
+  label(cab, car.lineId, 0.30, 0.25, [-0.81, 1.96, FRONT_Z - 0.029], {
+    rotation: [0, Math.PI, 0], background: '#23458d', color: '#ffffff', fontSize: 240,
+  });
+  label(cab, 'AB', 0.15, 0.105, [0, 0.43, FRONT_Z - 0.030], {
+    rotation: [0, Math.PI, 0], background: '#23458d', color: '#ffffff', fontSize: 200,
   });
 
   const headlights = new THREE.SpotLight('#fff0c8', leading ? 24 : 0, 15, 0.45, 0.6, 1.7);
@@ -337,7 +474,7 @@ export function buildRoundedCab(car, m, end, leading) {
     rearCarZ: end * 6.55, frontLocalZ: FRONT_Z, maxHalfWidth: 1.421, maxHeight: TOP_Y,
     doorSlideMaxHalfWidth: 1.35, doorSlideHeight: [0.06, 2.47],
     windshieldOpaqueBacking: false,
-    profile: 'vertical-face-edge-fillets', smoothAnalyticNormals: true,
+    profile: 'reference-split-window-face', smoothAnalyticNormals: true,
     rearRoofProfile: 'passenger-body-quadratic', crownRoofTangent: true,
   };
   cab.userData.shellMetadata = shellMetadata;

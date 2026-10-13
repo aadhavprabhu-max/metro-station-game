@@ -37,7 +37,7 @@ test('every three-car train has broad vertical flat cab faces and common blue/si
           }
         }
         // Measure actual triangles rather than shape metadata. The shell has a
-        // physical windscreen aperture, so include its separate glass sheet in
+        // physical window apertures, so include their separate glass sheet in
         // both sides of the front-area ratio. Keep their depth ranges separate:
         // the glass deliberately sits 10 mm beyond the painted face.
         const frontMetrics = parts => {
@@ -63,6 +63,41 @@ test('every three-car train has broad vertical flat cab faces and common blue/si
         const shellFace = frontMetrics(geometries), glassGeometry = record.windshieldMesh.geometry;
         const glassFace = frontMetrics([glassGeometry]);
         const glassBounds = new THREE.Box3().setFromBufferAttribute(glassGeometry.getAttribute('position'));
+        // Find real disconnected panes through triangle connectivity. A single
+        // panoramic rectangle cannot satisfy the split windows and glazed door
+        // layout simply by advertising a pane count in metadata.
+        const geometryComponents = geometry => {
+          const positions = geometry.getAttribute('position'), indices = geometry.index;
+          if (!indices) throw new Error('Cab face components must expose indexed triangles.');
+          const parents = Array.from({ length: positions.count }, (_, index) => index);
+          const root = index => {
+            while (parents[index] !== index) {
+              parents[index] = parents[parents[index]];
+              index = parents[index];
+            }
+            return index;
+          };
+          const usedVertices = new Set();
+          for (let index = 0; index < indices.count; index += 3) {
+            const vertices = [0, 1, 2].map(offset => indices.getX(index + offset));
+            for (const vertex of vertices) {
+              parents[root(vertex)] = root(vertices[0]);
+              usedVertices.add(vertex);
+            }
+          }
+          const componentBounds = new Map();
+          for (const vertex of usedVertices) {
+            const key = root(vertex);
+            if (!componentBounds.has(key)) componentBounds.set(key, new THREE.Box3());
+            componentBounds.get(key).expandByPoint(new THREE.Vector3().fromBufferAttribute(positions, vertex));
+          }
+          return [...componentBounds.values()].map(bounds => ({ min: bounds.min.toArray(), max: bounds.max.toArray(),
+            width: bounds.max.x - bounds.min.x, height: bounds.max.y - bounds.min.y,
+            centerX: (bounds.max.x + bounds.min.x) / 2, centerY: (bounds.max.y + bounds.min.y) / 2 }));
+        };
+        const glassPanes = geometryComponents(glassGeometry).sort((first, second) => first.min[0] - second.min[0]);
+        const lampClusters = record.lamps.map(({ main }) =>
+          geometryComponents(main.geometry).sort((first, second) => first.centerY - second.centerY));
         const glassNormals = glassGeometry.getAttribute('normal');
         let glassNormalDeviation = 0;
         for (let index = 0; index < glassNormals.count; index++) {
@@ -74,7 +109,7 @@ test('every three-car train has broad vertical flat cab faces and common blue/si
         const bounds = new THREE.Box3().setFromObject(car).applyMatrix4(new THREE.Matrix4().copy(car.matrixWorld).invert());
         return { end: record.end, vertices, depth: maxZ - minZ, shellFace,
           planarFrontCoverage: (shellFace.planarArea + glassFace.planarArea) / (shellFace.projectedArea + glassFace.projectedArea),
-          glassMin: glassBounds.min.toArray(), glassMax: glassBounds.max.toArray(), glassNormalDeviation,
+          glassMin: glassBounds.min.toArray(), glassMax: glassBounds.max.toArray(), glassNormalDeviation, glassPanes, lampClusters,
           min: bounds.min.toArray(), max: bounds.max.toArray(), metadata: record.shellMetadata,
           windshield: record.windshieldMesh?.geometry.userData };
       }));
@@ -111,10 +146,35 @@ test('every three-car train has broad vertical flat cab faces and common blue/si
       expect(cab.shellFace.max[1] - cab.shellFace.min[1]).toBeGreaterThan(2.4);
       expect(cab.shellFace.max[2] - cab.shellFace.min[2]).toBeLessThanOrEqual(0.001);
       expect(cab.planarFrontCoverage).toBeGreaterThan(0.7);
-      expect(cab.glassMax[0] - cab.glassMin[0]).toBeGreaterThan(2.3);
+      expect(cab.glassMax[0] - cab.glassMin[0]).toBeGreaterThan(2.2);
       expect(cab.glassMax[1] - cab.glassMin[1]).toBeGreaterThan(1);
       expect(cab.glassMax[2] - cab.glassMin[2]).toBeLessThanOrEqual(0.001);
       expect(cab.glassNormalDeviation).toBeLessThan(1e-5);
+      expect(cab.glassPanes).toHaveLength(3);
+      const [leftPane, doorPane, rightPane] = cab.glassPanes;
+      for (const pane of [leftPane, rightPane]) {
+        expect(pane.width).toBeGreaterThan(0.6);
+        expect(pane.height / pane.width).toBeGreaterThan(1.6);
+      }
+      expect(doorPane.width).toBeCloseTo(0.5, 2);
+      expect(doorPane.height).toBeGreaterThan(1.3);
+      expect(doorPane.centerX).toBeCloseTo(0, 6);
+      expect(doorPane.min[0] - leftPane.max[0]).toBeGreaterThanOrEqual(0.08);
+      expect(rightPane.min[0] - doorPane.max[0]).toBeGreaterThanOrEqual(0.08);
+      expect(cab.lampClusters).toHaveLength(2);
+      for (const cluster of cab.lampClusters) {
+        expect(cluster).toHaveLength(7);
+        const first = cluster[0], last = cluster.at(-1);
+        expect(last.centerY - first.centerY).toBeGreaterThan(0.4);
+        expect(Math.abs(last.centerX - first.centerX)).toBeGreaterThan(0.3);
+        const slope = (last.centerX - first.centerX) / (last.centerY - first.centerY);
+        for (const led of cluster) {
+          expect(led.width).toBeGreaterThan(0.06); expect(led.width).toBeLessThan(0.07);
+          expect(led.height).toBeGreaterThan(0.06); expect(led.height).toBeLessThan(0.07);
+          expect(led.max[2] - led.min[2]).toBeLessThanOrEqual(0.001);
+          expect(Math.abs(led.centerX - first.centerX - (led.centerY - first.centerY) * slope)).toBeLessThan(1e-5);
+        }
+      }
       expect(cab.min[0]).toBeGreaterThanOrEqual(-1.51);
       expect(cab.max[0]).toBeLessThanOrEqual(1.51);
       expect(cab.min[2]).toBeGreaterThanOrEqual(-8.70);
