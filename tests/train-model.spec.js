@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 
 test.afterEach(async ({ page }) => { expect(errorsByPage.get(page)).toEqual([]); });
 
-test('every three-car train has genuine curved cab ends and common blue/silver exterior without changing line identities', async ({ page }) => {
+test('every three-car train has broad vertical flat cab faces and common blue/silver exterior without changing line identities', async ({ page }) => {
   const models = await page.evaluate(async () => {
     const THREE = await import('/node_modules/three/build/three.module.js');
     const { world } = window.metro;
@@ -26,24 +26,55 @@ test('every three-car train has genuine curved cab ends and common blue/silver e
         const group = record.group ?? record.cab ?? car.getObjectByName(record.end === -1 ? 'FrontCab' : 'RearCab');
         const shell = record.shell ?? group?.getObjectByName('CurvedCabShell');
         const geometries = record.shellGeometries ?? (shell ? [shell.geometry] : []);
-        if (!geometries.length) throw new Error('Curved cab shell is missing from the actual train.');
-        const zValues = new Set(), normalValues = new Set();
+        if (!geometries.length) throw new Error('Cab shell is missing from the actual train.');
         let minZ = Infinity, maxZ = -Infinity, vertices = 0;
         for (const geometry of geometries) {
-          const positions = geometry.getAttribute('position'), normals = geometry.getAttribute('normal');
+          const positions = geometry.getAttribute('position');
           vertices += positions.count;
           for (let index = 0; index < positions.count; index++) {
             const z = positions.getZ(index);
             minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
-            zValues.add(Math.round(z * 100));
-            normalValues.add(`${Math.round(normals.getX(index) * 20)},${Math.round(normals.getY(index) * 20)},${Math.round(normals.getZ(index) * 20)}`);
           }
+        }
+        // Measure actual triangles rather than shape metadata. The shell has a
+        // physical windscreen aperture, so include its separate glass sheet in
+        // both sides of the front-area ratio. Keep their depth ranges separate:
+        // the glass deliberately sits 10 mm beyond the painted face.
+        const frontMetrics = parts => {
+          const planarBounds = new THREE.Box3();
+          let projectedArea = 0, planarArea = 0;
+          for (const geometry of parts) {
+            const positions = geometry.getAttribute('position'), indices = geometry.index;
+            const count = indices?.count ?? positions.count;
+            for (let index = 0; index < count; index += 3) {
+              const [a, b, c] = [0, 1, 2].map(offset => new THREE.Vector3().fromBufferAttribute(positions,
+                indices ? indices.getX(index + offset) : index + offset));
+              const normal = b.clone().sub(a).cross(c.clone().sub(a));
+              if (normal.z >= -1e-12) continue;
+              const area = -normal.z / 2;
+              projectedArea += area;
+              if (Math.hypot(normal.x, normal.y) > -normal.z * 1e-5) continue;
+              planarArea += area;
+              for (const point of [a, b, c]) planarBounds.expandByPoint(point);
+            }
+          }
+          return { projectedArea, planarArea, min: planarBounds.min.toArray(), max: planarBounds.max.toArray() };
+        };
+        const shellFace = frontMetrics(geometries), glassGeometry = record.windshieldMesh.geometry;
+        const glassFace = frontMetrics([glassGeometry]);
+        const glassBounds = new THREE.Box3().setFromBufferAttribute(glassGeometry.getAttribute('position'));
+        const glassNormals = glassGeometry.getAttribute('normal');
+        let glassNormalDeviation = 0;
+        for (let index = 0; index < glassNormals.count; index++) {
+          glassNormalDeviation = Math.max(glassNormalDeviation,
+            Math.hypot(glassNormals.getX(index), glassNormals.getY(index)), Math.abs(glassNormals.getZ(index) + 1));
         }
         // Include the actual batched body, animated doors and coupler, so a
         // retained source geometry reference cannot hide an oversized vehicle.
         const bounds = new THREE.Box3().setFromObject(car).applyMatrix4(new THREE.Matrix4().copy(car.matrixWorld).invert());
-        return { end: record.end, vertices, depth: maxZ - minZ,
-          longitudinalSections: zValues.size, normalDirections: normalValues.size,
+        return { end: record.end, vertices, depth: maxZ - minZ, shellFace,
+          planarFrontCoverage: (shellFace.planarArea + glassFace.planarArea) / (shellFace.projectedArea + glassFace.projectedArea),
+          glassMin: glassBounds.min.toArray(), glassMax: glassBounds.max.toArray(), glassNormalDeviation,
           min: bounds.min.toArray(), max: bounds.max.toArray(), metadata: record.shellMetadata,
           windshield: record.windshieldMesh?.geometry.userData };
       }));
@@ -75,14 +106,21 @@ test('every three-car train has genuine curved cab ends and common blue/silver e
     for (const cab of model.cabs) {
       expect(cab.vertices).toBeGreaterThan(100);
       expect(cab.depth).toBeGreaterThan(0.7);
-      expect(cab.longitudinalSections).toBeGreaterThan(8);
-      expect(cab.normalDirections).toBeGreaterThan(15);
+      expect(cab.shellFace.planarArea).toBeGreaterThan(3);
+      expect(cab.shellFace.max[0] - cab.shellFace.min[0]).toBeGreaterThan(2.4);
+      expect(cab.shellFace.max[1] - cab.shellFace.min[1]).toBeGreaterThan(2.4);
+      expect(cab.shellFace.max[2] - cab.shellFace.min[2]).toBeLessThanOrEqual(0.001);
+      expect(cab.planarFrontCoverage).toBeGreaterThan(0.7);
+      expect(cab.glassMax[0] - cab.glassMin[0]).toBeGreaterThan(2.3);
+      expect(cab.glassMax[1] - cab.glassMin[1]).toBeGreaterThan(1);
+      expect(cab.glassMax[2] - cab.glassMin[2]).toBeLessThanOrEqual(0.001);
+      expect(cab.glassNormalDeviation).toBeLessThan(1e-5);
       expect(cab.min[0]).toBeGreaterThanOrEqual(-1.51);
       expect(cab.max[0]).toBeLessThanOrEqual(1.51);
       expect(cab.min[2]).toBeGreaterThanOrEqual(-8.70);
       expect(cab.max[2]).toBeLessThanOrEqual(8.70);
       expect(cab.max[1]).toBeLessThanOrEqual(3.32);
-      expect(cab.windshield?.compoundCurvature).toBe(true);
+      expect(cab.windshield?.compoundCurvature).toBe(false);
       expect(cab.windshield?.opaqueBacking).toBe(false);
     }
   }

@@ -6,13 +6,15 @@ const GLASS_ANGLE = 1.2;
 const BOTTOM_Y = 0.105;
 const TOP_Y = 3.07;
 const CROWN_Y = 2.74;
-const CROWN_FRONT_Z = 0.445;
-const CROWN_CONTROL_Z = 0.86;
-const CROWN_END_Z = 1.08;
+const FRONT_Z = -0.735;
+const FACE_ANGLE = 1.2;
+const CORNER_ANGLE = 1.4;
+const SIDE_RADIUS = 0.11;
+const ROOF_RADIUS = 0.17;
+const ROOF_FRONT_Y = TOP_Y - ROOF_RADIUS;
 
-// Shape-preserving Hermite interpolation keeps the lower tip blunt and the
-// windscreen progressively raked, without the old straight profile segments.
 // Value and derivative come from the same curve for every material patch.
+// Only the small lower edge and the unchanged body-width profile use Hermite.
 function profile(points, endSlope = null) {
   const steps = points.slice(1).map((point, index) => point[0] - points[index][0]);
   const secants = points.slice(1).map((point, index) => (point[1] - points[index][1]) / steps[index]);
@@ -53,10 +55,8 @@ function hermite(start, end, startSlope, endSlope, height, t) {
 
 const lowerWidth = profile([[0.105, 1.19], [0.25, 1.30], [0.60, 1.345], [0.95, 1.35], [2.47, 1.35]], 0);
 const lowerFront = profile([
-  [0.105, -0.27], [0.25, -0.49], [0.60, -0.70], [0.95, -0.735],
-  [1.35, -0.675], [1.80, -0.425], [2.25, -0.080], [2.47, 0.110],
-  [2.57, 0.245], [CROWN_Y, CROWN_FRONT_Z],
-], (CROWN_CONTROL_Z - CROWN_FRONT_Z) / (TOP_Y - CROWN_Y));
+  [BOTTOM_Y, -0.60], [0.18, -0.715], [0.25, FRONT_Z], [ROOF_FRONT_Y, FRONT_Z],
+], 0);
 
 function widthAt(y) {
   if (y <= 2.47) return lowerWidth(y);
@@ -68,26 +68,40 @@ function widthAt(y) {
 }
 
 function frontAt(y) {
-  if (y <= CROWN_Y) return lowerFront(y);
-  // The crown becomes tangent to the existing flat roof. Parameterising its
-  // derivative avoids an infinite dZ/dY at the very top of the rounded nose.
-  const t = 1 - Math.sqrt(Math.max(0, (TOP_Y - y) / (TOP_Y - CROWN_Y)));
-  const z = (1 - t) ** 2 * CROWN_FRONT_Z + 2 * (1 - t) * t * CROWN_CONTROL_Z + t * t * CROWN_END_Z;
-  return [z, 2 * ((1 - t) * (CROWN_CONTROL_Z - CROWN_FRONT_Z) + t * (CROWN_END_Z - CROWN_CONTROL_Z)),
-    2 * (TOP_Y - CROWN_Y) * (1 - t)];
+  if (y <= ROOF_FRONT_Y) return lowerFront(y);
+  // A short edge fillet joins the vertical face to the original flat roof.
+  // Its parameter derivative remains finite at the horizontal roof tangent.
+  const t = 1 - Math.sqrt(Math.max(0, (TOP_Y - y) / ROOF_RADIUS));
+  return [FRONT_Z + ROOF_RADIUS * t * t, 2 * ROOF_RADIUS * t, 2 * ROOF_RADIUS * (1 - t)];
 }
 
-function sectionAt(y) {
-  return [widthAt(y)[0], frontAt(y)[0]];
+function horizontalSection(angle, width, frontZ, offset) {
+  const side = angle < 0 ? -1 : 1, absolute = Math.abs(angle);
+  const coreWidth = width - SIDE_RADIUS;
+  if (absolute <= FACE_ANGLE) {
+    // Most of the cab is one broad plane, including the whole windscreen.
+    const fraction = angle / FACE_ANGLE;
+    return { x: coreWidth * fraction, z: frontZ - offset,
+      dx: coreWidth / FACE_ANGLE, dz: 0, widthFraction: fraction, frontFraction: 1 };
+  }
+  if (absolute < CORNER_ANGLE) {
+    const rate = Math.PI / 2 / (CORNER_ANGLE - FACE_ANGLE);
+    const turn = (absolute - FACE_ANGLE) * rate, radius = SIDE_RADIUS + offset;
+    return { x: side * (coreWidth + radius * Math.sin(turn)),
+      z: frontZ + SIDE_RADIUS - radius * Math.cos(turn),
+      dx: radius * Math.cos(turn) * rate, dz: side * radius * Math.sin(turn) * rate,
+      widthFraction: side, frontFraction: 1 };
+  }
+  const length = Math.PI / 2 - CORNER_ANGLE, fraction = (absolute - CORNER_ANGLE) / length;
+  return { x: side * (width + offset), z: THREE.MathUtils.lerp(frontZ + SIDE_RADIUS, REAR_Z, fraction),
+    dx: 0, dz: side * (REAR_Z - frontZ - SIDE_RADIUS) / length,
+    widthFraction: side, frontFraction: 1 - fraction };
 }
 
-/** Angular profile rings create a genuinely rounded nose in all three axes. */
+/** The existing patch layout now samples a vertical face and small edge fillets. */
 function surfacePoint(angle, y, offset = 0) {
-  const [halfWidth, frontZ] = sectionAt(y);
-  return [
-    (halfWidth + offset) * Math.sin(angle), y,
-    REAR_Z - (REAR_Z - frontZ + offset) * Math.cos(angle),
-  ];
+  const section = horizontalSection(angle, widthAt(y)[0], frontAt(y)[0], offset);
+  return [section.x, y, section.z];
 }
 
 function surfaceNormal(angle, y, offset = 0) {
@@ -95,16 +109,15 @@ function surfaceNormal(angle, y, offset = 0) {
   const heightDerivative = front[2] ?? 1;
   const widthDerivative = widthSlope * heightDerivative;
   const frontDerivative = front[1];
-  const w = width + offset, depth = REAR_Z - front[0] + offset;
-  const sine = Math.sin(angle), cosine = Math.cos(angle);
+  const section = horizontalSection(angle, width, front[0], offset);
   const normal = new THREE.Vector3(
-    depth * sine * heightDerivative,
-    frontDerivative * w * cosine * cosine - widthDerivative * depth * sine * sine,
-    -w * cosine * heightDerivative,
+    section.dz * heightDerivative,
+    frontDerivative * section.frontFraction * section.dx - widthDerivative * section.widthFraction * section.dz,
+    -section.dx * heightDerivative,
   );
   // At the roof/side endpoint both crown tangents vanish. The limiting side
   // shoulder normal is finite and agrees with the passenger-car roof profile.
-  if (normal.lengthSq() < 1e-20) normal.set(Math.sign(sine), -widthSlope, 0);
+  if (normal.lengthSq() < 1e-20) normal.set(Math.sign(angle), -widthSlope, 0);
   return normal.normalize().toArray();
 }
 
@@ -142,8 +155,8 @@ function curvedGeometry(startAngle, endAngle, bottom, top, columns = 40, rows = 
   geometry.setIndex(indices);
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
-  geometry.userData = { curved: true, compoundCurvature: true, angularProfile: true, rearLocalZ: REAR_Z,
-    smoothAnalyticNormals: true, profile: 'hermite-roof-tangent' };
+  geometry.userData = { curved: true, compoundCurvature: false, flatFront: true, angularProfile: true, rearLocalZ: REAR_Z,
+    smoothAnalyticNormals: true, profile: 'vertical-face-edge-fillets' };
   return geometry;
 }
 
@@ -178,8 +191,8 @@ function lampGeometry(centerAngle, centerY, angleRadius, heightRadius, offset, i
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geometry.setIndex(indices);
   geometry.computeBoundingBox(); geometry.computeBoundingSphere();
-  geometry.userData = { curved: true, compoundCurvature: true, role: 'integrated-cab-lamp',
-    smoothAnalyticNormals: true, profile: 'hermite-roof-tangent' };
+  geometry.userData = { curved: false, compoundCurvature: false, flatFront: true, role: 'integrated-cab-lamp',
+    smoothAnalyticNormals: true, profile: 'vertical-face-edge-fillets' };
   return geometry;
 }
 
@@ -228,13 +241,13 @@ export function buildRoundedCab(car, m, end, leading) {
   cab.position.z = end * 7.9;
   if (end === 1) cab.rotation.y = Math.PI;
   cab.userData.end = end;
-  cab.userData.geometryRole = 'rounded-aerodynamic-cab';
+  cab.userData.geometryRole = 'flat-front-cab';
   const blue = m.trainBlue ?? m.whitePaint;
   const silver = m.trainSilver ?? m.aluminum;
   const charcoal = m.cabCharcoal ?? m.dark;
   const shellGeometries = [];
   const shellPart = (name, material, geometry) => {
-    geometry.userData.role = 'rounded-cab-shell';
+    geometry.userData.role = 'cab-shell';
     geometry.userData.patchName = name;
     shellGeometries.push(geometry);
     return panel(cab, name, material, geometry);
@@ -252,8 +265,8 @@ export function buildRoundedCab(car, m, end, leading) {
   shellPart('RoundedCabRoofCap', silver, profileCap(TOP_Y, true));
   shellPart('RoundedCabFloorCap', charcoal, profileCap(BOTTOM_Y, false));
 
-  // The shell is absent in this aperture. The glass is a separately curved
-  // sheet, rather than a flat rectangle pasted over an opaque end wall.
+  // Keep the real window aperture. The separate glass sheet now lies on the
+  // vertical face, without adding an opaque wall behind it.
   const windshieldGeometry = curvedGeometry(-GLASS_ANGLE + 0.055, GLASS_ANGLE - 0.055,
     angle => glassBottom(angle) + 0.043, angle => glassTop(angle) - 0.043, 40, 18, 0.010);
   windshieldGeometry.userData = { ...windshieldGeometry.userData, role: 'panoramic-windshield', opaqueBacking: false };
@@ -301,8 +314,7 @@ export function buildRoundedCab(car, m, end, leading) {
       curvedGeometry(markerCenter - 0.050, markerCenter + 0.050, 0.688, 0.728, 5, 1, 0.018), { shadow: false, dynamic: true });
     main.userData.side = marker.userData.side = side;
     lamps.push({ main, marker });
-    // The straight wiper spans the convex glass: clear the whole chord, not
-    // just its endpoints, so its cylinder cannot pass through the windscreen.
+    // Keep each wiper in front of the glass, using the same surface attachment.
     const bottom = new THREE.Vector3(...surfacePoint(side * 0.27, 1.445, 0.047));
     const top = new THREE.Vector3(...surfacePoint(side * 0.52, 2.055, 0.047));
     const vector = top.clone().sub(bottom);
@@ -317,15 +329,15 @@ export function buildRoundedCab(car, m, end, leading) {
   });
 
   const headlights = new THREE.SpotLight('#fff0c8', leading ? 24 : 0, 15, 0.45, 0.6, 1.7);
-  headlights.position.set(0, 1, -0.695);
+  headlights.position.set(...surfacePoint(0, 1, 0.04));
   headlights.target.position.set(0, -0.8, -10);
   cab.add(headlights, headlights.target);
   const shellMetadata = {
-    curved: true, compoundCurvature: true, rearLocalZ: REAR_Z,
-    rearCarZ: end * 6.55, frontLocalZ: -0.735, maxHalfWidth: 1.421, maxHeight: TOP_Y,
+    curved: true, compoundCurvature: false, flatFront: true, rearLocalZ: REAR_Z,
+    rearCarZ: end * 6.55, frontLocalZ: FRONT_Z, maxHalfWidth: 1.421, maxHeight: TOP_Y,
     doorSlideMaxHalfWidth: 1.35, doorSlideHeight: [0.06, 2.47],
     windshieldOpaqueBacking: false,
-    profile: 'hermite-roof-tangent', smoothAnalyticNormals: true,
+    profile: 'vertical-face-edge-fillets', smoothAnalyticNormals: true,
     rearRoofProfile: 'passenger-body-quadratic', crownRoofTangent: true,
   };
   cab.userData.shellMetadata = shellMetadata;

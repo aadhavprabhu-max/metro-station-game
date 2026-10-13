@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 
 test.afterEach(async ({ page }) => { expect(errorsByPage.get(page)).toEqual([]); });
 
-test('every carriage has one actual finished walking surface above its structural slab, with intact rounded cab seams', async ({ page }) => {
+test('every carriage has one actual finished walking surface above its structural slab, with intact flat cab seams', async ({ page }) => {
   const result = await page.evaluate(async () => {
     const THREE = await import('/node_modules/three/build/three.module.js');
     const { world } = window.metro;
