@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
   errorsByPage.set(page, errors);
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-  await page.goto('/');
+  await page.goto('/?network=original');
   await page.waitForFunction(() => window.metro?.ready && window.metro.world.passengerInformation?.length === 4);
   await page.evaluate(() => window.metro.world.renderer.setAnimationLoop(null));
 });

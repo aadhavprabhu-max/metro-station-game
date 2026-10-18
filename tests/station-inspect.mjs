@@ -23,7 +23,8 @@ page.on('requestfailed', request => failedRequests.push(`${request.url()} ${requ
 page.on('response', response => { if (response.status() >= 400) failedRequests.push(`${response.status()} ${response.url()}`); });
 
 try {
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  const fixtureUrl = new URL(url); fixtureUrl.searchParams.set('network', 'original');
+  await page.goto(fixtureUrl.href, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForFunction(() => window.metro?.ready && window.metro.world.services?.length === 4, null, { timeout: 120000 });
   await page.locator('#loading').waitFor({ state: 'hidden', timeout: 120000 });
   await page.evaluate(() => window.metro.world.renderer.setAnimationLoop(null));

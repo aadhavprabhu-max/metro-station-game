@@ -154,17 +154,17 @@ export class Station extends THREE.Group {
     instances(this, m.aluminum, ventSlats, undefined, false);
   }
 
-  buildPlatformEndWall(m, z) {
+  buildPlatformEndWall(m, z, wallHeight = 5.4) {
     const opening = this.options.platformEndOpenings?.find(item => Math.abs(item.z - z) < 0.01);
     if (!opening) {
-      box(this, m.wall, [10.1, 5.4, 0.4], [-5, 2.7, z]);
+      box(this, m.wall, [10.1, wallHeight, 0.4], [-5, wallHeight / 2, z]);
       return;
     }
     const height = opening.height ?? 3.05;
     for (const [start, end] of [[-10.05, opening.minX], [opening.maxX, 0.05]]) {
-      if (end > start) box(this, m.wall, [end - start, 5.4, 0.4], [(start + end) / 2, 2.7, z]);
+      if (end > start) box(this, m.wall, [end - start, wallHeight, 0.4], [(start + end) / 2, wallHeight / 2, z]);
     }
-    box(this, m.wall, [opening.maxX - opening.minX, 5.4 - height, 0.4], [(opening.minX + opening.maxX) / 2, (5.4 + height) / 2, z]);
+    box(this, m.wall, [opening.maxX - opening.minX, wallHeight - height, 0.4], [(opening.minX + opening.maxX) / 2, (wallHeight + height) / 2, z]);
   }
 
   wallPanelSections(x, z, depth) {
@@ -252,13 +252,23 @@ export class Station extends THREE.Group {
       this.add(diagram);
       box(diagram, m.aluminum, [1.58, 1.24, 0.04], [0, 0, 0]);
       label(diagram, `${this.lineId}  /  ${this.options.lineName ?? 'THE CENTRAL LINE'}`, 1.42, 0.18, [0, 0.44, 0.03], { background: '#d7dfd4', color: '#2c594e', fontSize: 71 });
-      box(diagram, m.trainAccent, [1.13, 0.026, 0.023], [0, 0.04, 0.033], { shadow: false });
-      for (let i = 0; i < 5; i++) {
-        const x = -0.55 + i * 0.275;
-        const circle = new THREE.Mesh(new THREE.CircleGeometry(0.035, 12), i === 1 ? m.yellow : m.whitePaint);
-        circle.position.set(x, 0.04, 0.051); diagram.add(circle);
-      }
-      label(diagram, this.options.routeNames?.join('   •   ') ?? 'Nordplatz   Museum   Rathaus   Central', 1.34, 0.13, [0, -0.17, 0.037], { background: '#d7dfd4', color: '#364c41', fontSize: 45 });
+      const names = this.options.routeNames ?? [this.displayName, this.destinationName];
+      const routeMap = label(diagram, '', 1.34, 0.66, [0, -0.01, 0.037], { background: '#d7dfd4' });
+      routeMap.name = 'StationRouteDiagram'; routeMap.userData.routeStops = [...names];
+      const texture = routeMap.material.map, canvas = texture.image, ctx = canvas.getContext('2d');
+      const columns = names.length > 4 ? 2 : 1, rows = Math.ceil(names.length / columns);
+      const columnWidth = canvas.width / columns, step = Math.min(102, (canvas.height - 65) / Math.max(1, rows - 1));
+      ctx.font = '500 36px Arial'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+      names.forEach((name, index) => {
+        const column = Math.floor(index / rows), row = index % rows;
+        const x = column * columnWidth + 27, y = 42 + row * step;
+        ctx.strokeStyle = '#607b71'; ctx.lineWidth = 5;
+        if (row < rows - 1 && index < names.length - 1) { ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + step); ctx.stroke(); }
+        ctx.fillStyle = name === this.displayName ? '#a88435' : '#315e52';
+        ctx.beginPath(); ctx.arc(x, y, name === this.displayName ? 11 : 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#2b493e'; ctx.fillText(`${index + 1}  ${name}`, x + 20, y, columnWidth - 62);
+      });
+      texture.needsUpdate = true;
       label(diagram, `${this.options.networkName ?? 'CITY METRO'}  •  INFORMATION`, 1.34, 0.14, [0, -0.44, 0.037], { background: '#d7dfd4', color: '#697b6c', fontSize: 54 });
     }
   }

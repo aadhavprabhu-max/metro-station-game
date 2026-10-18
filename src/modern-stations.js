@@ -105,7 +105,9 @@ function buildWallsAndPortals(station, m, height, { roof = true } = {}) {
   instances(station, m.wallTile, panels);
   instances(station, m.greenTile, lower);
   for (const z of [-44, 44]) {
-    box(station, m.wallTile, [10.1, height, 0.4], [-5, height / 2, z]);
+    if (station.options.platformEndOpenings?.some(opening => Math.abs(opening.z - z) < 0.01)) {
+      station.buildPlatformEndWall({ ...m, wall: m.wallTile }, z, height);
+    } else box(station, m.wallTile, [10.1, height, 0.4], [-5, height / 2, z]);
     box(station, m.wallTile, [2.9, height, 0.4], [6.4, height / 2, z]);
     box(station, m.concrete, [4.9, height - 4.1, 0.4], [2.45, (height + 4.1) / 2, z]);
     box(station, m.structural, [5.1, 0.24, 0.65], [2.45, 4.15, z]);

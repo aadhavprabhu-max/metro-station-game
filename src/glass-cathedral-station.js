@@ -297,7 +297,9 @@ export class GlassCathedralStation extends Station {
     const facadeMembers = [];
     for (const z of [-44, 44]) {
       // Track opening and terminating caps retain the original rail envelope.
-      box(this, m.wall, [10.1, 4.05, 0.4], [-5, 2.025, z]);
+      if (this.options.platformEndOpenings?.some(opening => Math.abs(opening.z - z) < 0.01)) {
+        this.buildPlatformEndWall(m, z, 4.05);
+      } else box(this, m.wall, [10.1, 4.05, 0.4], [-5, 2.025, z]);
       box(this, m.wall, [2.9, 4.05, 0.4], [6.4, 2.025, z]);
       const hasCap = z < 0 ? this.options.northCap : this.options.southCap;
       if (hasCap) box(this, m.rubber, [4.8, 5.1, 0.1], [2.45, 1.8, z + Math.sign(z) * 4], { shadow: false });

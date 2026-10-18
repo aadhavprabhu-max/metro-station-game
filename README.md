@@ -1,6 +1,10 @@
-# Aurealis-Bahn — Four-Line Metro Network
+# Aurealis-Bahn — Six-Line Metro Network
 
-A playable first-person metro network built with Three.js, JavaScript, HTML, and CSS. The original Nordplatz opening view faces the three-car U1 train and physical departures board. U1 runs Nordplatz → Central → Rosenheimer Platz. Independent U2 runs Stadtzentrum → Central → Schwarzkopf-Tunnel → Eisenwerk. U3 runs Schattenufer → Central → Ostbahnhof → Stadtbrücke. U4 runs Kaiser-Humboldt-Platz → Westbahnhof → Central → Arabellapark. The fleet now shares rounded blue-and-silver Aurealis C-series bodywork inspired by modern Munich metro trains, with narrow green/red/blue/purple line stripes and identifiers. All four independent services stop at every station, reverse at their endpoints, and repeat automatically. Central has one shared network node with upper U1/U2 platforms and lower U3/U4 platforms 12 metres below. Level passages and a physical four-flight staircase connect all four platforms. Everything in the scene, including textures and signs, is generated locally; there are no remote models, image assets, fonts, or runtime APIs.
+A playable first-person Three.js metro network with 27 shared station nodes, 34 physical line platforms, and six independently operating three-car trains. U1–U4 retain their existing station order, coordinates, acceleration, braking and dwell settings. The fleet uses the original flat white/light-grey face, broad windshield, teal-green livery and two rectangular headlights, recovered from the original Nordplatz design. Existing interiors and their repaired floors are retained.
+
+The U5/U6 expansion adds 15 unique stations. U5 connects Westbahnhof to Ostbahnhof; U6 connects Stadtzentrum to Arabellapark. The four shared interchanges have actual stairs and protected passages. Central retains upper U1/U2 and lower U3/U4 platforms. New trains and their individual cars/bogies follow continuous measured rail paths; no train teleports between stations.
+
+The speculative 13-station U1–U4 expansion is not active. This stage follows the requested scope of preserving the existing network and adding only U5/U6. All geometry, materials, signs and textures are generated locally, with no remote runtime assets.
 
 ## Open the standalone game
 
@@ -34,13 +38,40 @@ npm run dev -- --port 5173 --strictPort
 | Shift | Sprint |
 | Left-button drag / touch drag | Look around |
 | E / Board train button | Board near an open platform-side door, or leave at a station |
-| Start U1 / U2 / U3 / U4 | Select Nordplatz / Stadtzentrum / Schattenufer / Kaiser-Humboldt-Platz as the player start |
+| Start U1–U6 | Select that line’s first platform; services continue running |
 | R or Reset view | Return to the selected starting view |
 | Sound button | Enable optional native stop announcements and door chimes; captions work without sound |
 | Escape | Release dragging / close controls |
 | Touch movement pad | Walk on a touch screen |
 
-Mouse-look releases on pointer up, cancellation, lost capture, or window blur. It does not lock the cursor. On platforms, the player collides with walls, pillars, benches, bins, and technical cabinets. The safety boundary prevents stepping onto the tracks. Approach an open doorway and press E to board. Inside, walk and look around the car; seats, grab poles, walls, and car ends constrain movement. The rider follows the selected train throughout its journey and can leave only when stopped with its platform-side doors open. At Central, the signed rear-wall passage connects upper platforms 01/02 and another connects lower platforms 03/04. The stairs at the south end of platform 01 descend to platform 03; follow the four switchback flights and landings. Both levels have clear line and stair wayfinding. Reset and start buttons reposition only the player; all four trains continue operating. Append `?line=U2`, `?line=U3`, or `?line=U4` to begin at that line’s first station.
+Mouse-look releases on pointer up, cancellation, lost capture, or window blur. It does not lock the cursor. On platforms, the player collides with walls, pillars, benches, bins, and technical cabinets. The safety boundary prevents stepping onto the tracks. Approach an open doorway and press E to board. Inside, walk and look around the car; seats, grab poles, walls, and car ends constrain movement. The rider follows the selected train throughout its journey and can leave only when stopped with its platform-side doors open. At Central, the signed rear-wall passage connects upper platforms 01/02 and another connects lower platforms 03/04. The stairs at the south end of platform 01 descend to platform 03; follow the four switchback flights and landings. Both levels have clear line and stair wayfinding. Reset and start buttons reposition only the player; all six trains continue operating. Append `?line=U2`, `?line=U3`, or `?line=U4` to begin at that line’s first station.
+
+## U5/U6 expansion
+
+| Line | Actual stopping order |
+| --- | --- |
+| U5 | Westbahnhof → Südstadt → Stadionpark → Messepark → Technologiecampus → Flughafen → Nordklinikum → Waldtor → Hafenbogen → Ostbahnhof |
+| U6 | Stadtzentrum → Theaterinsel → Südklinikum → Sonnenfeld → Ringplatz → Waldsee → Feldkirchen → Industriepark → Arabellapark |
+
+Each service stops at every station, reverses its active cab at the terminus after dwell and door closure, and returns along the same physical rails. Select **Start U5** or **Start U6**, approach an open door, and press **E**. Use the signed platform-end stairs to transfer at Westbahnhof (U4/U5), Ostbahnhof (U3/U5), Stadtzentrum (U2/U6), and Arabellapark (U4/U6). U5 and U6 railway levels are at −24 m and −36 m respectively.
+
+Hafenbogen has exposed steel trusses and a physical harbour/quay scene; Waldsee uses green ceramic, timber, rooflights and restrained planting. Other additions use brick vaults, concave ceramic ceiling modules, bronze coffers, event trusses, airport roof fins, radial beams and suburban canopies. Glass Cathedral remains exclusive to Stadtzentrum, and Golden Hive remains exclusive to lower Central.
+
+`src/network.js` remains the network authority. `addExpansionToNetwork()` appends U5/U6 without clearing or moving existing lines, links, nodes or platforms. Shared platform anchors come from their actual existing interchange platforms. `src/expansion-path.js` provides measured continuous curves and straight station approaches; `src/network-world.js` reuses the established station, platform and track implementations. `?network=original` selects the pre-expansion graph as a regression fixture through the same engine; normal gameplay includes all six lines.
+
+Relevant verification commands:
+
+```sh
+node tests/expansion-mechanics.mjs
+node tests/transfer-geometry-check.mjs
+npm run build
+npm test -- tests/expansion.spec.js
+npm test
+```
+
+The expansion browser tests use the actual train meshes and controller for complete outbound/return journeys, every stopping event, boarding, riding, door-side safety, displays and rendered station frames. Simulation is deliberately advanced in small scripted steps; this is distinct from a real-time journey. Production checks can use `METRO_PRODUCTION_URL=http://127.0.0.1:4173/metro-station-game/` with a running `npm run preview -- --port 4173 --strictPort` server. The existing regression suite retains its original route fixtures and safety assertions.
+
+`node tests/network-live-inspect.mjs` uses normal animation and mouse/keyboard input for a U5 ride, then captures a separately labelled scripted curve inspection. `--curve-only` runs just that supplemental inspection. `SOFTWARE_WEBGL=1` selects SwiftShader; `METRO_LIVE_TIMEOUT_MS` overrides its wait limit. Normal-animation journey attempts timed out on this environment's slow software renderer; complete controlled-step production journeys passed. See `IMPLEMENTATION_REPORT.md` for the actual results and limitations.
 
 ## Train journeys
 
@@ -57,7 +88,7 @@ Schwarzkopf-Tunnel has a continuous irregular rock shell, mineral strata, a dark
 
 ### Aurealis C-series fleet
 
-The reference-inspired fleet uses original Aurealis branding throughout. Each end cab follows the supplied split-window face: two tall windscreens flank a fixed glazed central door, with a royal-blue field, silver perimeter and lower cheeks, diagonal seven-LED clusters, three V-shaped safety rails, wipers, handles, bumper and exposed coupling socket. Its circular badge identifies the actual line, and the narrow display above the central door retains the live destination. The existing side/roof profile, body seam and blue/silver passenger livery are preserved; face paint uses a separate material. The passenger cars have blue window surrounds and double-leaf doors, brushed silver lower panels, tinted windows, visible interiors and a coherent roofline. Hollow corrugated bellows and mechanical couplers connect the cars. Wheel treads meet the existing rail heads; the track gauge and train origins are unchanged.
+The fleet restores the original Nordplatz train's broad, upright flat face: a single dark windshield, white/light-grey surround, teal lower panel, two rectangular headlights, subtle wipers, bumper and exposed coupling socket. The live destination remains above the windshield. White/light-grey passenger bodywork and teal side bands match the original train reference; original Aurealis branding and independent line identifiers remain. Double-leaf doors, framed tinted windows, visible blue-seated interiors and the coherent roofline are retained. Hollow corrugated bellows and mechanical couplers connect the cars. Wheel treads meet the existing rail heads; the track gauge and train origins are unchanged.
 
 The nominal 16 m cars retain their 17 m spacing, all nine platform-side doorway positions, boarding anchors and roof equipment. New noses stay inside the original cab envelope. Only terminal passenger body/roof sections are trimmed to meet the cab seam, with real driver bulkheads and matching interior collision barriers; the centre car retains its existing walking area. Door leaves keep their independent animation and slide outside the cab shoulders without obstructing the apertures. Route sampling, service timing, stopping poses, destinations and GitHub Pages settings are unchanged. Geometry remains procedural and opaque static parts use the existing batching system.
 

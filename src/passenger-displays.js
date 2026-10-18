@@ -64,31 +64,59 @@ function drawRouteMap(ctx, data, progressBucket) {
   ctx.fillStyle = '#dae9f2'; fitText(ctx, `→ ${stopName(data.terminus)}`, 127, 50, 870, 25, 600);
   ctx.fillStyle = '#84aac1'; ctx.font = '18px Arial'; ctx.fillText('AUREALIS-BAHN · YOUR JOURNEY', 25, 86);
   const stops = data.direction < 0 ? [...data.orderedStops].reverse() : data.orderedStops;
-  const spacing = stops.length > 1 ? Math.min(112, 365 / (stops.length - 1)) : 112;
+  // Long routes retain every real stop. Two columns keep nine/ten-stop labels
+  // legible instead of squeezing a title and transfer subtitle into 40 pixels.
+  const columns = stops.length > 7 ? 2 : 1;
+  const rows = Math.ceil(stops.length / columns);
+  const compact = columns === 2 || stops.length > 5;
+  const spacing = rows > 1 ? Math.min(112, (compact ? 332 : 365) / (rows - 1)) : 112;
   const firstY = 138;
-  ctx.strokeStyle = '#59748b'; ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(56, firstY); ctx.lineTo(56, firstY + spacing * (stops.length - 1)); ctx.stroke();
+  const locations = stops.map((stop, index) => ({ x: 56 + Math.floor(index / rows) * 500, y: firstY + index % rows * spacing }));
+  ctx.strokeStyle = '#59748b'; ctx.lineWidth = 7;
+  for (let column = 0; column < columns; column++) {
+    const first = locations[column * rows], last = locations[Math.min((column + 1) * rows, stops.length) - 1];
+    if (!first || !last) continue;
+    ctx.beginPath(); ctx.moveTo(first.x, first.y); ctx.lineTo(last.x, last.y); ctx.stroke();
+  }
+  const continuation = columns === 2 ? [locations[rows - 1], { x: 56, y: 515 }, { x: 515, y: 515 }, { x: 515, y: 112 }, { x: 556, y: 112 }, locations[rows]] : null;
+  if (continuation) {
+    ctx.strokeStyle = '#48677e'; ctx.lineWidth = 3; ctx.setLineDash([6, 7]); ctx.beginPath();
+    continuation.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#9ebacc'; ctx.font = '16px Arial'; ctx.fillText('Continue →', 285, 506);
+  }
   stops.forEach((stop, index) => {
-    const y = firstY + index * spacing;
-    const status = stop.status;
+    const { x, y } = locations[index], status = stop.status;
     const colors = { passed: '#71899a', current: '#f1d387', next: '#9ddbf6', upcoming: '#d9e9f3' };
     const labels = { passed: 'Passed', current: 'Here', next: 'Next', upcoming: 'Ahead' };
     const color = colors[status] ?? '#d9e9f3';
-    ctx.fillStyle = '#102d46'; ctx.beginPath(); ctx.arc(56, y, 16, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(56, y, status === 'current' || status === 'next' ? 13 : 9, 0, Math.PI * 2); ctx.stroke();
-    if (status === 'current') { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(56, y, 6, 0, Math.PI * 2); ctx.fill(); }
-    ctx.fillStyle = color; fitText(ctx, stopName(stop), 103, y + 4, 895, 34, status === 'current' || status === 'next' ? 600 : 500, 24);
+    ctx.fillStyle = '#102d46'; ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = color; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(x, y, status === 'current' || status === 'next' ? 13 : 9, 0, Math.PI * 2); ctx.stroke();
+    if (status === 'current') { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill(); }
+    ctx.fillStyle = color;
+    fitText(ctx, stopName(stop), x + 47, y + 4, columns === 2 ? 395 : 895, columns === 2 ? 27 : compact ? 30 : 34, status === 'current' || status === 'next' ? 600 : 500, columns === 2 ? 20 : 24);
     const transfers = transferText(stop, data.lineId);
     ctx.fillStyle = status === 'passed' ? '#7893a4' : '#b9d3e2';
-    fitText(ctx, `${labels[status] ?? ''}${transfers ? `  ·  ${transfers}` : ''}`, 103, y + 35, 895, transfers ? 19 : 23, 500, 16);
+    fitText(ctx, `${labels[status] ?? ''}${transfers ? `  ·  ${transfers}` : ''}`, x + 47, y + (columns === 2 ? 28 : compact ? 30 : 35), columns === 2 ? 395 : 895, columns === 2 ? 17 : compact ? 18 : transfers ? 19 : 23, 500, columns === 2 ? 13 : 16);
   });
   if (!data.atStation) {
     const from = stops.findIndex(stop => stop.id === (data.leg?.from?.id ?? data.currentStation?.id));
     const to = stops.findIndex(stop => stop.id === (data.leg?.to?.id ?? data.nextStation?.id));
     if (from >= 0 && to >= 0) {
-      const y = firstY + spacing * (from + (to - from) * progressBucket / 20);
-      ctx.fillStyle = '#f5cf79'; ctx.beginPath(); ctx.roundRect(42, y - 18, 28, 36, 5); ctx.fill();
-      ctx.fillStyle = '#16354c'; ctx.fillRect(47, y - 10, 18, 11);
-      ctx.fillRect(47, y + 5, 5, 5); ctx.fillRect(60, y + 5, 5, 5);
+      const path = continuation && from === rows - 1 && to === rows ? continuation : [locations[from], locations[to]];
+      const lengths = path.slice(1).map((point, index) => Math.hypot(point.x - path[index].x, point.y - path[index].y));
+      let remaining = lengths.reduce((sum, length) => sum + length, 0) * progressBucket / 20;
+      let point = path.at(-1);
+      for (let index = 0; index < lengths.length; index++) {
+        if (remaining <= lengths[index]) {
+          const ratio = lengths[index] > 0 ? remaining / lengths[index] : 0;
+          point = { x: path[index].x + (path[index + 1].x - path[index].x) * ratio, y: path[index].y + (path[index + 1].y - path[index].y) * ratio };
+          break;
+        }
+        remaining -= lengths[index];
+      }
+      ctx.fillStyle = '#f5cf79'; ctx.beginPath(); ctx.roundRect(point.x - 14, point.y - 18, 28, 36, 5); ctx.fill();
+      ctx.fillStyle = '#16354c'; ctx.fillRect(point.x - 9, point.y - 10, 18, 11); ctx.fillRect(point.x - 9, point.y + 5, 5, 5); ctx.fillRect(point.x + 4, point.y + 5, 5, 5);
     }
   }
   const side = displayedDoorSide(data);

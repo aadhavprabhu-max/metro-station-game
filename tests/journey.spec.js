@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?network=original');
   await page.waitForFunction(() => window.metro?.ready && window.metro.world.service);
 });
 

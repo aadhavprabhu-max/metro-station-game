@@ -12,6 +12,18 @@ export class MetroRoute {
     this.line = network.lines.get(lineId);
     this.stops = network.getLineStops(lineId);
     this.length = this.stops.at(-1).distance;
+    this.segments = this.line.linkIds.map((linkId, index) => {
+      const link = network.links.get(linkId);
+      return {
+        id: link.id, link, path: link.path ?? null,
+        from: this.stops[index], to: this.stops[index + 1],
+        startDistance: this.stops[index].distance,
+        endDistance: this.stops[index + 1].distance,
+        length: link.length,
+        hasCurves: Boolean(link.path?.hasCurves),
+      };
+    });
+    this.hasCurves = this.segments.some(segment => segment.hasCurves);
   }
 
   getTerminus(direction) {
@@ -20,9 +32,9 @@ export class MetroRoute {
 
   sample(distance) {
     const alongTrack = THREE.MathUtils.clamp(distance, 0, this.length);
-    const nextIndex = this.stops.findIndex((stop, index) => index > 0 && stop.distance >= alongTrack);
-    const end = this.stops[nextIndex < 0 ? this.stops.length - 1 : nextIndex];
-    const start = this.stops[this.stops.indexOf(end) - 1];
+    const segment = this.segments.find(item => item.endDistance >= alongTrack) ?? this.segments.at(-1);
+    if (segment.path) return segment.path.sample(alongTrack - segment.startDistance);
+    const start = segment.from, end = segment.to;
     const origin = start.position ?? start.node.position, destination = end.position ?? end.node.position;
     const fraction = (alongTrack - start.distance) / (end.distance - start.distance);
     const position = new THREE.Vector3(origin.x, origin.y, origin.z).lerp(
@@ -31,7 +43,16 @@ export class MetroRoute {
     // Route orientation follows the track, regardless of service direction. The
     // existing straight U1 keeps yaw 0 on every leg, including the return trip.
     const heading = Math.atan2(origin.x - destination.x, origin.z - destination.z);
-    return { position, yaw: start.yaw ?? (heading === 0 ? 0 : heading) };
+    const yaw = start.yaw ?? (heading === 0 ? 0 : heading);
+    return { position, yaw, tangent: new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw)) };
+  }
+
+  /** Terminal tail tracks keep all three cars on their rails beyond the stop centre. */
+  sampleExtended(distance) {
+    const alongTrack = THREE.MathUtils.clamp(distance, 0, this.length);
+    const sample = this.sample(alongTrack);
+    if (distance !== alongTrack) sample.position.addScaledVector(sample.tangent, distance - alongTrack);
+    return sample;
   }
 }
 

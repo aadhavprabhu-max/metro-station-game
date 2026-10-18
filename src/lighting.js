@@ -60,17 +60,22 @@ export class Lighting extends THREE.Group {
       position: [-2.7, 4.65, z], color: cool ? '#dfeaf5' : '#f6f3df',
       intensity: pointLights >= 4 ? 65 : 90, distance: pointLights >= 4 ? 23 : 34,
     }));
-    this.lightDefinitions.set(platformId, definitions.slice(0, 4).map(definition => ({
+    this.lightDefinitions.set(platformId, definitions.map(definition => ({
       ...definition,
       position: fixturesGroup.localToWorld(new THREE.Vector3(...definition.position)),
     })));
     return fixturesGroup;
   }
 
-  usePlatform(platformId) {
-    if (this.currentPlatformId === platformId) return;
+  usePlatform(platformId, focus = null) {
+    const available = this.lightDefinitions.get(platformId) ?? [];
+    const movingPool = focus && available.length > 4;
+    if (this.currentPlatformId === platformId && (!movingPool || this.lastFocus?.distanceToSquared(focus) < 4)) return;
     this.currentPlatformId = platformId;
-    const definitions = this.lightDefinitions.get(platformId) ?? [];
+    if (focus) { this.lastFocus ??= new THREE.Vector3(); this.lastFocus.copy(focus); }
+    const definitions = movingPool
+      ? [...available].sort((a, b) => a.position.distanceToSquared(focus) - b.position.distanceToSquared(focus)).slice(0, 4)
+      : available;
     this.stationLights.forEach((point, index) => {
       const definition = definitions[index];
       point.intensity = definition?.intensity ?? 0;

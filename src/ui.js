@@ -1,6 +1,4 @@
 const STATE_LABELS = Object.freeze({ boarding: 'Boarding', closing: 'Doors closing', departing: 'Departing', travelling: 'Travelling', arriving: 'Arriving', stopped: 'Stopped' });
-const LINE_COLORS = Object.freeze({ U1: '#bb6343', U2: '#b4443d', U3: '#3e71b6', U4: '#8d58ac' });
-
 export class UI {
   constructor(player, board, service = null, stations = [], services = []) {
     this.player = player;
@@ -16,7 +14,8 @@ export class UI {
     this.routeElement = document.querySelector('.service-main .line-badge');
     this.locationLineElement = document.querySelector('#location-line');
     this.serviceLabel = document.querySelector('#service-label');
-    this.startButtons = [...document.querySelectorAll('[data-start-line]')];
+    this.startButtons = [];
+    this.serviceCard = document.querySelector('.service-card');
     this.soundButton = document.querySelector('#sound-button');
     this.soundStatusElement = document.querySelector('#sound-status');
     this.captionElement = document.querySelector('#announcement-caption');
@@ -41,21 +40,38 @@ export class UI {
     this.lastClock = '';
     const networkInfo = this.services.map(item => ({
       id: item.lineId,
-      color: LINE_COLORS[item.lineId] ?? '#6094be',
+      color: item.route.line?.color ?? '#6094be',
       stations: item.route.stops.map(stop => stop.name),
     }));
-    for (const row of document.querySelectorAll('#network-map [data-line]')) {
-      const line = networkInfo.find(item => item.id === row.dataset.line);
-      row.hidden = !line;
-      if (line) {
-        this.setText(row.querySelector('span:last-child'), line.stations.join(' ↔ '));
-        row.querySelector('.line-badge').style.backgroundColor = line.color;
+    this.lineColors = new Map(networkInfo.map(line => [line.id, line.color]));
+    const starts = document.querySelector('.line-starts');
+    const map = document.querySelector('#network-map');
+    for (const [index, line] of networkInfo.entries()) {
+      const firstStop = this.services[index].route.stops[0];
+      if (starts) {
+        const button = document.createElement('button');
+        button.type = 'button'; button.id = `start-${line.id.toLowerCase()}-button`;
+        button.dataset.startLine = line.id; button.dataset.startStation = firstStop.id;
+        button.textContent = `Start ${line.id}`; button.title = `Start at ${firstStop.name}, ${line.id}`;
+        button.setAttribute('aria-pressed', String(line.id === this.player.startLineId));
+        button.style.setProperty('--line-color', line.color);
+        starts.append(button); this.startButtons.push(button);
+      }
+      if (map) {
+        const row = document.createElement('p'); row.dataset.line = line.id;
+        const badge = document.createElement('span'); badge.className = 'line-badge';
+        badge.textContent = line.id; badge.style.backgroundColor = line.color;
+        const route = document.createElement('span'); route.textContent = line.stations.join(' ↔ ');
+        row.append(badge, route); map.append(row);
       }
     }
-    for (const station of stations) {
-      station.departures?.setNetworkInfo(networkInfo);
-      station.departures?.setPlatformInfo(station.lineId ?? 'U1', station.platformNumber ?? '01', station.stationId === 'station-2', station.level ?? ((station.floorY ?? 0) < 0 ? 'lower' : 'upper'));
-    }
+    this.setText(document.querySelector('#network-line-count'), `${networkInfo.length} LINES`);
+    this.setText(document.querySelector('#network-summary'), `${networkInfo.length} metro lines run independently in both directions. Choose a starting line, approach an open door and press E to board. Explore your carriage and read the onboard screens.`);
+    this.networkInfo = networkInfo;
+    this.stationServices = new Map();
+    this.stationInformation = new Map();
+    this.informationRevisions = new Map();
+    this.refreshStationInformation();
     document.querySelector('#reset-button').addEventListener('click', () => { this.showHelp(false); this.player.reset(); });
     document.querySelector('.identity').addEventListener('click', event => { event.preventDefault(); this.player.reset(); });
     this.helpButton.addEventListener('click', () => this.showHelp(this.helpPanel.hidden));
@@ -145,7 +161,43 @@ export class UI {
     return [...new Set([this.board, ...this.stations.map(station => station.departures)].filter(Boolean))];
   }
 
+  refreshStationInformation() {
+    if (this.stationInformation.size && this.services.every(service =>
+      this.informationRevisions.get(service) === service.passengerInformation?.cacheRevision)) return;
+    for (const service of this.services) this.informationRevisions.set(service, service.passengerInformation?.cacheRevision);
+    for (const station of this.stations) {
+      const ownService = this.services.find(item => item.lineId === station.lineId);
+      const ownStop = ownService?.route.stops.find(stop => stop.id === station.stationId);
+      const information = ownService?.passengerInformation?.describeStop(ownStop);
+      this.stationInformation.set(station, information);
+      this.stationServices.set(station, this.services.filter(item => {
+        const stop = item.route.stops.find(candidate => candidate.id === station.stationId);
+        if (!stop) return false;
+        // Central's established boards show only the trains on their floor.
+        // Other interchanges include only physically connected live platforms.
+        if (station.stationId === 'station-2') return Math.abs((stop.floorY ?? stop.position?.y ?? 0) - (station.floorY ?? station.position.y ?? 0)) < 0.1;
+        return item === ownService || information?.interchanges.some(link => link.lineId === item.lineId && link.implemented);
+      }));
+      station.departures?.setNetworkInfo(this.networkInfo);
+      station.departures?.setPlatformInfo(station.lineId ?? 'U1', station.platformNumber ?? '01', Boolean(information?.interchanges.length), station.level ?? ((station.floorY ?? 0) < 0 ? 'lower' : 'upper'));
+      station.departures?.setTransferGuidance(this.transferText(station));
+    }
+    this.lastTimetableKey = '';
+  }
+
+  transferText(station) {
+    const links = this.stationInformation.get(station)?.interchanges ?? [];
+    if (!links.length) return '';
+    if (station.stationId === 'station-2') {
+      return station.level === 'lower' || (station.floorY ?? 0) < 0
+        ? 'Upper: U1 / U2 ↑ stairs · Lower: U3 / U4'
+        : 'Upper: U1 / U2 · Lower: U3 / U4 ↓ stairs';
+    }
+    return `Change: ${links.map(link => `${link.lineId} · Platform ${link.platformNumber}${link.connection === 'stairs' ? ' via stairs' : ' via passage'}`).join(' / ')}`;
+  }
+
   updateRoute() {
+    this.refreshStationInformation();
     this.updateAnnouncements();
     const service = this.player.service ?? this.service;
     if (!service) return;
@@ -167,15 +219,16 @@ export class UI {
     this.setText(this.locationElement, stationName);
     this.setText(this.locationPlatform, riding && !docked ? `${lineId} · Connecting tunnel` : `${station?.lineId ?? lineId} · Platform ${station?.platformNumber ?? current.platform ?? '01'}${atCentral ? lower ? ' · Lower level' : ' · Upper level' : ''}`);
     this.setText(this.locationDirection, direction);
-    this.setText(this.transferElement, atCentral ? lower ? 'Upper: U1 / U2 ↑ stairs · Lower: U3 / U4' : 'Upper: U1 / U2 · Lower: U3 / U4 ↓ stairs' : '');
-    if (this.transferElement) this.transferElement.hidden = !atCentral;
+    const transferText = !riding || docked ? this.transferText(station) : '';
+    this.setText(this.transferElement, transferText);
+    if (this.transferElement) this.transferElement.hidden = !transferText;
     this.setText(this.destinationElement, destination.name);
     for (const badge of [this.routeElement, this.locationLineElement]) {
       this.setText(badge, lineId);
-      if (badge) badge.style.backgroundColor = LINE_COLORS[lineId] ?? '#6094be';
+      if (badge) badge.style.backgroundColor = this.lineColors.get(lineId) ?? '#6094be';
     }
     this.setText(this.serviceLabel, `${lineId} LIVE SERVICE`);
-    document.querySelector('.service-card')?.setAttribute('aria-label', `Live ${lineId} train service`);
+    this.serviceCard?.setAttribute('aria-label', `Live ${lineId} train service`);
     this.setText(this.statusElement, STATE_LABELS[service.state] ?? service.state);
     this.setText(this.detailElement, `${direction} · ${docked ? 'At ' + current.name : 'From ' + current.name}`);
     this.setText(this.nextStopElement, `Next stop · ${nextStop.name}`);
@@ -203,14 +256,7 @@ export class UI {
     for (const station of this.stations) {
       const board = station.departures;
       if (!board) continue;
-      const servicesAtStation = this.services.filter(item => {
-        const stop = item.route.stops.find(candidate => candidate.id === station.stationId);
-        if (!stop) return false;
-        if (station.stationId !== 'station-2') return true;
-        // Central is one network node with two railway levels. Each platform's
-        // display includes both services on its level, without dropping rows.
-        return Math.abs((stop.floorY ?? stop.position?.y ?? 0) - (station.floorY ?? station.position.y ?? 0)) < 0.1;
-      });
+      const servicesAtStation = this.stationServices.get(station) ?? [];
       const rows = servicesAtStation.flatMap(item => item.departuresFor(station.stationId).map(departure => {
         let due;
         if (departure.atPlatform) {
@@ -225,7 +271,7 @@ export class UI {
         return {
           route: item.lineId, destination: departure.destinationStop.name,
           nextStop: departure.nextStop.name, direction: departure.directionName,
-          platform: departure.platform ?? station.platformNumber ?? '01', color: item.lineId === 'U1' ? '#c8784d' : LINE_COLORS[item.lineId] ?? '#6094be', due,
+          platform: departure.platform ?? station.platformNumber ?? '01', color: this.lineColors.get(item.lineId) ?? '#6094be', due,
         };
       }));
       board.setDepartures(rows.slice(0, 5));

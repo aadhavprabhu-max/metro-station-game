@@ -1,3 +1,5 @@
+import { createStationPath } from './expansion-path.js';
+
 /** Shared station nodes and track links are independent of any one train service. */
 export class MetroNetwork {
   constructor() {
@@ -29,17 +31,21 @@ export class MetroNetwork {
     return platform;
   }
 
-  addLink({ id, from, to, length }) {
+  addLink({ id, from, to, length, path = null, permittedLineIds = [] }) {
     if (this.links.has(id)) throw new Error(`Track link already exists: ${id}`);
     const origin = this.nodes.get(from), destination = this.nodes.get(to);
     if (!origin || !destination) throw new Error(`Track link ${id} references an unknown station.`);
-    const distance = length ?? Math.hypot(
+    const distance = path?.length ?? length ?? Math.hypot(
       destination.position.x - origin.position.x,
       destination.position.y - origin.position.y,
       destination.position.z - origin.position.z,
     );
     if (!(distance > 0)) throw new Error(`Track link ${id} must have a positive length.`);
-    const link = { id, from, to, length: distance };
+    const link = {
+      id, from, to, length: distance,
+      permittedLineIds: [...permittedLineIds],
+      ...(path ? { path, controlPoints: path.controlPoints, hasCurves: path.hasCurves } : {}),
+    };
     this.links.set(id, link);
     return link;
   }
@@ -59,6 +65,10 @@ export class MetroNetwork {
     });
     const line = { id, name, color, nodeIds: [...nodeIds], linkIds: [...linkIds] };
     this.lines.set(id, line);
+    linkIds.forEach(linkId => {
+      const link = this.links.get(linkId);
+      if (!link.permittedLineIds.includes(id)) link.permittedLineIds.push(id);
+    });
     nodeIds.forEach(nodeId => {
       const node = this.nodes.get(nodeId);
       node.lineIds.push(id);
@@ -84,6 +94,7 @@ export class MetroNetwork {
         level: platform?.level ?? (position.y < 0 ? 'lower' : 'upper'),
         ...(platform?.platformSide === undefined ? {} : { platformSide: platform.platformSide }),
         z: position.z, node,
+        pathToNext: index < line.linkIds.length ? this.links.get(line.linkIds[index]).path ?? null : null,
         isTerminus: index === 0 || index === line.nodeIds.length - 1,
         get interchange() { return node.lineIds.length > 1; },
         interchangeCapable: node.interchangeCapable,
@@ -183,4 +194,86 @@ export function addLowerLinesToNetwork(network) {
     });
   }
   return { U3: network.lines.get('U3'), U4: network.lines.get('U4') };
+}
+
+export const EXPANSION_LINE_IDS = Object.freeze(['U5', 'U6']);
+
+const HALF_PI = Math.PI / 2;
+const curved = (id, name, x, z, yaw) => ({ id, name, x, z, yaw });
+
+/** Only the planned additions; established U1–U4 data stays authoritative. */
+export const EXPANSION_LINE_DEFINITIONS = [
+  {
+    id: 'U5', name: 'The West–East City Connector', color: '#b88c39', y: -24, side: -1, platform: '05',
+    stops: [
+      { ...curved('u4-westbahnhof', 'Westbahnhof', -23.57, 0, HALF_PI), sharedWith: 'U4' },
+      curved('u5-suedstadt', 'Südstadt', -360, 0, HALF_PI),
+      curved('u5-stadionpark', 'Stadionpark', -720, 0, HALF_PI),
+      curved('u5-messepark', 'Messepark', -1080, 0, HALF_PI),
+      curved('u5-technologiecampus', 'Technologiecampus', -1440, -360, 0),
+      curved('u5-flughafen', 'Flughafen', -1440, -720, 0),
+      curved('u5-nordklinikum', 'Nordklinikum', -1080, -1080, -HALF_PI),
+      curved('u5-waldtor', 'Waldtor', -720, -1080, -HALF_PI),
+      curved('u5-hafenbogen', 'Hafenbogen', -360, -1080, -HALF_PI),
+      { ...curved('u3-ostbahnhof', 'Ostbahnhof', 1.57, -480, Math.PI), platformSide: 1, sharedWith: 'U3' },
+    ],
+  },
+  {
+    id: 'U6', name: 'The Southern Growth Corridor', color: '#35947b', y: -36, side: -1, platform: '06',
+    stops: [
+      { ...curved('u2-stadtzentrum', 'Stadtzentrum', -23.57, 0, -HALF_PI), sharedWith: 'U2' },
+      curved('u6-theaterinsel', 'Theaterinsel', 336.43, 0, -HALF_PI),
+      curved('u6-suedklinikum', 'Südklinikum', 696.43, 0, -HALF_PI),
+      curved('u6-sonnenfeld', 'Sonnenfeld', 1056.43, -360, 0),
+      curved('u6-ringplatz', 'Ringplatz', 1056.43, -720, 0),
+      curved('u6-waldsee', 'Waldsee', 1056.43, -1080, 0),
+      curved('u6-feldkirchen', 'Feldkirchen', 696.43, -1440, HALF_PI),
+      curved('u6-industriepark', 'Industriepark', 336.43, -1440, HALF_PI),
+      { ...curved('u4-arabellapark', 'Arabellapark', -23.57, -480, Math.PI), sharedWith: 'U4' },
+    ],
+  },
+];
+
+const linkToken = id => ({ 'station-1': 'nordplatz', 'station-2': 'central', 'station-3': 'rosenheimer' })[id] ?? id.replace(/^u\d-/, '');
+
+/** Add two independent services without changing existing nodes, platforms or links. */
+export function addExpansionToNetwork(network) {
+  if (network.lines.has('U5') && network.lines.has('U6')) return network;
+  for (const definition of EXPANSION_LINE_DEFINITIONS) {
+    if (network.lines.has(definition.id)) continue;
+    const poses = definition.stops.map(stop => {
+      const anchor = stop.sharedWith ? network.nodes.get(stop.id)?.platforms[stop.sharedWith]?.position : null;
+      if (stop.sharedWith && !anchor) throw new Error(`Missing existing interchange ${stop.id}:${stop.sharedWith}`);
+      return { ...stop, position: { x: anchor?.x ?? stop.x ?? definition.x, y: definition.y, z: anchor?.z ?? stop.z }, yaw: stop.yaw ?? 0 };
+    });
+    for (const stop of poses) {
+      let node = network.nodes.get(stop.id);
+      if (!node) node = network.addNode({ id: stop.id, name: stop.name, position: stop.position, platform: definition.platform });
+      const platform = {
+        lineId: definition.id, number: definition.platform, position: stop.position,
+        yaw: stop.yaw, floorY: definition.y,
+        level: definition.y < 0 ? 'lower' : 'upper', platformSide: stop.platformSide ?? definition.side,
+      };
+      if (node.platforms[definition.id]) Object.assign(node.platforms[definition.id], platform);
+      else network.addPlatform(node.id, platform);
+    }
+    const linkIds = [];
+    for (let index = 0; index < poses.length - 1; index++) {
+      const from = poses[index], to = poses[index + 1];
+      const id = `${definition.id.toLowerCase()}-${linkToken(from.id)}-${linkToken(to.id)}`;
+      network.addLink({ id, from: from.id, to: to.id, path: createStationPath(from, to), permittedLineIds: [definition.id] });
+      linkIds.push(id);
+    }
+    network.addLine({ id: definition.id, name: definition.name, color: definition.color, nodeIds: poses.map(stop => stop.id), linkIds });
+  }
+  for (const node of network.nodes.values()) node.interchangeCapable ||= node.lineIds.length > 1;
+  return network;
+}
+
+/** The full game opts in; the original factories remain available for compatibility. */
+export function createCompleteMetroNetwork() {
+  const network = createMetroNetwork();
+  addU2ToNetwork(network);
+  addLowerLinesToNetwork(network);
+  return addExpansionToNetwork(network);
 }

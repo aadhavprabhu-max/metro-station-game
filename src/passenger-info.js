@@ -21,9 +21,17 @@ export class PassengerInformation {
     this.departedAt = null;
     this.arrival = null;
     this.transferLinks = null;
+    this.transferPaths = new Map();
+    this.stopDescriptions = new Map();
+    this.cacheRevision = 0;
+    this.cachedRoute = null;
+    this.displayStopsCache = null;
     this.route = service.route;
     this.snapshot = this.describe();
     this.visibleKey = this.displayKey(this.snapshot);
+    // The existing information instance is also the UI's source of verified
+    // platform transfers; no second timetable or interchange graph is needed.
+    service.passengerInformation = this;
   }
 
   subscribe(callback) {
@@ -38,16 +46,46 @@ export class PassengerInformation {
       type: transfer.type ?? (transfer.surfaces ? 'stairs' : 'passage'),
       platformIds: [...(transfer.platformIds ?? transfer.platforms.map(platform => platform.platformId))],
     }));
+    this.cachedRoute = null;
     return this.update();
+  }
+
+  prepareRouteCache() {
+    const route = this.service.route;
+    if (this.cachedRoute === route && this.cachedSourceStops === route.stops
+      && this.cachedStopCount === route.stops.length && this.cachedLineId === this.service.lineId
+      && this.cachedNodeCount === this.network.nodes.size && this.cachedLineCount === this.network.lines.size
+      && this.cachedLinkCount === this.network.links?.size) return;
+    this.cachedRoute = route;
+    this.cachedSourceStops = route.stops;
+    this.cachedStopCount = route.stops.length;
+    this.cachedLineId = this.service.lineId;
+    this.cachedNodeCount = this.network.nodes.size;
+    this.cachedLineCount = this.network.lines.size;
+    this.cachedLinkCount = this.network.links?.size;
+    this.stopDescriptions.clear();
+    this.transferPaths.clear();
+    this.displayStopsCache = null;
+    this.cacheRevision++;
+    this.routeConflicts = Object.freeze(route.stops.filter(stop => {
+      const node = this.network.nodes.get(stop.id);
+      return node?.name && stop.name && node.name !== stop.name;
+    }).map(stop => Object.freeze({ id: stop.id, routeName: stop.name, networkName: this.network.nodes.get(stop.id).name })));
   }
 
   transferPath(fromId, toId) {
     if (!this.transferLinks) return null;
+    const key = `${fromId}:${toId}`;
+    if (this.transferPaths.has(key)) return this.transferPaths.get(key);
     const pending = [{ id: fromId, path: [] }];
     const visited = new Set([fromId]);
     for (let index = 0; index < pending.length; index++) {
       const current = pending[index];
-      if (current.id === toId) return current.path;
+      if (current.id === toId) {
+        const path = Object.freeze(current.path.map(step => Object.freeze(step)));
+        this.transferPaths.set(key, path);
+        return path;
+      }
       for (const link of this.transferLinks) {
         if (!link.platformIds.includes(current.id)) continue;
         for (const id of link.platformIds) {
@@ -57,11 +95,15 @@ export class PassengerInformation {
         }
       }
     }
-    return [];
+    const path = Object.freeze([]);
+    this.transferPaths.set(key, path);
+    return path;
   }
 
   describeStop(stop) {
     if (!stop) return null;
+    this.prepareRouteCache();
+    if (this.stopDescriptions.has(stop)) return this.stopDescriptions.get(stop);
     const { service, network } = this;
     const lineId = service.lineId;
     const node = network.nodes.get(stop.id) ?? stop.node;
@@ -82,31 +124,35 @@ export class PassengerInformation {
       if (steps && !steps.length) return [];
       const path = steps?.map(step => {
         const target = Object.values(node.platforms).find(item => item.id === step.to);
-        return {
+        if (!target) return null;
+        return Object.freeze({
           type: step.type, fromPlatformId: step.from, toPlatformId: step.to,
           lineId: target.lineId, platformNumber: target.number,
           floorY: target.floorY ?? target.position.y,
           level: target.level ?? (target.position.y < 0 ? 'lower' : 'upper'),
-        };
+        });
       }) ?? [];
-      return [{
+      if (path.some(step => !step)) return [];
+      return [Object.freeze({
         lineId: id, name: line.name, color: line.color,
         platformNumber: other.number, platform: other.number,
         floorY: otherFloor, level: other.level ?? (otherFloor < 0 ? 'lower' : 'upper'),
         connection: steps ? (steps.some(step => step.type === 'stairs') ? 'stairs' : 'passage') : null,
-        implemented: Boolean(steps), path,
-      }];
+        implemented: Boolean(steps), path: Object.freeze(path),
+      })];
     }) : [];
-    return {
+    const description = Object.freeze({
       id: stop.id, name: stop.name ?? node?.name,
       displayName: stop.displayName ?? node?.displayName ?? stop.name ?? node?.name,
       distance: stop.distance,
       platformNumber: stop.platform ?? platform?.number ?? node?.platform,
       platform: stop.platform ?? platform?.number ?? node?.platform,
       platformId: stop.platformId ?? platform?.id ?? `${stop.id}:${lineId}`,
-      floorY, level, platformSide, interchanges,
+      floorY, level, platformSide, interchanges: Object.freeze(interchanges),
       isTerminus: stop === service.route.stops[0] || stop === service.route.stops.at(-1),
-    };
+    });
+    this.stopDescriptions.set(stop, description);
+    return description;
   }
 
   describeDoors() {
@@ -125,6 +171,7 @@ export class PassengerInformation {
   }
 
   describe() {
+    this.prepareRouteCache();
     const { service } = this;
     const sourceStops = service.route.stops;
     const direction = service.direction;
@@ -133,16 +180,21 @@ export class PassengerInformation {
     const currentStation = this.describeStop(service.currentStop);
     const nextStation = this.describeStop(service.nextStop);
     const atStation = service.speed <= EPSILON && Math.abs(service.distance - service.currentStop.distance) <= EPSILON;
-    const remainingStops = [];
-    for (let index = nextIndex; index >= 0 && index < sourceStops.length; index += direction) {
-      remainingStops.push(this.describeStop(sourceStops[index]));
+    const stopsKey = `${this.cacheRevision}:${currentIndex}:${nextIndex}:${direction}:${atStation}`;
+    if (this.displayStopsCache?.key !== stopsKey) {
+      const remainingStops = [];
+      for (let index = nextIndex; index >= 0 && index < sourceStops.length; index += direction) {
+        remainingStops.push(this.describeStop(sourceStops[index]));
+      }
+      const orderedStops = sourceStops.map((stop, index) => {
+        let status = (index - currentIndex) * direction < 0 ? 'passed' : 'upcoming';
+        if (index === currentIndex) status = atStation ? 'current' : 'passed';
+        if (index === nextIndex) status = 'next';
+        return Object.freeze({ ...this.describeStop(stop), status });
+      });
+      this.displayStopsCache = { key: stopsKey, orderedStops: Object.freeze(orderedStops), remainingStops: Object.freeze(remainingStops) };
     }
-    const orderedStops = sourceStops.map((stop, index) => {
-      let status = (index - currentIndex) * direction < 0 ? 'passed' : 'upcoming';
-      if (index === currentIndex) status = atStation ? 'current' : 'passed';
-      if (index === nextIndex) status = 'next';
-      return { ...this.describeStop(stop), status };
-    });
+    const { orderedStops, remainingStops } = this.displayStopsCache;
     const platformSide = service.platformSide;
     const doors = this.describeDoors();
     const fromDistance = service.currentStop.distance;
@@ -152,10 +204,6 @@ export class PassengerInformation {
     const line = this.network.lines.get(service.lineId) ?? service.route.line;
     const arrivalDirection = this.arrival?.direction ?? direction;
     const previousIndex = currentIndex - (atStation && this.arrival ? arrivalDirection : direction);
-    const conflicts = sourceStops.filter(stop => {
-      const node = this.network.nodes.get(stop.id);
-      return node?.name && stop.name && node.name !== stop.name;
-    }).map(stop => ({ id: stop.id, routeName: stop.name, networkName: this.network.nodes.get(stop.id).name }));
     return {
       lineId: service.lineId, color: line?.color, lineName: line?.name,
       orderedStops, direction, directionName: service.directionName,
@@ -183,7 +231,7 @@ export class PassengerInformation {
       timeSeconds: this.hasClock ? this.timeSeconds : null,
       stateTime: service.stateTime, dwellRemaining: service.dwellRemaining,
       arrivalSeconds: service.arrivalSeconds, departureSeconds: service.departureSeconds,
-      routeConflicts: conflicts, revision: this.revision,
+      routeConflicts: this.routeConflicts, revision: this.revision,
     };
   }
 
@@ -192,7 +240,9 @@ export class PassengerInformation {
     // changes revise the display, avoiding a new canvas texture every frame.
     return JSON.stringify({
       line: snapshot.lineId, color: snapshot.color,
-      stations: snapshot.orderedStops,
+      // Descriptions change only when route data or physical transfer topology
+      // is reconfigured; motion does not reserialize every station and BFS path.
+      stations: this.cacheRevision,
       direction: snapshot.direction, cabDirection: snapshot.cabDirection,
       reversalPending: snapshot.reversalPending,
       current: snapshot.currentStation.id, next: snapshot.nextStation.id,

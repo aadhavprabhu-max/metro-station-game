@@ -8,7 +8,7 @@ import { chromium } from '@playwright/test';
 const baseUrl = process.env.METRO_URL || 'http://127.0.0.1:4173/metro-station-game/';
 const output = process.env.METRO_U2_OUTPUT || '/tmp/metro-u2-network';
 const viewport = { width: Number(process.env.METRO_VIEWPORT_WIDTH || 640), height: Number(process.env.METRO_VIEWPORT_HEIGHT || 400) };
-const urlFor = lineId => { const url = new URL(baseUrl); url.searchParams.set('line', lineId); return url.href; };
+const urlFor = lineId => { const url = new URL(baseUrl); url.searchParams.set('network', 'original'); url.searchParams.set('line', lineId); return url.href; };
 await mkdir(output, { recursive: true });
 const args = ['--no-sandbox', '--disable-dev-shm-usage'];
 if (process.env.SOFTWARE_WEBGL) args.push('--use-angle=swiftshader', '--enable-unsafe-swiftshader');

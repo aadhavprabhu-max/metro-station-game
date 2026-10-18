@@ -181,6 +181,7 @@ export class TrainService {
     this.train.position.copy(sample.position);
     // A metro reverses cabs, rather than rotating its three connected cars.
     this.train.rotation.y = sample.yaw ?? 0;
+    this.train.placeCarsOnRoute?.(this.route, this.distance);
   }
 
   arrive() {

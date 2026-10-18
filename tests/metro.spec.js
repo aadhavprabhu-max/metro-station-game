@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 const distance = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]);
 
 test.beforeEach(async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?network=original');
   await page.waitForFunction(() => window.metro?.ready);
 });
 

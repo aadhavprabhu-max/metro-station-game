@@ -36,7 +36,7 @@ async function wait(predicate, argument = null, timeout = 600000) {
 }
 
 async function open() {
-  const url = new URL(baseUrl); url.searchParams.set('line', 'U1');
+  const url = new URL(baseUrl); url.searchParams.set('network', 'original'); url.searchParams.set('line', 'U1');
   await page.goto(url.href, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await wait(() => window.metro?.ready && window.metro.world.passengerInformation?.length === 4, null, 120000);
   await page.locator('#loading').waitFor({ state: 'hidden', timeout: 120000 });

@@ -19,6 +19,7 @@ export class DeparturesBoard extends THREE.Group {
     this.platformNumber = '01';
     this.interchange = false;
     this.level = 'upper';
+    this.transferGuidance = '';
     this.revision = 0;
     box(this, materials.dark, [4.35, 1.88, 0.18], [0, 0, 0]);
     box(this, materials.aluminum, [4.4, 0.03, 0.18], [0, -0.93, 0]);
@@ -71,6 +72,12 @@ export class DeparturesBoard extends THREE.Group {
     this.renderDisplay();
   }
 
+  setTransferGuidance(text = '') {
+    if (text === this.transferGuidance) return;
+    this.transferGuidance = text;
+    this.renderDisplay();
+  }
+
   renderDisplay() {
     const ctx = this.canvas.getContext('2d');
     const w = this.canvas.width;
@@ -100,16 +107,28 @@ export class DeparturesBoard extends THREE.Group {
       const y = 190 + this.departures.length * 84;
       const compact = this.departures.length >= 4;
       const spacing = compact ? 19 : 27;
-      ctx.fillStyle = '#7fa398'; ctx.font = `${compact ? 17 : 20}px Arial`; ctx.fillText('AUREALIS-BAHN · CHANGE AT CENTRAL', 56, y - 3);
-      this.networkInfo.slice(0, 4).forEach((line, index) => {
-        const baseline = y + (compact ? 17 : 25) + index * spacing;
-        ctx.fillStyle = line.color; ctx.font = `bold ${compact ? 19 : 24}px Arial`; ctx.fillText(line.id, 56, baseline);
-        ctx.fillStyle = '#b6c9bd'; ctx.font = `${compact ? 18 : 22}px Arial`; ctx.fillText(line.stations.join('  →  '), 128, baseline, w - 184);
+      const columns = this.networkInfo.length > 4 ? 2 : 1;
+      const rowsPerColumn = Math.ceil(this.networkInfo.length / columns);
+      const columnWidth = (w - 112) / columns;
+      ctx.fillStyle = '#7fa398'; ctx.font = `${compact ? 17 : 20}px Arial`; ctx.fillText('AUREALIS-BAHN · NETWORK', 56, y - 3);
+      this.networkInfo.forEach((line, index) => {
+        const x = 56 + Math.floor(index / rowsPerColumn) * columnWidth;
+        const baseline = y + (compact ? 17 : 25) + index % rowsPerColumn * spacing;
+        if (baseline > 596) return;
+        ctx.fillStyle = line.color; ctx.font = `bold ${compact ? 19 : 24}px Arial`; ctx.fillText(line.id, x, baseline);
+        // Full station order is available on board and in the help map. A
+        // terminus summary remains readable for seven-to-ten-stop services.
+        const summary = line.stations.length > 4 ? `${line.stations[0]} ↔ ${line.stations.at(-1)}` : line.stations.join('  →  ');
+        const width = columnWidth - 90;
+        let fontSize = compact ? 18 : 22;
+        ctx.font = `${fontSize}px Arial`;
+        while (ctx.measureText(summary).width > width && fontSize > 16) ctx.font = `${--fontSize}px Arial`;
+        ctx.fillStyle = '#b6c9bd'; ctx.fillText(summary, x + 64, baseline, width);
       });
     }
-    const guidance = this.interchange
+    const guidance = this.transferGuidance || (this.interchange
       ? this.level === 'lower' ? 'Lower U3 / U4 · U1 / U2 ↑ stairs' : 'Upper U1 / U2 · U3 / U4 ↓ stairs'
-      : 'Please stand behind the safety line';
+      : 'Please stand behind the safety line');
     ctx.fillStyle = '#86a296'; ctx.font = '20px Arial'; ctx.fillText(`${this.stationName.toUpperCase()}  ·  ${this.platformLineId} PLATFORM ${this.platformNumber}  ·  ${guidance}`, 56, 620, w - 112);
     this.texture.needsUpdate = true;
   }

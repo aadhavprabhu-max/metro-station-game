@@ -30,6 +30,7 @@ function gangwayGeometry(depth, width, height) {
 function buildGangway(parent, m, z) {
   const connection = new THREE.Group();
   connection.name = 'Gangway'; connection.position.z = z;
+  connection.userData.dynamic = true;
   const bellows = new THREE.Mesh(gangwayGeometry(0.87, 2.38, 2.64), m.rubber);
   bellows.position.z = -0.435; bellows.castShadow = bellows.receiveShadow = true;
   connection.add(bellows);
@@ -46,6 +47,7 @@ function buildGangway(parent, m, z) {
   box(connection, m.steel, [0.07, 0.31, 0.36], [0.19, -0.18, 0]);
   batchStaticGeometry(connection);
   parent.add(connection);
+  return connection;
 }
 
 function windowAssembly(parent, materials, side, z, width, height = 1.16, y = 1.88, x = side * 1.405) {
@@ -71,6 +73,7 @@ export class TrainCar extends THREE.Group {
     this.doorways = [];
     this.destinationDisplays = [];
     this.cabs = [];
+    this.bogies = [];
     this.interiorColliders = [];
     this.doorProgressBySide = { '-1': 0, '1': 0 };
     this.doorTargets = { '-1': 0, '1': 0 };
@@ -118,32 +121,31 @@ export class TrainCar extends THREE.Group {
         if (last <= first) continue;
         const length = last - first;
         const z = (first + last) / 2;
-        box(this, m.trainSilver, [0.095, 0.93, length], [side * 1.365, 0.6, z]);
-        box(this, m.trainBlue, [0.095, 0.28, length], [side * 1.365, 1.155, z]);
-        box(this, m.trainAccent, [0.105, 0.085, length], [side * 1.375, 0.27, z]);
+        box(this, m.whitePaint, [0.095, 0.93, length], [side * 1.365, 0.6, z]);
+        box(this, m.trainTeal, [0.105, 0.25, length], [side * 1.377, 1.025, z]);
+        box(this, m.trainTeal, [0.11, 0.22, length], [side * 1.375, 0.27, z]);
         box(this, m.cabCharcoal, [0.10, 0.10, length], [side * 1.372, 0.12, z]);
         box(this, m.steel, [0.11, 0.055, length], [side * 1.385, 0.08, z]);
       }
-      box(this, m.trainBlue, [0.085, 0.20, bodyLength], [side * 1.365, 2.515, centerZ]);
-      box(this, m.trainSilver, [0.09, 0.08, bodyLength], [side * 1.367, 2.655, centerZ]);
+      box(this, m.whitePaint, [0.085, 0.29, bodyLength], [side * 1.365, 2.565, centerZ]);
       // Continuous body panels surround actual window apertures.
       for (const z of [-7.86, -6.68, -4.45, -3.96, -1.15, -0.87, 0.87, 1.15, 3.96, 4.45, 6.68, 7.86]) {
         if (z - 0.08 < minZ || z + 0.08 > maxZ) continue;
-        box(this, m.trainBlue, [0.095, 1.37, 0.16], [side * 1.365, 1.76, z]);
+        box(this, m.whitePaint, [0.095, 1.37, 0.16], [side * 1.365, 1.76, z]);
       }
       for (const z of [-2.58, 2.58]) windowAssembly(this, m, side, z, 2.55);
       for (const z of [-7.25, 7.25]) if (z >= minZ && z <= maxZ) windowAssembly(this, m, side, z, 0.91);
       for (const z of [-5.5, 0, 5.5]) this.buildDoor(m, side, z);
       this.addDestinationDisplay(this, 1.45, 0.18, [side * 1.432, 2.51, -2.6], { background: '#15212b', color: '#ead7a1', fontSize: 78, rotation: [0, side * Math.PI / 2, 0] });
-      label(this, `AUREALIS  ·  ${this.carNumber}`, 1.75, 0.16, [side * 1.425, 0.64, 2.58], { background: '#b9c1c8', color: '#263a47', fontSize: 88, rotation: [0, side * Math.PI / 2, 0] });
+      label(this, `AUREALIS  ·  ${this.carNumber}`, 1.75, 0.16, [side * 1.425, 0.64, 2.58], { background: '#d6ded9', color: '#263a47', fontSize: 88, rotation: [0, side * Math.PI / 2, 0] });
       const identity = label(this, this.lineId, 0.32, 0.19, [side * 1.431, 0.7, -1.23], { background: `#${m.trainAccent.color.getHexString()}`, color: '#ffffff', fontSize: 245, rotation: [0, side * Math.PI / 2, 0] });
       identity.name = 'LineIdentity'; identity.userData.lineId = this.lineId;
-      label(this, '♿', 0.20, 0.20, [side * 1.435, 1.12, 1.03], { background: '#287fbb', color: '#edf0df', fontSize: 330, rotation: [0, side * Math.PI / 2, 0] });
+      label(this, '♿', 0.20, 0.20, [side * 1.435, 1.12, 1.03], { background: '#316c65', color: '#edf0df', fontSize: 330, rotation: [0, side * Math.PI / 2, 0] });
     }
     for (const end of [-1, 1]) {
       if ((end === -1 && leading) || (end === 1 && trailing)) this.buildCab(m, end, leading);
       else {
-        box(this, m.trainSilver, [2.68, 2.56, 0.12], [0, 1.45, end * 7.88]);
+        box(this, m.whitePaint, [2.68, 2.56, 0.12], [0, 1.45, end * 7.88]);
         box(this, m.dark, [0.92, 2.28, 0.14], [0, 1.3, end * 7.96]);
       }
     }
@@ -167,12 +169,12 @@ export class TrainCar extends THREE.Group {
       leaf.userData.direction = direction;
       leaf.userData.side = side;
       box(leaf, m.trainSilver, [0.06, 1.06, 0.84], [0, 0.62, 0]);
-      box(leaf, m.trainBlue, [0.06, 0.31, 0.84], [0, 2.27, 0]);
-      for (const edge of [-1, 1]) box(leaf, m.trainBlue, [0.06, 1.06, 0.1], [0, 1.63, edge * 0.369]);
+      box(leaf, m.whitePaint, [0.06, 0.31, 0.84], [0, 2.27, 0]);
+      for (const edge of [-1, 1]) box(leaf, m.whitePaint, [0.06, 1.06, 0.1], [0, 1.63, edge * 0.369]);
       windowAssembly(leaf, m, side, 0, 0.61, 0.91, 1.69, 0);
       box(leaf, m.rubber, [0.067, 2.33, 0.016], [side * 0.01, 1.25, -direction * 0.421]);
-      box(leaf, m.trainBlue, [0.065, 0.16, 0.84], [side * 0.007, 1.12, 0]);
-      box(leaf, m.trainAccent, [0.065, 0.085, 0.84], [side * 0.007, 0.27, 0]);
+      box(leaf, m.trainTeal, [0.065, 0.25, 0.84], [side * 0.007, 1.026, 0]);
+      box(leaf, m.trainTeal, [0.065, 0.22, 0.84], [side * 0.007, 0.27, 0]);
       box(leaf, m.steel, [0.08, 0.12, 0.025], [side * 0.025, 1.07, -direction * 0.3]);
       label(leaf, '←  →', 0.26, 0.09, [side * 0.039, 0.82, 0], { background: '#9daaa6', color: '#263e38', fontSize: 180, rotation: [0, side * Math.PI / 2, 0] });
       batchStaticGeometry(leaf);
@@ -190,19 +192,26 @@ export class TrainCar extends THREE.Group {
     const wheelY = -0.684;
     this.userData.undercarriage = { wheelRadius: 0.34, wheelCenterY: wheelY, wheelCenterX: 0.72, railHeadY: -1.024 };
     for (const z of [-5.8, 5.8]) {
-      box(this, m.dark, [1.75, 0.3, 2.7], [0, -0.45, z]);
-      box(this, m.wheel, [2.05, 0.15, 2.2], [0, -0.57, z]);
+      // Keep each complete truck independent of the car's static batch. Its
+      // pivot follows the rails beneath the rigid passenger body on curves.
+      const bogie = new THREE.Group();
+      bogie.name = 'Bogie'; bogie.userData.dynamic = true;
+      bogie.userData.localZ = z; bogie.position.z = z;
+      this.bogies.push(bogie); this.add(bogie);
+      box(bogie, m.dark, [1.75, 0.3, 2.7], [0, -0.45, 0]);
+      box(bogie, m.wheel, [2.05, 0.15, 2.2], [0, -0.57, 0]);
       for (const axle of [-0.85, 0.85]) {
-        cylinder(this, m.steel, 0.09, 2.15, [0, wheelY, z + axle], [0, 0, Math.PI / 2]);
+        cylinder(bogie, m.steel, 0.09, 2.15, [0, wheelY, axle], [0, 0, Math.PI / 2]);
         for (const side of [-1, 1]) {
-          cylinder(this, m.wheel, 0.34, 0.15, [side * 0.72, wheelY, z + axle], [0, 0, Math.PI / 2], 24);
-          cylinder(this, m.dark, 0.14, 0.19, [side * 0.72, wheelY, z + axle], [0, 0, Math.PI / 2]);
-          cylinder(this, m.wheel, 0.355, 0.022, [side * 0.645, wheelY, z + axle], [0, 0, Math.PI / 2], 24);
-          cylinder(this, m.steel, 0.095, 0.028, [side * 0.82, wheelY, z + axle], [0, 0, Math.PI / 2]);
-          cylinder(this, m.steel, 0.08, 0.23, [side * 0.93, -0.47, z + axle]);
-          box(this, m.dark, [0.16, 0.18, 0.44], [side * 0.93, -0.58, z + axle]);
+          cylinder(bogie, m.wheel, 0.34, 0.15, [side * 0.72, wheelY, axle], [0, 0, Math.PI / 2], 24);
+          cylinder(bogie, m.dark, 0.14, 0.19, [side * 0.72, wheelY, axle], [0, 0, Math.PI / 2]);
+          cylinder(bogie, m.wheel, 0.355, 0.022, [side * 0.645, wheelY, axle], [0, 0, Math.PI / 2], 24);
+          cylinder(bogie, m.steel, 0.095, 0.028, [side * 0.82, wheelY, axle], [0, 0, Math.PI / 2]);
+          cylinder(bogie, m.steel, 0.08, 0.23, [side * 0.93, -0.47, axle]);
+          box(bogie, m.dark, [0.16, 0.18, 0.44], [side * 0.93, -0.58, axle]);
         }
       }
+      batchStaticGeometry(bogie);
     }
     box(this, m.dark, [1.7, 0.42, 2.8], [0, -0.4, -1.2]);
     box(this, m.aluminum, [0.9, 0.3, 2.1], [0.15, -0.37, 2]);
@@ -330,14 +339,57 @@ export class Train extends THREE.Group {
     this.materials = materials;
     this.position.set(...position);
     this.cars = [];
+    this.gangways = [];
+    this.poseScratch = new THREE.Vector3();
+    this.gangwayStart = new THREE.Vector3();
+    this.gangwayEnd = new THREE.Vector3();
     for (let i = 0; i < carCount; i++) {
       const car = new TrainCar(materials, { index: i, leading: i === 0, trailing: i === carCount - 1, lineId, platformSide });
       car.position.z = (i - (carCount - 1) / 2) * CAR_SPACING;
+      car.userData.nominalRouteOffset = car.position.z;
       this.cars.push(car); this.add(car);
       if (i < carCount - 1) {
         const z = car.position.z + CAR_SPACING / 2;
-        buildGangway(this, materials, z);
+        const group = buildGangway(this, materials, z);
+        this.gangways.push({ group, fromIndex: i, toIndex: i + 1 });
       }
+    }
+  }
+
+  placeCarsOnRoute(route, distance) {
+    // The existing straight lines retain their exact local transforms. Curved
+    // lines use the same arc-length sampler for bodies, trucks and rail meshes.
+    if (!route.hasCurves) return;
+    if (typeof route.sampleExtended !== 'function') throw new Error('Curved train routes need endpoint-aware sampling.');
+    this.updateWorldMatrix(true, false);
+    for (const car of this.cars) {
+      const carDistance = distance - car.userData.nominalRouteOffset;
+      const sample = route.sampleExtended(carDistance);
+      car.position.copy(this.worldToLocal(sample.position));
+      car.rotation.y = sample.yaw - this.rotation.y;
+      car.userData.routeDistance = carDistance;
+      car.updateWorldMatrix(false, false);
+      for (const bogie of car.bogies) {
+        const bogieDistance = carDistance - bogie.userData.localZ;
+        const bogieSample = route.sampleExtended(bogieDistance);
+        bogie.position.copy(car.worldToLocal(bogieSample.position));
+        bogie.rotation.y = bogieSample.yaw - sample.yaw;
+        bogie.userData.routeDistance = bogieDistance;
+      }
+    }
+    this.updateWorldMatrix(false, true);
+    for (const { group, fromIndex, toIndex } of this.gangways) {
+      const from = this.cars[fromIndex], to = this.cars[toIndex];
+      const start = this.gangwayStart.set(0, 0, 7.925);
+      const end = this.gangwayEnd.set(0, 0, -7.925);
+      this.worldToLocal(from.localToWorld(start));
+      this.worldToLocal(to.localToWorld(end));
+      group.position.copy(start).add(end).multiplyScalar(0.5);
+      this.poseScratch.copy(end).sub(start);
+      group.rotation.y = Math.atan2(this.poseScratch.x, this.poseScratch.z);
+      // The bellows span the actual end faces, including the small change in
+      // their separation on a curve. Cars never turn around at a terminus.
+      group.scale.z = this.poseScratch.length() / 0.87;
     }
   }
   get doorsOpen() { return this.cars.every(car => car.doorProgressBySide[this.platformSide] >= 0.98); }

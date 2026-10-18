@@ -35,6 +35,7 @@ export function createMaterials() {
     dark: standard('#242f2e', 0.8, 0.2), rubber: standard('#182222', 0.94),
     steel: standard('#99a8a7', 0.32, 0.83), aluminum: standard('#acb7b6', 0.39, 0.65),
     whitePaint: standard('#d6ded9', 0.4, 0.3), trainAccent: standard('#316c65', 0.4, 0.2),
+    trainTeal: standard('#316c65', 0.4, 0.2),
     trainBlue: standard('#287fbb', 0.36, 0.22),
     trainSilver: standard('#b9c1c8', 0.42, 0.55),
     cabCharcoal: standard('#253039', 0.58, 0.25),

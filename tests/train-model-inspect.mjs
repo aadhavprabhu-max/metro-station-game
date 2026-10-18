@@ -30,7 +30,7 @@ async function wait(predicate, argument = null, timeout = 600000) {
 }
 
 async function open() {
-  const url = new URL(baseUrl); url.searchParams.set('line', 'U1');
+  const url = new URL(baseUrl); url.searchParams.set('line', 'U1'); url.searchParams.set('network', 'original');
   await page.goto(url.href, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await wait(() => window.metro?.ready && window.metro.world.services?.length === 4, null, 120000);
   await page.locator('#loading').waitFor({ state: 'hidden', timeout: 120000 });
@@ -53,8 +53,9 @@ async function sample() {
     return {
       runtime: window.metro.snapshot(), service: service.snapshot(), railError: train.position.distanceTo(service.route.sample(service.distance).position),
       position: train.position.toArray(), carOffsets: train.cars.map(car => car.position.toArray()),
-      colors: { blue: train.materials.trainBlue.color.getHexString(), silver: train.materials.trainSilver.color.getHexString(), accent: train.materials.trainAccent.color.getHexString() },
-      blueActuallyUsed: geometryMeshes.some(mesh => [mesh.material].flat().includes(train.materials.trainBlue)),
+      colors: { white: train.materials.whitePaint.color.getHexString(), teal: train.materials.trainTeal.color.getHexString(), silver: train.materials.trainSilver.color.getHexString(), accent: train.materials.trainAccent.color.getHexString() },
+      whiteActuallyUsed: geometryMeshes.some(mesh => [mesh.material].flat().includes(train.materials.whitePaint)),
+      tealActuallyUsed: geometryMeshes.some(mesh => [mesh.material].flat().includes(train.materials.trainTeal)),
       silverActuallyUsed: geometryMeshes.some(mesh => [mesh.material].flat().includes(train.materials.trainSilver)),
       cabs: train.cars.flatMap(car => car.cabs.map(cab => ({ end: cab.end, headlights: cab.headlights.intensity,
         metadata: cab.shellMetadata, windshield: cab.windshieldMesh?.geometry.userData,
@@ -79,8 +80,8 @@ async function capture(name, inspectionMode, extra = {}) {
   assert(state.coloredPixels > 650 && state.uniquePixelColors > 12, `${name}: nearly empty rendered view.`);
   assert(state.railError < 1e-7);
   assert.deepEqual(state.carOffsets.map(position => position[2]), [-17, 0, 17]);
-  assert.equal(state.colors.blue, '287fbb'); assert.equal(state.colors.silver, 'b9c1c8');
-  assert(state.blueActuallyUsed && state.silverActuallyUsed);
+  assert.equal(state.colors.white, 'd6ded9'); assert.equal(state.colors.teal, '316c65'); assert.equal(state.colors.silver, 'b9c1c8');
+  assert(state.whiteActuallyUsed && state.tealActuallyUsed && state.silverActuallyUsed);
   assert.equal(state.cabs.length, 2); assert.equal(state.cabs.filter(cab => cab.headlights > 0).length, 1);
   assert(state.cabs.every(cab => (cab.headlights > 0) === (cab.end === -state.service.cabDirection)));
   assert(state.displays.every(display => display.line === state.service.lineId && display.destination === state.service.destinationStop.name));

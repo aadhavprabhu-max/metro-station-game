@@ -7,14 +7,14 @@ test.beforeEach(async ({ page }) => {
   errorsByPage.set(page, errors);
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-  await page.goto('/');
+  await page.goto('/?network=original');
   await page.waitForFunction(() => window.metro?.ready && window.metro.world.trains?.length === 4);
   await page.evaluate(() => window.metro.world.renderer.setAnimationLoop(null));
 });
 
 test.afterEach(async ({ page }) => { expect(errorsByPage.get(page)).toEqual([]); });
 
-test('every three-car train has broad vertical flat cab faces and common blue/silver exterior without changing line identities', async ({ page }) => {
+test('original services retain broad flat Nordplatz faces, white/teal exteriors and two rectangular headlights without changing line identities', async ({ page }) => {
   const models = await page.evaluate(async () => {
     const THREE = await import('/node_modules/three/build/three.module.js');
     const { world } = window.metro;
@@ -37,7 +37,7 @@ test('every three-car train has broad vertical flat cab faces and common blue/si
           }
         }
         // Measure actual triangles rather than shape metadata. The shell has a
-        // physical window apertures, so include their separate glass sheet in
+        // physical window aperture, so include its separate glass sheet in
         // both sides of the front-area ratio. Keep their depth ranges separate:
         // the glass deliberately sits 10 mm beyond the painted face.
         const frontMetrics = parts => {
@@ -63,9 +63,8 @@ test('every three-car train has broad vertical flat cab faces and common blue/si
         const shellFace = frontMetrics(geometries), glassGeometry = record.windshieldMesh.geometry;
         const glassFace = frontMetrics([glassGeometry]);
         const glassBounds = new THREE.Box3().setFromBufferAttribute(glassGeometry.getAttribute('position'));
-        // Find real disconnected panes through triangle connectivity. A single
-        // panoramic rectangle cannot satisfy the split windows and glazed door
-        // layout simply by advertising a pane count in metadata.
+        // Measure the actual pane connectivity. The restored broad windshield
+        // is one continuous sheet, rather than the superseded split glazing.
         const geometryComponents = geometry => {
           const positions = geometry.getAttribute('position'), indices = geometry.index;
           if (!indices) throw new Error('Cab face components must expose indexed triangles.');
@@ -96,8 +95,35 @@ test('every three-car train has broad vertical flat cab faces and common blue/si
             centerX: (bounds.max.x + bounds.min.x) / 2, centerY: (bounds.max.y + bounds.min.y) / 2 }));
         };
         const glassPanes = geometryComponents(glassGeometry).sort((first, second) => first.min[0] - second.min[0]);
-        const lampClusters = record.lamps.map(({ main }) =>
-          geometryComponents(main.geometry).sort((first, second) => first.centerY - second.centerY));
+        // box() shares a unit geometry: measure the real lamp transforms in cab
+        // space, so a resized source box cannot claim the historical dimensions.
+        const lampBounds = mesh => {
+          const transform = new THREE.Matrix4().copy(group.matrixWorld).invert().multiply(mesh.matrixWorld);
+          const bounds = new THREE.Box3().setFromBufferAttribute(mesh.geometry.getAttribute('position')).applyMatrix4(transform);
+          return { min: bounds.min.toArray(), max: bounds.max.toArray(),
+            width: bounds.max.x - bounds.min.x, height: bounds.max.y - bounds.min.y,
+            depth: bounds.max.z - bounds.min.z, center: bounds.getCenter(new THREE.Vector3()).toArray() };
+        };
+        const rectangularLamps = record.lamps.map(({ main, marker }) => ({ main: lampBounds(main), marker: lampBounds(marker) }));
+        const raycaster = new THREE.Raycaster();
+        const faceHit = (x, y) => {
+          raycaster.set(group.localToWorld(new THREE.Vector3(x, y, -1.5)),
+            new THREE.Vector3(0, 0, 1).transformDirection(group.matrixWorld));
+          raycaster.far = 3;
+          return raycaster.intersectObject(car, true).map(hit => ({
+            localZ: group.worldToLocal(hit.point.clone()).z,
+            material: Array.isArray(hit.object.material) ? hit.object.material[hit.face.materialIndex] : hit.object.material,
+          }));
+        };
+        const tealHit = faceHit(0.6, 0.7)[0], whiteHit = faceHit(1.2, 1.3)[0];
+        const glassHits = faceHit(0.7, 2.0);
+        const actualFace = {
+          teal: tealHit?.material === train.materials.trainTeal,
+          white: whiteHit?.material === train.materials.whitePaint,
+          glazing: glassHits[0]?.material === train.materials.cabGlass,
+          opaqueBackingAtFace: glassHits.some(hit => hit.localZ < glassBounds.max.z + 0.015
+            && hit.material !== train.materials.cabGlass && !hit.material.transparent),
+        };
         const glassNormals = glassGeometry.getAttribute('normal');
         let glassNormalDeviation = 0;
         for (let index = 0; index < glassNormals.count; index++) {
@@ -109,15 +135,15 @@ test('every three-car train has broad vertical flat cab faces and common blue/si
         const bounds = new THREE.Box3().setFromObject(car).applyMatrix4(new THREE.Matrix4().copy(car.matrixWorld).invert());
         return { end: record.end, vertices, depth: maxZ - minZ, shellFace,
           planarFrontCoverage: (shellFace.planarArea + glassFace.planarArea) / (shellFace.projectedArea + glassFace.projectedArea),
-          glassMin: glassBounds.min.toArray(), glassMax: glassBounds.max.toArray(), glassNormalDeviation, glassPanes, lampClusters,
+          glassMin: glassBounds.min.toArray(), glassMax: glassBounds.max.toArray(), glassNormalDeviation, glassPanes, rectangularLamps, actualFace,
           min: bounds.min.toArray(), max: bounds.max.toArray(), metadata: record.shellMetadata,
           windshield: record.windshieldMesh?.geometry.userData };
       }));
       return {
         line: train.lineId, carPositions: train.cars.map(car => car.position.toArray()), cabs,
-        blue: train.materials.trainBlue.color.getHexString(), silver: train.materials.trainSilver.color.getHexString(),
+        white: train.materials.whitePaint.color.getHexString(), teal: train.materials.trainTeal.color.getHexString(), silver: train.materials.trainSilver.color.getHexString(),
         accent: train.materials.trainAccent.color.getHexString(),
-        blueUsed: usedMaterials.has(train.materials.trainBlue.uuid), silverUsed: usedMaterials.has(train.materials.trainSilver.uuid),
+        whiteUsed: usedMaterials.has(train.materials.whitePaint.uuid), tealUsed: usedMaterials.has(train.materials.trainTeal.uuid), silverUsed: usedMaterials.has(train.materials.trainSilver.uuid),
         silverMetalness: train.materials.trainSilver.metalness,
         wheels: train.cars.map(car => ({ ...car.userData.undercarriage })),
         doorPositions: train.cars.map(car => car.doorways.filter(door => door.side === train.platformSide).map(door => door.localZ)),
@@ -128,8 +154,8 @@ test('every three-car train has broad vertical flat cab faces and common blue/si
   expect(models.map(model => model.accent)).toEqual(['316c65', 'b4443d', '3e71b6', '8d58ac']);
   for (const model of models) {
     expect(model.carPositions).toEqual([[0, 0, -17], [0, 0, 0], [0, 0, 17]]);
-    expect(model.blue).toBe('287fbb'); expect(model.silver).toBe('b9c1c8');
-    expect(model.blueUsed && model.silverUsed).toBe(true);
+    expect(model.white).toBe('d6ded9'); expect(model.teal).toBe('316c65'); expect(model.silver).toBe('b9c1c8');
+    expect(model.whiteUsed && model.tealUsed && model.silverUsed).toBe(true);
     expect(model.silverMetalness).toBeGreaterThanOrEqual(0.4);
     for (const wheel of model.wheels) {
       expect(wheel.wheelCenterY - wheel.wheelRadius).toBeCloseTo(wheel.railHeadY, 8);
@@ -146,34 +172,31 @@ test('every three-car train has broad vertical flat cab faces and common blue/si
       expect(cab.shellFace.max[1] - cab.shellFace.min[1]).toBeGreaterThan(2.4);
       expect(cab.shellFace.max[2] - cab.shellFace.min[2]).toBeLessThanOrEqual(0.001);
       expect(cab.planarFrontCoverage).toBeGreaterThan(0.7);
-      expect(cab.glassMax[0] - cab.glassMin[0]).toBeGreaterThan(2.2);
+      expect(cab.glassMax[0] - cab.glassMin[0]).toBeCloseTo(2.2, 5);
       expect(cab.glassMax[1] - cab.glassMin[1]).toBeGreaterThan(1);
       expect(cab.glassMax[2] - cab.glassMin[2]).toBeLessThanOrEqual(0.001);
       expect(cab.glassNormalDeviation).toBeLessThan(1e-5);
-      expect(cab.glassPanes).toHaveLength(3);
-      const [leftPane, doorPane, rightPane] = cab.glassPanes;
-      for (const pane of [leftPane, rightPane]) {
-        expect(pane.width).toBeGreaterThan(0.6);
-        expect(pane.height / pane.width).toBeGreaterThan(1.6);
-      }
-      expect(doorPane.width).toBeCloseTo(0.5, 2);
-      expect(doorPane.height).toBeGreaterThan(1.3);
-      expect(doorPane.centerX).toBeCloseTo(0, 6);
-      expect(doorPane.min[0] - leftPane.max[0]).toBeGreaterThanOrEqual(0.08);
-      expect(rightPane.min[0] - doorPane.max[0]).toBeGreaterThanOrEqual(0.08);
-      expect(cab.lampClusters).toHaveLength(2);
-      for (const cluster of cab.lampClusters) {
-        expect(cluster).toHaveLength(7);
-        const first = cluster[0], last = cluster.at(-1);
-        expect(last.centerY - first.centerY).toBeGreaterThan(0.4);
-        expect(Math.abs(last.centerX - first.centerX)).toBeGreaterThan(0.3);
-        const slope = (last.centerX - first.centerX) / (last.centerY - first.centerY);
-        for (const led of cluster) {
-          expect(led.width).toBeGreaterThan(0.06); expect(led.width).toBeLessThan(0.07);
-          expect(led.height).toBeGreaterThan(0.06); expect(led.height).toBeLessThan(0.07);
-          expect(led.max[2] - led.min[2]).toBeLessThanOrEqual(0.001);
-          expect(Math.abs(led.centerX - first.centerX - (led.centerY - first.centerY) * slope)).toBeLessThan(1e-5);
-        }
+      expect(cab.glassPanes).toHaveLength(1);
+      const [pane] = cab.glassPanes;
+      expect(pane.width).toBeCloseTo(2.2, 5);
+      expect(pane.height).toBeCloseTo(1.04, 5);
+      expect(pane.width / pane.height).toBeGreaterThan(2);
+      expect(pane.centerX).toBeCloseTo(0, 6);
+      expect(pane.centerY).toBeCloseTo(1.99, 5);
+      expect(cab.actualFace).toEqual({ teal: true, white: true, glazing: true, opaqueBackingAtFace: false });
+      expect(cab.rectangularLamps).toHaveLength(2);
+      expect(cab.rectangularLamps.map(lamp => Math.sign(lamp.main.center[0]))).toEqual([-1, 1]);
+      for (const { main, marker } of cab.rectangularLamps) {
+        expect(main.width).toBeCloseTo(0.36, 5);
+        expect(main.height).toBeCloseTo(0.115, 5);
+        expect(main.depth).toBeCloseTo(0.012, 5);
+        expect(Math.abs(main.center[0])).toBeCloseTo(0.85, 5);
+        expect(main.center[1]).toBeCloseTo(1.01, 5);
+        expect(main.center[2]).toBeLessThan(cab.glassMin[2]);
+        expect(marker.width).toBeCloseTo(0.13, 5);
+        expect(marker.height).toBeCloseTo(0.04, 5);
+        expect(Math.abs(marker.center[0])).toBeCloseTo(1.05, 5);
+        expect(marker.center[1]).toBeCloseTo(0.78, 5);
       }
       expect(cab.min[0]).toBeGreaterThanOrEqual(-1.51);
       expect(cab.max[0]).toBeLessThanOrEqual(1.51);

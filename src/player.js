@@ -19,6 +19,10 @@ export class PlayerController {
     this.startStationId = station.stationId;
     this.ridingCar = null;
     this.ridingOffset = new THREE.Vector3();
+    this.ridingLocalOffset = new THREE.Vector3();
+    this.previousRideOffset = new THREE.Vector3();
+    this.previousRidingCar = null;
+    this.previousRideYaw = null;
     this.interiorObstacles = [];
     this.keys = new Set();
     this.walkSpeed = 4.5;
@@ -140,12 +144,22 @@ export class PlayerController {
       const station = this.stations.find(item => item.stationId === service.currentStop.id && (item.lineId ?? 'U1') === service.lineId);
       const train = service.train;
       const doors = train.boardingDoors.filter(door => train.cars[door.carIndex] === this.ridingCar);
-      const door = doors.reduce((best, item) => Math.abs(item.position.z - this.camera.position.z) < Math.abs(best.position.z - this.camera.position.z) ? item : best);
+      if (!station || !doors.length) return false;
+      const door = doors.reduce((best, item) => item.position.distanceToSquared(this.camera.position) < best.position.distanceToSquared(this.camera.position) ? item : best);
+      const car = this.ridingCar;
+      car.updateWorldMatrix(true, false);
+      const outward = new THREE.Vector3(door.side, 0, 0).transformDirection(car.matrixWorld);
+      const localExit = station.worldToLocal(door.position.clone().addScaledVector(outward, 1.45));
+      localExit.x = THREE.MathUtils.clamp(localExit.x, station.bounds.minX + this.radius, station.bounds.maxX - this.radius);
+      localExit.z = THREE.MathUtils.clamp(localExit.z, station.bounds.minZ + this.radius, station.bounds.maxZ - this.radius);
+      if (this.collides(localExit.x, localExit.z, station.colliders)) return false;
       this.ridingCar = null;
+      this.previousRidingCar = null;
+      this.previousRideYaw = null;
       this.transferSurface = null;
       this.useStation(station);
-      const localDoor = station.worldToLocal(door.position.clone());
-      this.camera.position.set(-1.3, SPAWN.y, localDoor.z);
+      this.camera.position.copy(localExit);
+      this.camera.position.y = SPAWN.y;
       station.localToWorld(this.camera.position);
       this.keys.clear();
       return true;
@@ -154,6 +168,15 @@ export class PlayerController {
     this.transferSurface = null;
     this.ridingCar = service.train.cars[door.carIndex];
     this.ridingOffset.set(door.side * 0.45, 1.85, this.ridingCar.position.z + door.localZ);
+    this.ridingLocalOffset.set(door.side * 0.45, 1.85, door.localZ);
+    if (service.route.hasCurves) {
+      this.ridingOffset.copy(this.ridingLocalOffset);
+      this.ridingCar.localToWorld(this.ridingOffset);
+      service.train.worldToLocal(this.ridingOffset);
+    }
+    this.previousRideOffset.copy(this.ridingOffset);
+    this.previousRidingCar = this.ridingCar;
+    this.previousRideYaw = null;
     if (this.ridingCar.userData.interiorLayout) {
       // Furniture and driver partitions supply their own car-local bounds.
       this.interiorObstacles = this.ridingCar.interiorColliders;
@@ -172,6 +195,30 @@ export class PlayerController {
 
   syncRide() {
     if (!this.ridingCar) return;
+    if (this.service.route.hasCurves) {
+      const train = this.service.train, car = this.ridingCar;
+      // ridingOffset remains the public train-local position used by existing
+      // controls/diagnostics; the stable physical attachment is car-local.
+      if (this.previousRidingCar !== car || !this.ridingOffset.equals(this.previousRideOffset)) {
+        this.ridingLocalOffset.copy(this.ridingOffset);
+        train.localToWorld(this.ridingLocalOffset);
+        car.worldToLocal(this.ridingLocalOffset);
+      }
+      this.camera.position.copy(this.ridingLocalOffset);
+      car.localToWorld(this.camera.position);
+      this.ridingOffset.copy(this.camera.position);
+      train.worldToLocal(this.ridingOffset);
+      this.previousRideOffset.copy(this.ridingOffset);
+      this.previousRidingCar = car;
+      const matrix = car.matrixWorld.elements;
+      const carYaw = Math.atan2(matrix[8], matrix[10]);
+      if (this.previousRideYaw !== null) {
+        this.yaw += Math.atan2(Math.sin(carYaw - this.previousRideYaw), Math.cos(carYaw - this.previousRideYaw));
+        this.applyLook();
+      }
+      this.previousRideYaw = carYaw;
+      return;
+    }
     this.camera.position.copy(this.ridingOffset);
     this.service.train.localToWorld(this.camera.position);
   }
@@ -180,6 +227,8 @@ export class PlayerController {
     this.releaseDrag();
     this.keys.clear();
     this.ridingCar = null;
+    this.previousRidingCar = null;
+    this.previousRideYaw = null;
     this.transferSurface = null;
     const start = this.stations.find(station => station.stationId === this.startStationId && (station.lineId ?? 'U1') === this.startLineId) ?? this.stations[0];
     this.useStation(start);
@@ -245,10 +294,12 @@ export class PlayerController {
       if (station.stationId !== this.station.stationId) continue;
       const local = station.worldToLocal(new THREE.Vector3(x, feetY, z));
       if (Math.abs(local.y) > 0.45) continue;
-      const { minX, maxX, minZ, maxZ } = station.bounds;
-      if (local.x < minX + this.radius || local.x > maxX - this.radius
-        || local.z < minZ + this.radius || local.z > maxZ - this.radius
-        || this.collides(local.x, local.z, station.colliders)) continue;
+      // Doorway extensions bridge the conservative platform bounds to the
+      // actual stair landing. They are part of the station's supported floor.
+      const supported = (station.walkableAreas ?? [station.bounds]).some(area =>
+        local.x >= area.minX + this.radius && local.x <= area.maxX - this.radius
+        && local.z >= area.minZ + this.radius && local.z <= area.maxZ - this.radius);
+      if (!supported || this.collides(local.x, local.z, station.colliders)) continue;
       const floorY = station.localToWorld(new THREE.Vector3(local.x, 0, local.z)).y;
       return { station, floorY };
     }
@@ -300,6 +351,22 @@ export class PlayerController {
     const position = this.camera.position;
     const oldX = position.x, oldY = position.y, oldZ = position.z;
     if (this.ridingCar) {
+      if (this.service.route.hasCurves) {
+        const offset = this.ridingLocalOffset;
+        this.ridingCar.updateWorldMatrix(true, false);
+        const matrix = this.ridingCar.matrixWorld.elements;
+        const localDx = matrix[0] * dx + matrix[2] * dz;
+        const localDz = matrix[8] * dx + matrix[10] * dz;
+        for (let i = 0; i < steps; i++) {
+          const x = THREE.MathUtils.clamp(offset.x + localDx / steps, -1.08, 1.08);
+          if (!this.collides(x, offset.z, this.interiorObstacles)) offset.x = x;
+          const z = THREE.MathUtils.clamp(offset.z + localDz / steps, -7.05, 7.05);
+          if (!this.collides(offset.x, z, this.interiorObstacles)) offset.z = z;
+        }
+        this.syncRide();
+        this.distanceTravelled += Math.hypot(position.x - oldX, position.z - oldZ);
+        return;
+      }
       const offset = this.ridingOffset;
       const center = this.ridingCar.position.z;
       this.service.train.updateWorldMatrix(true, false);

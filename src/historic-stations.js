@@ -220,7 +220,9 @@ function clock(parent, m, position, name, roofHeight) {
 
 function portals(station, m, height, stoneArches = true) {
   for (const z of [-44, 44]) {
-    box(station, m.wall, [9.95, height, 0.34], [-5.075, height / 2, z]);
+    if (station.options.platformEndOpenings?.some(opening => Math.abs(opening.z - z) < 0.01)) {
+      station.buildPlatformEndWall(m, z, height);
+    } else box(station, m.wall, [9.95, height, 0.34], [-5.075, height / 2, z]);
     box(station, m.wall, [2.65, height, 0.34], [6.525, height / 2, z]);
     box(station, m.wall, [5.35, height - 4.55, 0.34], [2.525, (height + 4.55) / 2, z]);
     for (const x of [-0.24, 5.22]) box(station, m.cutStone, [0.24, 4.3, 0.7], [x, 1.73, z]);

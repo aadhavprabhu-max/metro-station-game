@@ -19,7 +19,7 @@ async function canvasPixels(page) {
 }
 
 test('preview captures retain actual scene pixels between animation frames', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?network=original');
   await page.waitForFunction(() => window.metro?.ready);
   await page.evaluate(() => window.metro.world.renderer.setAnimationLoop(null));
   await page.waitForTimeout(100);
@@ -38,7 +38,7 @@ test('a preview container becoming visible resizes and renders without a window 
     });
     observer.observe(document, { childList: true, subtree: true });
   });
-  await page.goto('/');
+  await page.goto('/?network=original');
   await page.waitForFunction(() => window.metro);
   await page.evaluate(() => {
     window.metro.world.renderer.setAnimationLoop(null);
@@ -55,7 +55,7 @@ test('a preview container becoming visible resizes and renders without a window 
 
 test('startup presents a real first frame even while document visibility is hidden', async ({ page }) => {
   await page.addInitScript(() => Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }));
-  await page.goto('/');
+  await page.goto('/?network=original');
   await page.waitForFunction(() => window.metro?.ready);
   await page.evaluate(() => window.metro.world.renderer.setAnimationLoop(null));
   expect((await canvasPixels(page)).colored).toBeGreaterThan(900);
