@@ -270,10 +270,79 @@ export function addExpansionToNetwork(network) {
   return network;
 }
 
+/** Approved Phase 5 additions. Existing platform poses remain fixed. */
+export const PHASE5_STATIONS = Object.freeze({
+  U1: [
+    { id: 'u1-lindenallee', name: 'Lindenallee', z: -960 },
+    { id: 'u1-universitaetsviertel', name: 'Universitätsviertel', z: -1320 },
+    { id: 'u1-botanischer-garten', name: 'Botanischer Garten', z: -1680 },
+    { id: 'u1-ostgaerten', name: 'Ostgärten', z: -2040 },
+  ],
+  U2: [
+    { id: 'u2-rathausmarkt', name: 'Rathausmarkt', z: -120 },
+    { id: 'u2-kupfergasse', name: 'Kupfergasse', z: -360 },
+    { id: 'u2-stahlhof', name: 'Stahlhof', z: -600 },
+  ],
+  U3: [
+    { id: 'u3-museumsinsel', name: 'Museumsinsel', z: -1080 },
+    { id: 'u3-kanalpark', name: 'Kanalpark', z: -1440 },
+    { id: 'u3-seetor', name: 'Seetor', z: -1800 },
+  ],
+});
+
+/** Complete only U1–U3; U4–U6 and shared interchange objects stay intact. */
+export function addPhase5ToNetwork(network) {
+  for (const [lineId, additions] of Object.entries(PHASE5_STATIONS)) {
+    const line = network.lines.get(lineId);
+    if (!line) throw new Error(`Phase 5 requires existing line ${lineId}.`);
+    if (additions.every(stop => line.nodeIds.includes(stop.id))) continue;
+    const anchor = network.nodes.get(line.nodeIds[0]).platforms[lineId];
+    for (const stop of additions) {
+      const position = { ...anchor.position, z: stop.z };
+      const node = network.addNode({ id: stop.id, name: stop.name, position, platform: anchor.number });
+      network.addPlatform(stop.id, {
+        lineId, number: anchor.number, position, yaw: anchor.yaw,
+        floorY: anchor.floorY, level: anchor.level,
+        platformSide: anchor.platformSide ?? (lineId === 'U2' ? 1 : -1),
+      });
+      node.lineIds.push(lineId);
+    }
+    const previousNodes = [...line.nodeIds], previousLinks = [...line.linkIds];
+    const nodeIds = lineId === 'U2'
+      ? previousNodes.flatMap((id, index) => additions[index] ? [id, additions[index].id] : [id])
+      : [...previousNodes, ...additions.map(stop => stop.id)];
+    const linkIds = [];
+    for (let index = 0; index < nodeIds.length - 1; index++) {
+      const from = nodeIds[index], to = nodeIds[index + 1];
+      const retained = previousLinks.find(id => {
+        const link = network.links.get(id);
+        return link.from === from && link.to === to;
+      });
+      if (retained) { linkIds.push(retained); continue; }
+      const id = `${lineId.toLowerCase()}-${linkToken(from)}-${linkToken(to)}`;
+      const a = network.nodes.get(from).platforms[lineId].position;
+      const b = network.nodes.get(to).platforms[lineId].position;
+      network.addLink({ id, from, to, length: Math.abs(b.z - a.z), permittedLineIds: [lineId] });
+      linkIds.push(id);
+    }
+    // U2's three original links become six continuous infill links. Removing
+    // only these superseded links avoids phantom bypasses in the shared graph.
+    for (const id of previousLinks) if (!linkIds.includes(id)) {
+      const link = network.links.get(id);
+      link.permittedLineIds = link.permittedLineIds.filter(id => id !== lineId);
+      if (!link.permittedLineIds.length) network.links.delete(id);
+    }
+    line.nodeIds = nodeIds;
+    line.linkIds = linkIds;
+  }
+  return network;
+}
+
 /** The full game opts in; the original factories remain available for compatibility. */
 export function createCompleteMetroNetwork() {
   const network = createMetroNetwork();
   addU2ToNetwork(network);
   addLowerLinesToNetwork(network);
-  return addExpansionToNetwork(network);
+  addExpansionToNetwork(network);
+  return addPhase5ToNetwork(network);
 }

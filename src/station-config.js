@@ -11,6 +11,8 @@ export const STATION_FAMILIES = Object.freeze({
   events: 'Broad structural ribs and generous clear sightlines',
   airport: 'High linear roof, skylights and long circulation axes',
   radial: 'Radial structural ceiling around a clear central landmark',
+  folded: 'Folded concrete plates with continuous clerestory lighting',
+  wave: 'Suspended wave ribs beneath a lakeside light ceiling',
 });
 
 const palette = (wall, accent, floor, metal, warmth = '#f0eee4') => ({ wall, accent, floor, metal, warmth });
@@ -27,7 +29,7 @@ const definition = (family, colors, height, bay, extra = {}) => ({
   ...extra,
 });
 
-/** Each of the twenty-seven shared station nodes has one explicit visual identity. */
+/** Every shared station node has one explicit visual identity. */
 export const STATION_ARCHITECTURE = Object.freeze({
   'station-1': { family: 'preserved', signature: 'original-nordplatz', preserved: true },
   'station-2': { family: 'preserved', signature: 'central-two-level', preserved: true,
@@ -42,6 +44,17 @@ export const STATION_ARCHITECTURE = Object.freeze({
   'u4-kaiser-humboldt': { family: 'preserved', signature: 'historic-masonry-vault', preserved: true },
   'u4-westbahnhof': { family: 'preserved', signature: 'brick-railway-vault', preserved: true },
   'u4-arabellapark': { family: 'preserved', signature: 'sage-garden-vault', preserved: true },
+
+  'u1-lindenallee': definition('urban', palette('#dadbd1', '#6b8468', '#a0a394', '#697765', '#f0eddb'), 5.6, 5.5, { roofRise: 0.35, signature: 'linden-ceramic-portal-hall', wallBay: 1.6 }),
+  'u1-universitaetsviertel': definition('folded', palette('#e0ded2', '#b58a4f', '#a29e90', '#737b7a', '#f6edd7'), 6.6, 8, { roofRise: 0.9, signature: 'university-folded-concrete-plates', wallBay: 4 }),
+  'u1-botanischer-garten': definition('green', palette('#d5dfc7', '#52785b', '#98a18a', '#677564', '#eff3dd'), 6.4, 4.4, { roofRise: 1.0, signature: 'botanical-glass-timber-pergola', canopyCoverage: 0.5, planterRhythm: 7, wallBay: 2.2 }),
+  'u1-ostgaerten': definition('glass', palette('#e0dec8', '#879768', '#acb199', '#a0aa93', '#f5f1dc'), 6.1, 9, { roofRise: 1.2, signature: 'east-garden-double-pitch-terminus', glassMode: 'double-pitch', openAir: true, wallBay: 4.5, cycleRacks: true }),
+  'u2-rathausmarkt': definition('refined', palette('#ddd2bc', '#9e684e', '#aca395', '#836d52', '#f6e6c8'), 5.8, 5.5, { signature: 'civic-stone-bronze-square-coffers', cofferDepth: 0.65, wallBay: 2.75 }),
+  'u2-kupfergasse': definition('brick', palette('#cfad92', '#9d6b50', '#9d9489', '#766654', '#f4dfc3'), 5.6, 4.4, { roofRise: 0.65, signature: 'copper-brick-ribbed-vault', wallBay: 1.1 }),
+  'u2-stahlhof': definition('industrial', palette('#bec5c2', '#5f7d85', '#8d9693', '#53696e', '#eaf0ed'), 6.1, 5.5, { roofRise: 0.3, signature: 'steel-yard-blue-portal-trusses', bracePattern: 'warren', trussDepth: 0.65, wallBay: 2.75 }),
+  'u3-museumsinsel': definition('refined', palette('#e1dcd3', '#a97868', '#a8a4a0', '#9b8e83', '#f4eee4'), 6.2, 8.8, { signature: 'museum-deep-gallery-coffers', cofferDepth: 0.9, wallBay: 4.4 }),
+  'u3-kanalpark': definition('scandinavian', palette('#d3e0d8', '#4c8a87', '#91a5a0', '#71928c', '#eaf6f0'), 5.7, 6.6, { roofRise: 0.45, signature: 'canal-teal-concave-ceiling', columnProfile: 'round', diskRadius: 0.2, wallBay: 2.2 }),
+  'u3-seetor': definition('wave', palette('#d7e3df', '#538993', '#95aaa8', '#75999c', '#e6f3f2'), 6.3, 5.5, { roofRise: 1, signature: 'lake-gateway-wave-light-ceiling', wallBay: 2.75 }),
 
   'u5-suedstadt': definition('brick', palette('#b59077', '#95634c', '#a19a8d', '#5d5b52', '#f1dfc8'), 5.8, 6.3, { roofRise: 0.8, signature: 'urban-brick-and-glazed-entrance', wallBay: 1.45 }),
   'u5-stadionpark': definition('events', palette('#c7cecb', '#668374', '#969f94', '#617268'), 7.7, 5, { roofRise: 0.6, signature: 'stadium-concrete-ribs', ribWidth: 0.3, bracePattern: 'fan', wallBay: 4.8 }),

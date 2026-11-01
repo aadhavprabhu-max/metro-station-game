@@ -1,10 +1,10 @@
 # Aurealis-Bahn — Six-Line Metro Network
 
-A playable first-person Three.js metro network with 27 shared station nodes, 34 physical line platforms, and six independently operating three-car trains. U1–U4 retain their existing station order, coordinates, acceleration, braking and dwell settings. The fleet uses the original flat white/light-grey face, broad windshield, teal-green livery and two rectangular headlights, recovered from the original Nordplatz design. Existing interiors and their repaired floors are retained.
+A playable first-person Three.js metro network with 37 shared station nodes, 44 physical line platforms, and six independently operating three-car trains. Phase 5 completes U1, U2 and U3 to seven stops each. All existing station names and platform positions, U4–U6 routes, acceleration, braking and dwell settings are retained. The fleet uses the original flat white/light-grey face, broad windshield, teal-green livery and two rectangular headlights, recovered from the original Nordplatz design. Existing interiors and their repaired floors are retained.
 
 The U5/U6 expansion adds 15 unique stations. U5 connects Westbahnhof to Ostbahnhof; U6 connects Stadtzentrum to Arabellapark. The four shared interchanges have actual stairs and protected passages. Central retains upper U1/U2 and lower U3/U4 platforms. New trains and their individual cars/bogies follow continuous measured rail paths; no train teleports between stations.
 
-The speculative 13-station U1–U4 expansion is not active. This stage follows the requested scope of preserving the existing network and adding only U5/U6. All geometry, materials, signs and textures are generated locally, with no remote runtime assets.
+Phase 5 adds ten approved stations to the existing network. U4 remains a four-stop line; U5 and U6 retain ten and nine stops respectively. All geometry, materials, signs and textures are generated locally, with no remote runtime assets. See [PHASE5_REPORT.md](PHASE5_REPORT.md) for implementation and validation details.
 
 ## Open the standalone game
 
@@ -46,6 +46,32 @@ npm run dev -- --port 5173 --strictPort
 
 Mouse-look releases on pointer up, cancellation, lost capture, or window blur. It does not lock the cursor. On platforms, the player collides with walls, pillars, benches, bins, and technical cabinets. The safety boundary prevents stepping onto the tracks. Approach an open doorway and press E to board. Inside, walk and look around the car; seats, grab poles, walls, and car ends constrain movement. The rider follows the selected train throughout its journey and can leave only when stopped with its platform-side doors open. At Central, the signed rear-wall passage connects upper platforms 01/02 and another connects lower platforms 03/04. The stairs at the south end of platform 01 descend to platform 03; follow the four switchback flights and landings. Both levels have clear line and stair wayfinding. Reset and start buttons reposition only the player; all six trains continue operating. Append `?line=U2`, `?line=U3`, or `?line=U4` to begin at that line’s first station.
 
+## Phase 5 — completed U1, U2 and U3
+
+| Line | Actual stopping order | Distances from first stop |
+| --- | --- | --- |
+| U1 | Nordplatz → Central → Rosenheimer Platz → Lindenallee → Universitätsviertel → Botanischer Garten → Ostgärten | 0 / 240 / 480 / 960 / 1320 / 1680 / 2040 m |
+| U2 | Stadtzentrum → Rathausmarkt → Central → Kupfergasse → Schwarzkopf-Tunnel → Stahlhof → Eisenwerk | 0 / 120 / 240 / 360 / 480 / 600 / 720 m |
+| U3 | Schattenufer → Central → Ostbahnhof → Stadtbrücke → Museumsinsel → Kanalpark → Seetor | 0 / 390 / 630 / 870 / 1230 / 1590 / 1950 m |
+
+U1 and U3 extend their existing straight railway corridors. Rosenheimer Platz and Stadtbrücke become through-stations with open track portals; only the actual endpoints reverse the services. U2 inserts a station into each of its three existing links, preserving its termini, all platform positions and the U6 transfer at Stadtzentrum. Its 120 m spacing deliberately retains the compact game scale: 88 m platforms leave 32 m between ordinary portals, or 26 m next to Schwarzkopf's 50 m rock portals. Existing train acceleration and braking support these shorter legs.
+
+All three lines continue sharing Central's original station node. Platforms 01/02 and their passage stay at 0 m; platforms 03/04 and Golden Hive stay at −12 m. The existing four-flight U1/U3 staircase remains the connection between floors. Central's boards and passage signs derive updated destinations and next stops from the live routes. Ostbahnhof's U3/U5 transfer remains intact.
+
+New identities include Lindenallee's green ceramic portals, Universitätsviertel's physical folded concrete roof, Botanischer Garten's glass/timber pergola, Ostgärten's double-pitch canopy, Rathausmarkt's bronze/stone coffers, Kupfergasse's brick vault, Stahlhof's steel trusses, Museumsinsel's deep gallery coffers, Kanalpark's concave teal ceramic ceiling and Seetor's illuminated wave ribs. The existing Glass Cathedral, rock station, ironworks, Schattenufer roof, Stadtbrücke arches and Central architecture are retained.
+
+`addPhase5ToNetwork()` extends the existing graph after `addExpansionToNetwork()`. The original factories and `?network=original` remain unchanged regression fixtures; normal gameplay uses the completed six-line graph. No station lists are duplicated in the UI or service controller.
+
+```sh
+node tests/expansion-mechanics.mjs
+node tests/phase5-geometry.mjs
+node tests/transfer-geometry-check.mjs
+npm run build
+npm test -- --timeout=180000
+```
+
+The timeout override accommodates software WebGL; it changes no game timing or assertions. The full-network journey tests check all seven stops in each direction and preserve the U4–U6 checks. Additional browser cases verify the new landmark ceilings and continuous keyboard transfers through Central on the completed network. The geometry check probes actual rail meshes and open portals, including both former termini.
+
 ## U5/U6 expansion
 
 | Line | Actual stopping order |
@@ -73,7 +99,11 @@ The expansion browser tests use the actual train meshes and controller for compl
 
 `node tests/network-live-inspect.mjs` uses normal animation and mouse/keyboard input for a U5 ride, then captures a separately labelled scripted curve inspection. `--curve-only` runs just that supplemental inspection. `SOFTWARE_WEBGL=1` selects SwiftShader; `METRO_LIVE_TIMEOUT_MS` overrides its wait limit. Normal-animation journey attempts timed out on this environment's slow software renderer; complete controlled-step production journeys passed. See `IMPLEMENTATION_REPORT.md` for the actual results and limitations.
 
-## Train journeys
+## Original four-line regression fixture and development history
+
+The following original-route descriptions and historical validation records refer to the earlier milestones and `?network=original`. The Phase 5 table above describes the current default routes; earlier test totals and station counts below are historical.
+
+### Original train journeys
 
 U1 has three stops at route distances 0, 240, and 480 m: Nordplatz, Central, and Rosenheimer Platz. Each adjacent pair has continuous rails and a 152 m connecting tunnel. Central is an intermediate through-station, not a terminus. The train reverses its active cab only at Rosenheimer Platz and Nordplatz; its destination remains the appropriate terminus throughout each direction.
 

@@ -25,7 +25,8 @@ scene.updateWorldMatrix(true, true);
 const meshRecords = [];
 scene.traverse(node => {
   if (!node.isMesh) return;
-  if (node.material?.isMeshBasicMaterial || node.material?.emissiveIntensity > 0) return;
+  if (node.material?.isMeshBasicMaterial
+    || (node.material?.emissiveIntensity > 0 && node.material?.emissive?.getHex() > 0)) return;
   let owner = node, identity = [];
   while (owner && owner !== scene) {
     if (owner.stationId) identity.push(`${owner.stationId}:${owner.lineId ?? 'transfer'}`);
@@ -78,7 +79,8 @@ for (const { def, upper, lower, transfer } of transfers) {
 }
 const report = { stationNodes: network.nodes.size, platforms: stations.length, lines: Object.keys(worlds), consideredMeshes: meshRecords.length, result };
 await writeFile(process.env.METRO_TRANSFER_REPORT || '/tmp/metro-transfer-geometry.json', JSON.stringify(report, null, 2));
-assert.equal(report.stationNodes, 27); assert.equal(report.platforms, 34);
+assert.equal(report.stationNodes, 37); assert.equal(report.platforms, 44);
+assert(report.consideredMeshes > 0, 'Transfer geometry check did not inspect any physical meshes.');
 for (const item of result) { assert.equal(item.eyePathHits.length, 0, `${item.station}: obstructed walking path`); assert.equal(item.ceilingHits.length, 0, `${item.station}: insufficient headroom`); assert.equal(item.supportFailures.length, 0, `${item.station}: unsupported walking path`); }
 console.log(JSON.stringify({ ...report, result: result.map(r => ({ ...r, eyePathHits: r.eyePathHits.slice(0, 6), ceilingHits: r.ceilingHits.slice(0, 6), supportFailures: r.supportFailures.slice(0, 6),
   eyePathHitSegments: r.eyePathHits.length, ceilingHitProbes: r.ceilingHits.length, unsupportedProbes: r.supportFailures.length })) }, null, 2));

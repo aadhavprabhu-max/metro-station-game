@@ -1,16 +1,16 @@
 /** CPU checks for production route/vehicle/controller methods; no DOM or renderer. */
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { createCompleteMetroNetwork, createMetroNetwork, addU2ToNetwork, addLowerLinesToNetwork, addExpansionToNetwork } from '../src/network.js';
+import { createCompleteMetroNetwork, createMetroNetwork, addU2ToNetwork, addLowerLinesToNetwork, addExpansionToNetwork, addPhase5ToNetwork } from '../src/network.js';
 import { MetroRoute } from '../src/route.js';
 import { Train, TrainCar } from '../src/train.js';
 import { TrainService } from '../src/service.js';
 import { PlayerController } from '../src/player.js';
 
 const ORDERS = {
-  U1: ['Nordplatz', 'Central', 'Rosenheimer Platz'],
-  U2: ['Stadtzentrum', 'Central', 'Schwarzkopf-Tunnel', 'Eisenwerk'],
-  U3: ['Schattenufer', 'Central', 'Ostbahnhof', 'Stadtbrücke'],
+  U1: ['Nordplatz', 'Central', 'Rosenheimer Platz', 'Lindenallee', 'Universitätsviertel', 'Botanischer Garten', 'Ostgärten'],
+  U2: ['Stadtzentrum', 'Rathausmarkt', 'Central', 'Kupfergasse', 'Schwarzkopf-Tunnel', 'Stahlhof', 'Eisenwerk'],
+  U3: ['Schattenufer', 'Central', 'Ostbahnhof', 'Stadtbrücke', 'Museumsinsel', 'Kanalpark', 'Seetor'],
   U4: ['Kaiser-Humboldt-Platz', 'Westbahnhof', 'Central', 'Arabellapark'],
   U5: ['Westbahnhof', 'Südstadt', 'Stadionpark', 'Messepark', 'Technologiecampus', 'Flughafen', 'Nordklinikum', 'Waldtor', 'Hafenbogen', 'Ostbahnhof'],
   U6: ['Stadtzentrum', 'Theaterinsel', 'Südklinikum', 'Sonnenfeld', 'Ringplatz', 'Waldsee', 'Feldkirchen', 'Industriepark', 'Arabellapark'],
@@ -20,10 +20,28 @@ const projectLine = (network, id) => ({ line: network.lines.get(id), stops: netw
 const before = JSON.stringify(['U1','U2','U3','U4'].map(id => projectLine(established,id)));
 addExpansionToNetwork(established);
 assert.equal(JSON.stringify(['U1','U2','U3','U4'].map(id => projectLine(established,id))), before, 'Expansion changed an established railway.');
+const protectedLines = JSON.stringify(['U4', 'U5', 'U6'].map(id => projectLine(established, id)));
+const originalNodes = [...established.nodes.values()].map(node => ({ node, name: node.name, position: { ...node.position }, platforms: JSON.stringify(node.platforms) }));
+addPhase5ToNetwork(established);
+assert.equal(JSON.stringify(['U4', 'U5', 'U6'].map(id => projectLine(established, id))), protectedLines, 'Phase 5 changed U4, U5 or U6.');
+for (const { node, name, position, platforms } of originalNodes) {
+  assert.strictEqual(established.nodes.get(node.id), node, 'Phase 5 replaced an existing shared station.');
+  assert.equal(node.name, name); assert.deepEqual(node.position, position);
+  assert.equal(JSON.stringify(node.platforms), platforms, 'Phase 5 moved an existing platform.');
+}
+const phase5Snapshot = JSON.stringify([...established.lines]);
+addPhase5ToNetwork(established);
+assert.equal(JSON.stringify([...established.lines]), phase5Snapshot, 'Phase 5 is not idempotent.');
+assert.equal(established.nodes.size, 37);
 const network = createCompleteMetroNetwork();
-assert.equal(network.nodes.size, 27);
+assert.equal(network.nodes.size, 37);
 assert.equal(network.lines.size, 6);
-assert.equal([...network.nodes.values()].reduce((sum, node) => sum + Object.keys(node.platforms).length, 0), 34);
+assert.equal([...network.nodes.values()].reduce((sum, node) => sum + Object.keys(node.platforms).length, 0), 44);
+assert.deepEqual(network.getLineStops('U1').map(stop => stop.distance), [0, 240, 480, 960, 1320, 1680, 2040]);
+assert.deepEqual(network.getLineStops('U2').map(stop => stop.distance), [0, 120, 240, 360, 480, 600, 720]);
+assert.deepEqual(network.getLineStops('U3').map(stop => stop.distance), [0, 390, 630, 870, 1230, 1590, 1950]);
+assert.equal(network.links.size, 38);
+assert.equal(new Set([...network.lines.values()].flatMap(line => line.linkIds)).size, network.links.size, 'Orphan/bypass link remains in the graph.');
 assert.deepEqual(createMetroNetwork().getLineStops('U1').map(stop => stop.distance), [0, 240, 480]);
 assert.deepEqual(network.nodes.get('station-2').lineIds, ['U1', 'U2', 'U3', 'U4']);
 assert.equal(network.nodes.get('station-2').platforms.U1.floorY, 0);
@@ -207,5 +225,5 @@ curvePlayer.yaw = -(650 + 17) / curveRadius; curvePlayer.applyLook();
 curvePlayer.keys.add('KeyW'); curvePlayer.update(0.05); curvePlayer.keys.clear();
 assert(Math.abs(curvePlayer.ridingLocalOffset.z - (curveLocal.z - 0.225)) < 1e-8);
 assert(Math.abs(curvePlayer.ridingLocalOffset.x - curveLocal.x) < 1e-8);
-console.log(JSON.stringify({ stations: network.nodes.size, platforms: 34, lines: network.lines.size, results,
+console.log(JSON.stringify({ stations: network.nodes.size, platforms: 44, lines: network.lines.size, results,
   analyticCurve: { radius: curveRadius, samples: 1301, riderError: curveRiderError, headingAndWalking: true } }, null, 2));

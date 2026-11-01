@@ -3,9 +3,9 @@ import { writeFile, readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
 
 const ORDERS = {
-  U1: ['Nordplatz', 'Central', 'Rosenheimer Platz'],
-  U2: ['Stadtzentrum', 'Central', 'Schwarzkopf-Tunnel', 'Eisenwerk'],
-  U3: ['Schattenufer', 'Central', 'Ostbahnhof', 'Stadtbrücke'],
+  U1: ['Nordplatz', 'Central', 'Rosenheimer Platz', 'Lindenallee', 'Universitätsviertel', 'Botanischer Garten', 'Ostgärten'],
+  U2: ['Stadtzentrum', 'Rathausmarkt', 'Central', 'Kupfergasse', 'Schwarzkopf-Tunnel', 'Stahlhof', 'Eisenwerk'],
+  U3: ['Schattenufer', 'Central', 'Ostbahnhof', 'Stadtbrücke', 'Museumsinsel', 'Kanalpark', 'Seetor'],
   U4: ['Kaiser-Humboldt-Platz', 'Westbahnhof', 'Central', 'Arabellapark'],
   U5: ['Westbahnhof', 'Südstadt', 'Stadionpark', 'Messepark', 'Technologiecampus', 'Flughafen', 'Nordklinikum', 'Waldtor', 'Hafenbogen', 'Ostbahnhof'],
   U6: ['Stadtzentrum', 'Theaterinsel', 'Südklinikum', 'Sonnenfeld', 'Ringplatz', 'Waldsee', 'Feldkirchen', 'Industriepark', 'Arabellapark'],
@@ -39,7 +39,7 @@ test.describe('complete six-line network — scripted production-model journeys'
   });
   test.afterAll(async () => { await page?.close(); });
 
-  test('27 shared stations have 34 real platforms, six independent services and the approved orders', async () => {
+  test('37 shared stations have 44 real platforms, six independent services and the approved orders', async () => {
     const result = await page.evaluate(() => {
       const { world } = window.metro;
       return {
@@ -55,8 +55,8 @@ test.describe('complete six-line network — scripted production-model journeys'
         glError: world.renderer.getContext().getError(),
       };
     });
-    expect(result.nodes).toBe(27); expect(result.platforms).toBe(34);
-    expect(result.trains).toBe(6); expect(result.uniquePlatforms).toBe(34);
+    expect(result.nodes).toBe(37); expect(result.platforms).toBe(44);
+    expect(result.trains).toBe(6); expect(result.uniquePlatforms).toBe(44);
     expect(result.services).toEqual(['U1', 'U2', 'U3', 'U4', 'U5', 'U6']);
     expect(result.orders).toEqual(ORDERS);
     expect(result.identities && result.attached).toBe(true);
@@ -202,6 +202,108 @@ test.describe('complete six-line network — scripted production-model journeys'
       await testInfo.attach(`${lineId}-scripted-journey`, { body: JSON.stringify(result, null, 2), contentType: 'application/json' });
     });
   }
+  test('Phase 5 landmark ceilings are visible physical geometry and restore their rendered image', async ({}, testInfo) => {
+    test.setTimeout(180000);
+    for (const [lineId, stationId, shape] of [
+      ['U1', 'u1-universitaetsviertel', 'folded-structural-plates'],
+      ['U3', 'u3-seetor', 'extruded-wave-ribs'],
+    ]) {
+      const result = await page.evaluate(({ lineId, stationId }) => {
+        const { world, player } = window.metro;
+        if (!player.startAt(lineId, stationId)) throw new Error('Missing Phase 5 platform.');
+        player.pitch = 0.38; player.applyLook(); world.update(0);
+        const station = player.station, signature = station.signatureGroup;
+        const canvas = document.createElement('canvas'); canvas.width = 96; canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        const capture = () => {
+          world.renderer.shadowMap.needsUpdate = true;
+          world.renderer.render(world.scene, world.camera);
+          ctx.drawImage(world.renderer.domElement, 0, 0, 96, 64);
+          return ctx.getImageData(0, 0, 96, 64).data;
+        };
+        const difference = (a, b) => {
+          let changed = 0;
+          for (let i = 0; i < a.length; i += 4) if ([0, 1, 2].some(c => Math.abs(a[i + c] - b[i + c]) > 2)) changed++;
+          return changed;
+        };
+        const before = capture(); let hidden;
+        try { signature.visible = false; hidden = capture(); }
+        finally { signature.visible = true; }
+        const restored = capture();
+        return { shape: signature.userData.ceiling?.shape, changed: difference(before, hidden), restored: difference(before, restored),
+          signatureVertices: station.signatureRoof.geometry.getAttribute('position').count,
+          instances: station.signatureRoof.count, activePlatform: world.lighting.currentPlatformId,
+          gl: world.renderer.getContext().getError(), png: world.renderer.domElement.toDataURL('image/png') };
+      }, { lineId, stationId });
+      expect(result.shape).toBe(shape); expect(result.changed).toBeGreaterThan(100); expect(result.restored).toBe(0);
+      expect(result.signatureVertices).toBeGreaterThan(20); expect(result.instances).toBeGreaterThan(10);
+      expect(result.activePlatform).toBe(`${stationId}:${lineId}`); expect(result.gl).toBe(0);
+      await writeFile(testInfo.outputPath(`${stationId}-ceiling.png`), Buffer.from(result.png.split(',')[1], 'base64'));
+    }
+  });
+
+  test('completed U1, U2 and U3 remain connected through Central with live destination and transfer information', async ({}, testInfo) => {
+    test.setTimeout(180000);
+    await page.evaluate(() => {
+      const { world, player } = window.metro;
+      player.startAt('U1', 'station-2'); player.camera.position.set(-6, 1.76, -264);
+      world.update(0); world.renderer.domElement.focus();
+    });
+    const descent = [[-6, -276], [-7.45, -280], [-7.45, -284.7], [-7.45, -288], [-7.45, -291.75], [-4.15, -291.75],
+      [-4.15, -288], [-4.15, -284.1], [-7.45, -284.1], [-7.45, -288], [-7.45, -291.75],
+      [-4.15, -291.75], [-4.15, -288], [-4.15, -284.1], [-4.15, -280]];
+    const ascent = [[-4.15, -284.1], [-4.15, -288], [-4.15, -291.75], [-7.45, -291.75],
+      [-7.45, -288], [-7.45, -284.1], [-4.15, -284.1], [-4.15, -288], [-4.15, -291.75],
+      [-7.45, -291.75], [-7.45, -288], [-7.45, -284.1], [-7.45, -280]];
+    const reports = [];
+    for (const [expectedLine, points] of [['U2', [[-16, -264]]], ['U1', [[-6, -264]]], ['U3', descent], ['U1', ascent]]) {
+      await page.keyboard.down('w'); await page.keyboard.down('Shift');
+      let report;
+      try {
+        report = await page.evaluate(points => {
+          const { world, player } = window.metro;
+          let maxHeightStep = 0, maxPlanarStep = 0; const flights = new Set();
+          for (const [x, z] of points) {
+            let reached = false;
+            for (let frame = 0; frame < 300; frame++) {
+              player.yaw = Math.atan2(-(x - player.camera.position.x), -(z - player.camera.position.z)); player.applyLook();
+              const previous = player.camera.position.clone(); world.update(1 / 60);
+              maxHeightStep = Math.max(maxHeightStep, Math.abs(player.camera.position.y - previous.y));
+              maxPlanarStep = Math.max(maxPlanarStep, Math.hypot(player.camera.position.x - previous.x, player.camera.position.z - previous.z));
+              if (player.transferSurface?.kind === 'stairs') flights.add(player.transferSurface.id);
+              if (Math.hypot(player.camera.position.x - x, player.camera.position.z - z) < 0.14) { reached = true; break; }
+            }
+            if (!reached) throw new Error(`Central walk blocked toward ${x},${z}.`);
+          }
+          return { line: player.service.lineId, platform: player.station.platformId,
+            feetY: player.camera.position.y - 1.76, maxHeightStep, maxPlanarStep, flights: [...flights] };
+        }, points);
+      } finally { await page.keyboard.up('w'); await page.keyboard.up('Shift'); }
+      expect(report.line).toBe(expectedLine); expect(report.platform).toBe(`station-2:${expectedLine}`);
+      expect(report.feetY).toBeCloseTo(expectedLine === 'U3' ? -12 : 0, 6);
+      expect(report.maxHeightStep).toBeLessThanOrEqual(0.1875 + 1e-6);
+      expect(report.maxPlanarStep).toBeLessThanOrEqual(7 / 60 + 1e-6);
+      if (points === descent || points === ascent) expect(report.flights).toHaveLength(4);
+      reports.push(report);
+    }
+    const information = await page.evaluate(() => {
+      const { world } = window.metro;
+      return {
+        upper: world.stations.find(station => station.platformId === 'station-2:U2').departures.departures.map(row => ({ line: row.route, destination: row.destination, next: row.nextStop })),
+        lower: world.stations.find(station => station.platformId === 'station-2:U3').departures.departures.map(row => ({ line: row.route, destination: row.destination })),
+        hive: world.stations.filter(station => station.stationId === 'station-2' && station.floorY < 0).every(station => Boolean(station.cofferGeometry)),
+        centralShared: ['U1', 'U2', 'U3'].every(id => world.routes[id].stops.find(stop => stop.id === 'station-2').node === world.network.nodes.get('station-2')),
+      };
+    });
+    expect(information.upper).toEqual([
+      { line: 'U1', destination: 'Ostgärten', next: 'Rosenheimer Platz' }, { line: 'U1', destination: 'Nordplatz', next: 'Nordplatz' },
+      { line: 'U2', destination: 'Eisenwerk', next: 'Kupfergasse' }, { line: 'U2', destination: 'Stadtzentrum', next: 'Rathausmarkt' },
+    ]);
+    expect(information.lower).toContainEqual({ line: 'U3', destination: 'Seetor' });
+    expect(information.hive && information.centralShared).toBe(true);
+    await testInfo.attach('phase5-central-keyboard-transfers', { body: JSON.stringify({ reports, information }, null, 2), contentType: 'application/json' });
+  });
+
   test('all four added interchanges support keyboard walking both ways without a level jump', async ({}, testInfo) => {
     test.setTimeout(180000);
     const reports = [];

@@ -198,7 +198,8 @@ function buildColumns(station, m, config, group) {
   for (const z of PILLARS) {
     // Capitals meet the roof cavity, instead of leaving floating column ends
     // beneath the raised centres of moulded ceramic panels.
-    const height = config.family === 'scandinavian' ? roofHeight(config, -8.3) + 0.23
+    const height = ['folded', 'wave'].includes(config.family) ? config.ceilingHeight - 0.1
+      : config.family === 'scandinavian' ? roofHeight(config, -8.3) + 0.23
       : ['refined', 'radial'].includes(config.family) ? config.ceilingHeight + 0.13
         : roofHeight(config, -8.3) + 0.1;
     const round = config.columnProfile === 'round';
@@ -428,6 +429,59 @@ function radialRoof(station, group, m, config) {
   linearLights(group, m, config);
 }
 
+/** Folded structural plates span the university hall; no flat picture backdrop. */
+function foldedRoof(station, group, m, config) {
+  const plates = [], edges = [], clerestories = [];
+  for (let start = -44; start < 44; start += config.structuralBay) {
+    const end = Math.min(44, start + config.structuralBay), half = (end - start) / 2;
+    const angle = Math.atan2(config.roofRise, half), length = Math.hypot(half, config.roofRise);
+    for (const [z, rotation] of [[start + half / 2, -angle], [end - half / 2, angle]]) {
+      plates.push({ size: [17.65, 0.16, length], position: [-1.1, config.ceilingHeight + config.roofRise / 2, z], rotation: [rotation, 0, 0] });
+    }
+    edges.push({ size: [17.65, 0.12, 0.18], position: [-1.1, config.ceilingHeight + config.roofRise - 0.12, start + half] });
+    clerestories.push({ size: [12.5, 0.025, 0.3], position: [-1.1, config.ceilingHeight + config.roofRise - 0.19, start + half] });
+  }
+  station.signatureRoof = namedInstances(group, m.ceramic, plates, 'UniversityFoldedConcretePlates');
+  namedInstances(group, m.structure, edges, 'UniversityFoldRidgeBeams');
+  namedInstances(group, m.integratedLight, clerestories, 'UniversityRidgeLightSlots', undefined, false);
+  for (const x of [-8.3, 6.2]) box(group, m.structure, [0.28, 0.25, 88], [x, config.ceilingHeight - 0.075, 0]);
+  group.userData.ceiling = { shape: 'folded-structural-plates', plates: plates.length, depth: config.roofRise };
+  linearLights(group, m, config);
+}
+
+/** Seetor's physical wave ribs remain below the railway level above. */
+function waveRoof(station, group, m, config) {
+  const profile = [], steps = 48;
+  for (let index = 0; index <= steps; index++) {
+    const fraction = index / steps;
+    profile.push([-9.8 + fraction * 17.4, config.ceilingHeight + 0.25 + 0.55 * (0.5 + 0.5 * Math.sin(fraction * Math.PI * 2))]);
+  }
+  const shape = new THREE.Shape();
+  profile.forEach(([x, y], index) => index ? shape.lineTo(x, y) : shape.moveTo(x, y));
+  for (const [x, y] of [...profile].reverse()) shape.lineTo(x, y + 0.26);
+  shape.closePath();
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.16, bevelEnabled: false, steps: 1, curveSegments: 1 });
+  geometry.translate(0, 0, -0.08);
+  const ribs = [], accents = [];
+  for (let z = -41.25; z <= 41.25; z += config.structuralBay) {
+    ribs.push({ position: [0, 0, z], size: [1, 1, 1] });
+    for (let index = 0; index < profile.length - 1; index += 2) {
+      const a = profile[index], b = profile[Math.min(index + 2, steps)];
+      accents.push(memberEntry([a[0], a[1] - 0.025, z], [b[0], b[1] - 0.025, z], 0.025, 0.08));
+    }
+  }
+  station.signatureRoof = namedInstances(group, m.structure, ribs, 'SeetorWaveCeilingRibs', geometry);
+  namedInstances(group, m.integratedLight, accents, 'SeetorWaveEdgeLighting', undefined, false);
+  box(group, m.daylight, [17.8, 0.12, 88], [-1.1, config.ceilingHeight + 1.15, 0]);
+  for (const x of [-8.3, 6.2]) {
+    box(group, m.structure, [0.28, 0.25, 88], [x, config.ceilingHeight - 0.075, 0]);
+    const y = config.ceilingHeight + 0.25 + 0.55 * (0.5 + 0.5 * Math.sin((x + 9.8) / 17.4 * Math.PI * 2));
+    for (const { position: [, , z] } of ribs) box(group, m.structure, [0.09, y - config.ceilingHeight, 0.09], [x, (y + config.ceilingHeight) / 2, z]);
+  }
+  group.userData.ceiling = { shape: 'extruded-wave-ribs', ribs: ribs.length, profileSamples: profile.length };
+  linearLights(group, m, config);
+}
+
 /** New stations use the existing playable platform, railway, furniture and board. */
 export class FamilyStation extends Station {
   constructor(materials, options = {}) {
@@ -471,6 +525,8 @@ export class FamilyStation extends Station {
       case 'green': greenRoof(this, signature, m, config); break;
       case 'airport': airportRoof(this, signature, m, config); break;
       case 'radial': radialRoof(this, signature, m, config); break;
+      case 'folded': foldedRoof(this, signature, m, config); break;
+      case 'wave': waveRoof(this, signature, m, config); break;
       case 'waterfront':
         this.signatureRoof = frameRoof(signature, m, config, 'industrial'); harbour(signature, m); break;
       case 'industrial': this.signatureRoof = frameRoof(signature, m, config, 'industrial'); break;

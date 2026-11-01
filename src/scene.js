@@ -62,7 +62,7 @@ export function createScene(container) {
   room.dispose(); pmrem.dispose();
   const materials = createMaterials();
   // The original graph is a regression fixture using this same engine. Normal
-  // gameplay always uses the existing network plus U5/U6.
+  // gameplay includes U5/U6 and the completed seven-stop U1/U2/U3 routes.
   const originalNetwork = new URLSearchParams(location.search).get('network') === 'original';
   const network = originalNetwork ? createMetroNetwork() : createCompleteMetroNetwork();
   if (originalNetwork) { addU2ToNetwork(network); addLowerLinesToNetwork(network); }
