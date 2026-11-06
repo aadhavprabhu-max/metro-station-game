@@ -126,6 +126,13 @@ function ring(root, material, x, y, z, radius, thickness = 0.1, rotation = [-Mat
   mesh.position.set(x, y, z); mesh.rotation.set(...rotation); mesh.castShadow = mesh.receiveShadow = true; root.add(mesh); return mesh;
 }
 
+function suspendRing(root, m, x, y, z, radius, ceilingAt) {
+  for (const dx of [-radius, radius]) {
+    const top = ceilingAt(x + dx, z) + 0.04, bottom = y + 0.04;
+    cylinder(root, m.trim, 0.022, top - bottom, [x + dx, (top + bottom) / 2, z], [0, 0, 0], 8);
+  }
+}
+
 function premiumFloor(root, m, pattern) {
   // Retain the original structural slab, edge, tactile strips and safety limits.
   for (const child of [...root.platform.children]) if (child.isInstancedMesh && child.material.name !== 'yellow' && child.material === root.baseMaterials.tile) root.platform.remove(child);
@@ -222,7 +229,7 @@ function kaiserforum(root, m) {
   for (const z of [-32, -16, 0, 16, 32]) {
     for (const x of [-8.35, 6.4]) column(root, m, x, z, 9.7, { radius: 0.6, fluted: true });
     ring(root, m.trim, -1.1, 7.75, z, 1.6, 0.08);
-    for (const x of [-2.7, 0.5]) cylinder(root, m.trim, 0.025, 2.4, [x, 9, z]);
+    for (const x of [-2.7, 0.5]) cylinder(root, m.trim, 0.025, 2.5, [x, 9.05, z]);
     ring(root, m.light, -1.1, 7.68, z, 1.55, 0.05);
   }
   portals(root, m, 10.5);
@@ -237,7 +244,7 @@ function goldmarkt(root, m) {
     const lantern = new THREE.Group(); lantern.position.set(-4.5, 5.6, z); root.add(lantern);
     box(lantern, m.light, [0.5, 0.8, 0.5], [0, 0, 0], { shadow: false });
     for (const x of [-0.3, 0.3]) for (const dz of [-0.3, 0.3]) box(lantern, m.trim, [0.04, 1, 0.04], [x, 0, dz]);
-    cylinder(lantern, m.trim, 0.025, 1.8, [0, 1.3, 0]);
+    cylinder(lantern, m.trim, 0.025, 2.15, [0, 1.475, 0]);
     for (const x of [-8.6, 6.4]) column(root, m, x, z, 3.65, { radius: 0.36 });
   }
   portals(root, m, 8.2);
@@ -282,7 +289,11 @@ function sonnenviertel(root, m) {
     box(root, m.daylight, [2.25, 0.06, 6.7], [x, 52.7, z], { shadow: false });
     box(root, m.glass, [2.25, 0.04, 6.7], [x, 9.7, z], { shadow: false });
   }
-  for (const x of [-9.2, 7]) box(root, m.light, [0.06, 0.08, 86], [x, 4.8, 0], { shadow: false });
+  for (const x of [-9.2, 7]) {
+    box(root, m.light, [0.06, 0.08, 86], [x, 4.8, 0], { shadow: false });
+    const wall = x < 0 ? -9.9 : 7.7;
+    for (let z = -40; z <= 40; z += 8) box(root, m.trim, [Math.abs(wall - x), 0.045, 0.09], [(wall + x) / 2, 4.85, z]);
+  }
   portals(root, m, 8.8);
 }
 
@@ -292,9 +303,9 @@ function hohenbrueck(root, m) {
   ribbedVault(root, m, { rise: 5.2, spring: 3.2, spacing: 8 });
   for (const z of [-36, -20, -4, 12, 28]) {
     for (const x of [-8.55, 6.4]) column(root, m, x, z, 3.4, { radius: 0.38, fluted: true });
-    for (const x of [-7.3, 5.2]) box(root, m.light, [0.1, 0.75, 0.25], [x, 3.2, z], { shadow: false });
+    for (const x of [-7.95, 5.8]) box(root, m.light, [0.1, 0.75, 0.25], [x, 3.2, z], { shadow: false });
   }
-  for (const x of [-5.6, 3.4]) box(root, m.trim, [0.12, 0.11, 87.5], [x, 7.55, 0]);
+  for (const x of [-5.6, 3.4]) box(root, m.trim, [0.12, 0.11, 87.5], [x, 3.2 + 5.2 * Math.sqrt(1 - ((x + 1.1) / 9) ** 2) - 0.035, 0]);
   portals(root, m, 8.5);
 }
 
@@ -319,6 +330,7 @@ function kronenplatz(root, m) {
     }
     for (const x of [-8.7, 6.5]) for (const dz of [-7.5, 7.5]) column(root, m, x, z + dz, 5.8, { radius: 0.54 });
     ring(root, m.light, -1.1, 7.3, z, radius * 0.34, 0.065);
+    suspendRing(root, m, -1.1, 7.3, z, radius * 0.34, (x, zz) => 5.8 + radius * 0.65 * Math.sqrt(1 - ((x + 1.1) ** 2 + (zz - z) ** 2) / radius ** 2));
   }
   for (const x of [-8.9, 6.7]) box(root, m.soffit, [2.5, 0.24, 88], [x, 6.1, 0]);
   for (const z of [-42, -14, 14, 42]) box(root, m.soffit, [18, 0.25, 6], [-1.1, 6.1, z]);
@@ -338,6 +350,7 @@ function altstadtbruecke(root, m) {
     column(root, m, -8.55, z, 3.6, { radius: 0.4 });
     ring(root, m.trim, -4, 5.1, z, 0.7, 0.06);
     ring(root, m.light, -4, 5.08, z, 0.66, 0.03);
+    suspendRing(root, m, -4, 5.1, z, 0.7, x => 3.6 + 5.8 * Math.sqrt(1 - ((x + 1.1) / 9) ** 2));
   }
   portals(root, m, 9.5);
 }
@@ -350,7 +363,7 @@ function uferpromenade(root, m) {
     box(root, m.glass, [1.2, 0.1, 88], [x, 7.72, 0], { shadow: false });
   }
   for (let z = -40; z <= 40; z += 8) {
-    for (const x of [-9, 6.8]) column(root, m, x, z, 6.6, { radius: 0.28 });
+    for (const x of [-9, 6.8]) column(root, m, x, z, 6.82, { radius: 0.28 });
     archWedge(root, m.timber, { spring: 4, ry: 3.3, z, depth: 0.22, thickness: 0.12 });
     box(root, m.light, [12, 0.05, 0.06], [-1, 6.65, z], { shadow: false });
   }
@@ -378,6 +391,7 @@ function centralLanterns(root, m) {
   for (const z of [-32, -16, 0, 16, 32]) {
     const lantern = new THREE.Mesh(new THREE.CylinderGeometry(2, 2.8, 1.4, 8, 1, true), m.trim);
     lantern.position.set(-1.1, 6.6, z); root.add(lantern);
+    suspendRing(root, m, -1.1, 7.26, z, 2, x => 4.5 + 4.3 * Math.sqrt(1 - ((x + 1.1) / 9) ** 2));
     cylinder(root, m.light, 1.9, 0.05, [-1.1, 6, z], [0, 0, 0], 8);
     archWedge(root, m.pale, { spring: 4.5, ry: 4.1, z, depth: 0.55 });
   }
@@ -398,7 +412,7 @@ function waldtor(root, m) {
   piersAndNiches(root, m, { height: 4.3, bay: 8 });
   vault(root, m.soffit, { spring: 4.3, rise: 4.2 });
   for (let z = -42; z <= 42; z += 2.8) archWedge(root, m.timber, { spring: 4.1, ry: 4.1, z, depth: 0.18, thickness: 0.14 });
-  for (const x of [-8.2, -4.8, 2.6, 6]) box(root, m.light, [0.07, 0.07, 86], [x, 6.7, 0], { shadow: false });
+  for (const x of [-8.2, -4.8, 2.6, 6]) box(root, m.light, [0.07, 0.07, 86], [x, 4.1 + 4.1 * Math.sqrt(1 - ((x + 1.1) / 9) ** 2) - 0.03, 0], { shadow: false });
   portals(root, m, 8.6);
 }
 
