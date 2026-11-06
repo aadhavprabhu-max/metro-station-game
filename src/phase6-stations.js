@@ -140,13 +140,32 @@ function premiumFloor(root, m, pattern) {
     mesh.rotation.x = -Math.PI / 2; mesh.position.set(-5.2, 0.005, z); mesh.name = 'FlushStoneRingInlay'; root.platform.add(mesh);
   };
   const inlays = [];
-  if (['opus-sectile', 'gothic-medallion', 'chevron'].includes(pattern)) {
+  if (pattern === 'gothic-medallion') {
+    for (let z = -32; z <= 32; z += 8) {
+      inlays.push({ size: [2.65, 0.004, 2.65], position: [-5.4, 0.003, z], rotation: [0, Math.PI / 4, 0] });
+      for (const [scale, material] of [[1.23, m.trim], [1.06, m.marble]]) {
+        const shape = new THREE.Shape();
+        for (let i = 0; i <= 96; i++) {
+          const t = i * Math.PI * 2 / 96, r = scale * (0.83 + 0.17 * Math.cos(4 * t)), x = Math.cos(t) * r, y = Math.sin(t) * r;
+          if (i === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
+        }
+        const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), material); mesh.rotation.x = -Math.PI / 2; mesh.position.set(-5.4, scale > 1.1 ? 0.0055 : 0.006, z); root.platform.add(mesh);
+      }
+    }
+    for (let z = -42; z <= 42; z += 2) for (const x of [-8.4, -2.4]) inlays.push({ size: [0.18, 0.004, 0.18], position: [x, 0.003, z], rotation: [0, Math.PI / 4, 0] });
+  } else if (['opus-sectile', 'chevron'].includes(pattern)) {
     for (let z = -40; z <= 40; z += pattern === 'chevron' ? 1.5 : 5) for (const x of pattern === 'chevron' ? [-6.8, -5.75, -4.7, -3.65] : [-6, -3.6]) {
       inlays.push({ size: pattern === 'chevron' ? [1.4, 0.01, 0.3] : [1.35, 0.01, 1.35], position: [x, 0.003, z], rotation: [0, (pattern === 'chevron' && x < -5 ? -1 : 1) * Math.PI / 4, 0] });
     }
   } else if (pattern === 'market-mosaic') {
     for (let z = -41; z <= 41; z += 2.2) for (let x = -8.2; x < -1.8; x += 1.1) inlays.push({ size: [0.7, 0.004, 0.7], position: [x, 0.003, z], rotation: [0, Math.PI / 4, 0] });
-  } else if (['river-bands', 'flowing-terrazzo'].includes(pattern)) {
+  } else if (pattern === 'river-bands') {
+    // Transverse tessellated ripples are separate from Sonnenviertel's long,
+    // flowing terrazzo ribbons; these floors have different physical layouts.
+    for (let z = -40; z <= 40; z += 8) for (let x = -8.7; x <= -1.6; x += 0.15) for (const offset of [-0.22, 0.22]) {
+      inlays.push({ size: [0.155, 0.004, 0.09], position: [x, 0.003, z + offset + 0.4 * Math.sin((x + 8.7) * 1.2)] });
+    }
+  } else if (pattern === 'flowing-terrazzo') {
     for (let z = -43; z < 43; z += 0.3) for (const offset of [-1.1, 1.1]) inlays.push({ size: [0.11, 0.004, 0.31], position: [-5.2 + offset + Math.sin(z / 8) * 0.9, 0.003, z] });
   } else if (pattern === 'compass-rose') {
     for (const z of [-27, 0, 27]) {
@@ -157,11 +176,20 @@ function premiumFloor(root, m, pattern) {
         const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), i % 2 ? m.trim : m.dark); mesh.rotation.x = -Math.PI / 2; mesh.position.set(-5.3, 0.018, z); root.platform.add(mesh);
       }
     }
+  } else if (pattern === 'central-rings') {
+    for (let z = -32; z <= 32; z += 8) for (const radius of [1.1, 1.65]) for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      inlays.push({ size: [0.065, 0.004, radius * 0.83], position: [-5.2 + radius * Math.cos(a), 0.003, z + radius * Math.sin(a)], rotation: [0, -a, 0] });
+    }
+  } else if (pattern === 'clinical-inlays') {
+    for (let z = -41; z <= 41; z += 2.25) for (let x = -8.3; x <= -1.8; x += 1.5) inlays.push({ size: [0.32, 0.004, 1.08], position: [x, 0.003, z + ((Math.round(x * 2) % 2) ? 0.55 : 0)], rotation: [0, Math.PI / 2, 0] });
+  } else if (pattern === 'forest-inlays') {
+    for (let z = -42; z <= 42; z += 3) for (let x = -8.4; x <= -1.5; x += 0.55) inlays.push({ size: [0.38, 0.004, 2.7], position: [x, 0.003, z + (Math.round(x * 4) % 2) * 0.12] });
   } else {
     for (let z = -42; z <= 42; z += 3) inlays.push({ size: [7.1, 0.004, 0.15], position: [-5.1, 0.016, z] });
     for (const z of [-28, 0, 28]) for (const r of [1.1, 1.7, 2.3]) floorRing(z, r, 0.035);
   }
-  if (inlays.length) { const mesh = instances(root.platform, m.dark, inlays); mesh.name = `${pattern}PhysicalInlays`; }
+  if (inlays.length) { const mesh = instances(root.platform, pattern === 'forest-inlays' ? m.timber : m.dark, inlays); mesh.name = `${pattern}PhysicalInlays`; }
 }
 
 function ribbedVault(root, m, { rise = 5, spring = 3, spacing = 8 } = {}) {
@@ -202,7 +230,7 @@ function kaiserforum(root, m) {
 
 function goldmarkt(root, m) {
   piersAndNiches(root, m, { height: 3.5, bay: 8, panelStyle: 'arched' });
-  // Alternating sail vaults and lanterns above an arcaded market hall.
+  // Expressed vault bays and lanterns above an arcaded market hall.
   for (let z = -40; z <= 40; z += 8) {
     vault(root, m.stone, { spring: 3.5, rise: 4.8, start: Math.max(-44, z - 4.01), end: Math.min(44, z + 4.01), name: 'MarketSailVault' });
     archWedge(root, m.trim, { spring: 3.5, ry: 4.65, z, depth: 0.12, thickness: 0.12 });
@@ -379,7 +407,7 @@ export const PHASE6_DESIGNS = Object.freeze({
   'u5-uferpromenade': ['river', 'river-bands', 'Open riverside timber loggia', uferpromenade],
   'u5-steinbogen': ['monumental', 'ashlar-runner', 'Monumental stone diaphragms', steinbogen],
   'u9-kaiserforum': ['ivory', 'opus-sectile', 'Classical marble coffer hall', kaiserforum],
-  'u9-goldmarkt': ['amber', 'market-mosaic', 'Sail-vaulted market lanterns', goldmarkt],
+  'u9-goldmarkt': ['amber', 'market-mosaic', 'Arcaded market vaults and lanterns', goldmarkt],
   'u9-sonnenviertel': ['modern', 'flowing-terrazzo', 'Sculptural fins and deep daylight wells', sonnenviertel],
   'u9-hohenbrueck': ['ivory', 'chevron', 'Paired European stone arches', hohenbrueck],
   'u9-kronenplatz': ['ivory', 'compass-rose', 'Three ribbed pendentive domes', kronenplatz],

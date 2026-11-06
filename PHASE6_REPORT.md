@@ -21,11 +21,11 @@ As explicitly approved after comparing the supplied map with the source graph, U
 
 | New station | Roof and walls | Physical floor treatment |
 | --- | --- | --- |
-| Altstadtbrücke | Stone barrel/groin vaults, individual voussoirs and diagonal ribs, warm masonry bays | Gothic diamond medallions and inset borders |
-| Uferpromenade | Open stone loggia, arched glazing, timber pitched roofs and integrated light bands | River-wave bands in polished stone |
+| Altstadtbrücke | Stone barrel/groin vaults, individual voussoirs and diagonal ribs, warm masonry bays | Quatrefoil medallions in diamond surrounds and inset borders |
+| Uferpromenade | Open stone loggia, arched glazing, timber pitched roofs and integrated light bands | Transverse river-wave mosaic bands in polished stone |
 | Steinbogen | Massive stone diaphragms under a high barrel vault, deep piers and inset lights | Ashlar runner with contrasting circular inlays |
 | Kaiserforum | Tall fluted classical columns, entablatures, deep marble coffers and upper-wall arches | Opus-sectile marble diamonds |
-| Goldmarkt | Continuous sail-vault bays, warm stone arcades and suspended framed lanterns | Dense market mosaic pattern |
+| Goldmarkt | Continuous stone vault bays, warm stone arcades and suspended framed lanterns | Dense market mosaic pattern |
 | Sonnenviertel | Continuous sculptural roof with separate curved fins, articulated wall relief and six deep daylight wells | Flowing terrazzo ribbons |
 | Hohenbrück | Refined stone vault, paired voussoir ribs, detailed columns and restrained lighting | Chevron marble inlays |
 | Kronenplatz | Three ribbed domes with actual apertures and solid pendentives; larger central crown | Compass roses and inset perimeter bands |
@@ -39,7 +39,7 @@ The 400 m bridge has ten open stone arches, barrel soffits, separately modelled 
 - `node tests/expansion-mechanics.mjs`: original six-line outbound/return journeys, boarding/alighting and vehicle/rider alignment pass.
 - `node tests/transfer-geometry-check.mjs`: the four original added interchanges retain supported, unobstructed walking paths and headroom.
 - `node tests/phase6-mechanics.mjs`: existing graph/platform preservation; exact junction alignment; continuous three-dimensional paths; gradient/radius survey; U9's 15 outbound/return station visits and scenic U5's 25 visits; full car/bogie orientation; conflicting junction request stopping and resumption.
-- `node tests/phase6-geometry.mjs`: actual assembled meshes, independently raycast. Eleven architectural platforms pass floor, ceiling and headroom probes; all three new transfer paths pass support and obstruction checks; 1540 rail probes pass; no loading-gauge obstructions. Four closed-window sightlines, on both sides of both bridge tracks, reach the water before any opaque obstruction.
+- `node tests/phase6-geometry.mjs`: actual assembled meshes, independently raycast. Eleven architectural platforms pass floor, ceiling and headroom probes; independent physical instance-layout fingerprints also confirm eleven distinct floor patterns; all three new transfer paths pass support and obstruction checks; 1540 rail probes pass; no loading-gauge obstructions. Four closed-window sightlines, on both sides of both bridge tracks, reach the water before any opaque obstruction.
 - `tests/phase6.spec.js`: actual browser train meshes complete U9 and scenic U5 outbound/return journeys with boarding/alighting at every stop, closed doors while moving, accurate car/bogie orientation and rider attachment. All three U9 transfers support continuous walking both ways. Both bridge crossings render animated reflective water through closed train windows.
 - `npx playwright test tests/metro.spec.js tests/train-engineering.spec.js --timeout=180000`: all ten existing regression cases pass, including real keyboard/touch controls, collision limits, reset/help/focus handling, independent doors, physical carriage floors and floor stability in rendered pixels.
 - `node tests/phase6-inspect.mjs`: renders each of the eleven new architectural platforms, both first-person bridge crossings and an exterior bridge view for visual inspection. Inspection screenshots are written to `/tmp/phase6-qa/`.

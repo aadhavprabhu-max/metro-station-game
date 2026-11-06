@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import * as THREE from 'three';
 const context = new Proxy({}, { get: (t, k) => k in t ? t[k] : k === 'measureText' ? text => ({ width: text.length * 12 }) : () => {} });
 globalThis.document = { createElement: () => ({ width: 0, height: 0, getContext: () => context }) };
@@ -34,6 +35,7 @@ const hits = (from, to, only = null) => {
   return new THREE.Raycaster(from, delta.normalize(), 0.002, length - 0.002).intersectObjects(meshes, false);
 };
 const stationResults = [];
+const floorFingerprints = new Set();
 for (const station of stations.filter(s => s.userData.phase6Architecture)) {
   const point = (x, y, z) => station.localToWorld(new THREE.Vector3(x, y, z));
   let roofHits = 0, floorHits = 0;
@@ -42,7 +44,10 @@ for (const station of stations.filter(s => s.userData.phase6Architecture)) {
     const roof = hits(point(x, 3.4, z), point(x, 25, z)); assert(roof.length, `${station.displayName}: open roof at ${x},${z}`); roofHits++;
     assert.equal(hits(point(x, 1.76, z), point(x, 2.9, z)).length, 0, `${station.displayName}: insufficient walking headroom`);
   }
-  stationResults.push({ station: station.displayName, line: station.lineId, floorHits, roofHits, architecture: station.userData.phase6Architecture });
+  const fingerprint = createHash('sha256');
+  for (const mesh of station.platform.children.filter(m => m.isInstancedMesh)) fingerprint.update(Buffer.from(mesh.instanceMatrix.array.buffer));
+  const floorFingerprint = fingerprint.digest('hex'); assert(!floorFingerprints.has(floorFingerprint), `${station.displayName}: repeated physical floor layout`); floorFingerprints.add(floorFingerprint);
+  stationResults.push({ station: station.displayName, line: station.lineId, floorHits, roofHits, floorFingerprint, architecture: station.userData.phase6Architecture });
 }
 const transferResults = [];
 for (const { def, transfer, upper, lower } of transfers) {
