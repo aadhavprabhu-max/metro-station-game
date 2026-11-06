@@ -68,6 +68,17 @@ export class UI {
     this.setText(document.querySelector('#network-line-count'), `${networkInfo.length} LINES`);
     this.setText(document.querySelector('#network-summary'), `${networkInfo.length} metro lines run independently in both directions. Choose a starting line, approach an open door and press E to board. Explore your carriage and read the onboard screens.`);
     this.networkInfo = networkInfo;
+    if (this.services.some(s => s.lineId === 'U9') && starts) {
+      const routes = document.createElement('nav'); routes.className = 'phase6-routes'; routes.setAttribute('aria-label', 'Phase 6 journeys');
+      for (const [text, query] of [
+        ['Ride U9 · Central', '?line=U9'],
+        ['Ride U5 · River loop', '?line=U5&u5=scenic&tour=river&station=u5-altstadtbruecke'],
+        ['U5 · Original direct route', '?line=U5&u5=direct'],
+      ]) { const link = document.createElement('a'); link.href = query; link.textContent = text; routes.append(link); }
+      starts.after(routes);
+      const u5 = this.services.find(s => s.lineId === 'U5');
+      this.setText(document.querySelector('#network-summary'), `Phase 6 · U9 connects Central, Nordklinikum and Waldtor. U5 ${u5.route.variant === 'scenic' ? 'takes the historic river loop before Ostbahnhof' : 'uses its preserved direct route; select River loop for the bridge journey'}. Approach an open door and press E to board.`);
+    }
     this.stationServices = new Map();
     this.stationInformation = new Map();
     this.informationRevisions = new Map();
@@ -189,9 +200,10 @@ export class UI {
     const links = this.stationInformation.get(station)?.interchanges ?? [];
     if (!links.length) return '';
     if (station.stationId === 'station-2') {
+      if (station.lineId === 'U9') return 'U3 ↑ stairs · U4 via U3 passage · U1 / U2 via upper stairs';
       return station.level === 'lower' || (station.floorY ?? 0) < 0
-        ? 'Upper: U1 / U2 ↑ stairs · Lower: U3 / U4'
-        : 'Upper: U1 / U2 · Lower: U3 / U4 ↓ stairs';
+        ? `Upper: U1 / U2 ↑ stairs · Lower: U3 / U4${this.services.some(s => s.lineId === 'U9') ? ' · U9 ↓ via U3' : ''}`
+        : `Upper: U1 / U2 · Lower: U3 / U4 ↓ stairs${this.services.some(s => s.lineId === 'U9') ? ' · U9 via U3' : ''}`;
     }
     return `Change: ${links.map(link => `${link.lineId} · Platform ${link.platformNumber}${link.connection === 'stairs' ? ' via stairs' : ' via passage'}`).join(' / ')}`;
   }
@@ -217,7 +229,7 @@ export class UI {
     const lower = (station?.level ?? current.level ?? (floorY < 0 ? 'lower' : 'upper')) === 'lower';
     const atCentral = !riding || docked ? station?.stationId === 'station-2' : false;
     this.setText(this.locationElement, stationName);
-    this.setText(this.locationPlatform, riding && !docked ? `${lineId} · Connecting tunnel` : `${station?.lineId ?? lineId} · Platform ${station?.platformNumber ?? current.platform ?? '01'}${atCentral ? lower ? ' · Lower level' : ' · Upper level' : ''}`);
+    this.setText(this.locationPlatform, riding && !docked ? `${lineId} · ${service.route.variant === 'scenic' && service.train.position.y > -9 ? 'River loop' : 'In service'}` : `${station?.lineId ?? lineId} · Platform ${station?.platformNumber ?? current.platform ?? '01'}${atCentral ? lower ? ' · Lower level' : ' · Upper level' : ''}`);
     this.setText(this.locationDirection, direction);
     const transferText = !riding || docked ? this.transferText(station) : '';
     this.setText(this.transferElement, transferText);
@@ -229,7 +241,7 @@ export class UI {
     }
     this.setText(this.serviceLabel, `${lineId} LIVE SERVICE`);
     this.serviceCard?.setAttribute('aria-label', `Live ${lineId} train service`);
-    this.setText(this.statusElement, STATE_LABELS[service.state] ?? service.state);
+    this.setText(this.statusElement, service.waitingForSignal ? 'Waiting at signal' : STATE_LABELS[service.state] ?? service.state);
     this.setText(this.detailElement, `${direction} · ${docked ? 'At ' + current.name : 'From ' + current.name}`);
     this.setText(this.nextStopElement, `Next stop · ${nextStop.name}`);
     this.setText(this.platformElement, docked ? `Platform ${current.platform ?? '01'} →` : `${lineId} · In service`);

@@ -30,6 +30,7 @@ try {
     announcer.update(delta);
     for (const displays of world.passengerDisplays) displays.update();
     visibility.update(player);
+    world.phase6World?.update(delta, player, world);
     ui.update(delta);
     shadowTimer += delta;
     const active = player.service ?? world.service;
@@ -42,7 +43,7 @@ try {
     const matrix = player.ridingCar && active.route.hasCurves ? active.train.matrixWorld.elements : platform.matrixWorld.elements;
     const anchor = player.transferSurface ? player.camera.position.z : player.ridingCar ? active.train.position.z : matrix[14];
     const anchorX = player.transferSurface ? player.camera.position.x : player.ridingCar && active.route.hasCurves ? active.train.position.x : matrix[12];
-    const anchorY = player.transferSurface?.floorY ?? matrix[13];
+    const anchorY = player.transferSurface?.floorY ?? (player.ridingCar && active.route.hasGrades ? active.train.position.y : matrix[13]);
     if (Math.abs(anchor - shadowAnchor) > 0.75 || Math.abs(anchorX - shadowAnchorX) > 0.75 || Math.abs(anchorY - shadowAnchorY) > 0.3 || active.lineId !== shadowLine) {
       world.lighting.keyLight.position.set(anchorX - 5 * matrix[0] - 25 * matrix[8], anchorY + 4.8, anchor - 5 * matrix[2] - 25 * matrix[10]);
       world.lighting.keyLight.target.position.set(anchorX + matrix[0] - 12 * matrix[8], anchorY, anchor + matrix[2] - 12 * matrix[10]);

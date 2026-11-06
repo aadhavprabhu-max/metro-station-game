@@ -49,6 +49,20 @@ export class TrainService {
     return this.speed < 0.001 && Math.abs(this.distance - this.currentStop.distance) < 0.01;
   }
 
+  /** A launch point for the river tour; subsequent travel uses normal physics. */
+  startAtStop(stationId) {
+    const index = this.route.stops.findIndex(s => s.id === stationId);
+    if (index < 0) return false;
+    this.authority?.release(this);
+    this.stopIndex = index; this.currentStop = this.route.stops[index];
+    this.distance = this.currentStop.distance; this.direction = index === this.route.stops.length - 1 ? -1 : 1;
+    this.cabDirection = this.direction; this.reversalPending = false;
+    this.nextStop = this.route.stops[index + this.direction]; this.destinationStop = this.terminusFor(this.direction);
+    this.speed = 0; this.state = 'boarding'; this.stateTime = 0; this.dwellRemaining = this.initialDwell;
+    this.train.setDirection(this.direction); this.train.setPlatformSide(this.platformSide); this.train.setDestination(this.destinationStop.name);
+    this.train.setDoorsOpen(this.platformSide); this.placeTrain(); return true;
+  }
+
   get canBoard() {
     return this.state === 'boarding' && this.atStation && this.train.doorsOpen;
   }
@@ -180,7 +194,8 @@ export class TrainService {
     const sample = this.route.sample(this.distance);
     this.train.position.copy(sample.position);
     // A metro reverses cabs, rather than rotating its three connected cars.
-    this.train.rotation.y = sample.yaw ?? 0;
+    if (this.route.hasGrades) this.train.rotation.set(sample.pitch ?? 0, sample.yaw ?? 0, 0, 'YXZ');
+    else this.train.rotation.y = sample.yaw ?? 0;
     this.train.placeCarsOnRoute?.(this.route, this.distance);
   }
 
@@ -206,6 +221,19 @@ export class TrainService {
   }
 
   move(delta) {
+    const signalDistance = this.authority?.distanceToStop(this) ?? Infinity;
+    if (signalDistance < Infinity) {
+      const allowed = Math.sqrt(2 * this.braking * Math.max(0, signalDistance - 0.03));
+      if (this.speed >= allowed || signalDistance < 0.01) {
+        const previous = this.speed;
+        this.speed = Math.max(0, this.speed - this.braking * delta);
+        const travel = Math.min(Math.max(0, signalDistance), (previous + this.speed) * delta / 2);
+        this.distance += this.direction * travel;
+        this.waitingForSignal = this.speed < 0.01;
+        this.placeTrain(); return;
+      }
+    }
+    this.waitingForSignal = false;
     // Braking is based on stopping distance, with a small integration margin.
     const remaining = Math.abs(this.nextStop.distance - this.distance);
     const stoppingDistance = this.speed * this.speed / (2 * this.braking);

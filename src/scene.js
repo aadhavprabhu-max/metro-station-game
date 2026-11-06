@@ -6,12 +6,14 @@ import { Lighting } from './lighting.js';
 import { MetroRoute } from './route.js';
 import { TrainService } from './service.js';
 import { createMetroNetwork, addU2ToNetwork, addLowerLinesToNetwork, createCompleteMetroNetwork } from './network.js';
-import { NetworkLineWorld, NEW_TRANSFERS } from './network-world.js';
+import { NetworkLineWorld, NEW_TRANSFERS, PHASE6_TRANSFERS } from './network-world.js';
 import { CentralInterchange } from './interchange.js';
 import { VerticalInterchange } from './vertical-interchange.js';
 import { NetworkTransfer } from './network-transfers.js';
 import { PassengerInformation } from './passenger-info.js';
 import { attachPassengerDisplays } from './passenger-displays.js';
+import { createPhase6Network, createScenicU5Route } from './phase6-network.js';
+import { Phase6World } from './phase6-world.js';
 
 export function createScene(container) {
   if (!container) throw new Error('The 3D scene container is missing.');
@@ -64,12 +66,20 @@ export function createScene(container) {
   // The original graph is a regression fixture using this same engine. Normal
   // gameplay includes U5/U6 and the completed seven-stop U1/U2/U3 routes.
   const originalNetwork = new URLSearchParams(location.search).get('network') === 'original';
-  const network = originalNetwork ? createMetroNetwork() : createCompleteMetroNetwork();
+  const parameters = new URLSearchParams(location.search);
+  const phase5 = parameters.get('network') === 'phase5';
+  const network = originalNetwork ? createMetroNetwork() : phase5 ? createCompleteMetroNetwork() : createPhase6Network();
   if (originalNetwork) { addU2ToNetwork(network); addLowerLinesToNetwork(network); }
   const routes = Object.fromEntries([...network.lines.keys()].map(lineId => [lineId, new MetroRoute(network, lineId)]));
+  const directU5 = routes.U5;
+  if (network.phase6 && parameters.get('u5') === 'scenic') routes.U5 = createScenicU5Route(network);
   for (const route of Object.values(routes)) if (route.lineId !== 'U1') route.directionNames = { 1: 'Outbound', '-1': 'Inbound' };
-  const lineWorlds = Object.fromEntries(Object.values(routes).map(route => [route.lineId, new NetworkLineWorld(materials, route)]));
+  const lineWorlds = Object.fromEntries(Object.values(routes).map(route => [route.lineId, new NetworkLineWorld(materials, route.lineId === 'U5' ? directU5 : route, {
+    railwayOptions: network.phase6 && route.lineId === 'U5' ? { openIntervals: [[network.phase6.branch.splitDistance - 35, network.phase6.branch.mergeDistance + 35]] } : {},
+  })]));
   const stations = Object.values(lineWorlds).flatMap(root => root.stations);
+  const phase6World = network.phase6 ? new Phase6World(materials, network) : null;
+  if (phase6World) { lineWorlds.U5.add(phase6World); stations.push(...phase6World.stations); }
   const routeWorld = lineWorlds.U1, u2World = lineWorlds.U2;
   const station = routeWorld.stations[0], route = routes.U1;
   const services = Object.values(routes).map(nextRoute => {
@@ -79,6 +89,10 @@ export function createScene(container) {
     return new TrainService(nextTrain, nextRoute, { initialDwell: nextRoute.lineId === 'U1' ? 30 : 40, deferReversal: nextRoute.lineId !== 'U1' });
   });
   const service = services[0], train = service.train, trains = services.map(item => item.train);
+  if (phase6World) {
+    const u5 = services.find(s => s.lineId === 'U5'); u5.authority = phase6World.authority;
+    if (parameters.get('tour') === 'river' && u5.route.variant === 'scenic') u5.startAtStop('u5-altstadtbruecke');
+  }
   const lowerWorld = new THREE.Group(); lowerWorld.name = 'LowerRailwayWorld'; lowerWorld.floorY = -12; lowerWorld.level = 'lower';
   Object.assign(lowerWorld, { u3World: lineWorlds.U3, u4World: lineWorlds.U4,
     lineWorlds: { U3: lineWorlds.U3, U4: lineWorlds.U4 },
@@ -99,7 +113,7 @@ export function createScene(container) {
   lineWorlds.U4.add(lowerPassage); lineWorlds.U4.interchange = lowerPassage;
   lowerWorld.interchange = lowerPassage; lowerWorld.interchanges = [lowerPassage];
   const verticalInterchange = new VerticalInterchange(materials, routeWorld.central, lineWorlds.U3.central);
-  const networkTransfers = NEW_TRANSFERS.filter(definition => routes[definition.lowerLine]).map(definition => {
+  const networkTransfers = [...NEW_TRANSFERS, ...PHASE6_TRANSFERS].filter(definition => routes[definition.lowerLine]).map(definition => {
     const upper = stations.find(item => item.stationId === definition.id && item.lineId === definition.upperLine);
     const lower = stations.find(item => item.stationId === definition.id && item.lineId === definition.lowerLine);
     const transfer = new NetworkTransfer(materials, upper, lower, definition);
@@ -142,12 +156,13 @@ export function createScene(container) {
     platformId: transfer.name, fixtures: false, pointDefinitions: transfer.lightDefinitions,
   });
   scene.add(...trains, lighting, routeWorld, u2World, lowerWorld, verticalInterchange, ...networkTransfers,
-    ...Object.entries(lineWorlds).filter(([id]) => ['U5', 'U6'].includes(id)).map(([, root]) => root));
+    ...Object.entries(lineWorlds).filter(([id]) => !['U1', 'U2', 'U3', 'U4'].includes(id)).map(([, root]) => root));
   const world = {
     scene, renderer, camera, station, stations, train, route, network, routeWorld, service,
     routes, services, trains, passengerInformation, passengerDisplays, u2World, lowerWorld, verticalInterchange,
     lineWorlds, interchanges, networkTransfers, pedestrianTransfers,
     lighting, resize, environment, viewport, quality: { softwareGraphics, shadowSize: softwareGraphics ? 1024 : 2048 }, onResize: null,
+    phase6World, undergroundFog: scene.fog, undergroundBackground: scene.background,
   };
   const handleResize = () => { if (resize()) world.onResize?.(); };
   const resizeObserver = new ResizeObserver(handleResize);

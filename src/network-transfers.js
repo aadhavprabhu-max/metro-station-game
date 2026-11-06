@@ -47,7 +47,7 @@ function contains(bounds, x, z, margin = 0) {
 
 /** Protected, physical stairs/corridors between two platforms of one shared node. */
 export class NetworkTransfer extends THREE.Group {
-  constructor(materials, upperStation, lowerStation, { upperEnd = 44, lowerEnd = 44 } = {}) {
+  constructor(materials, upperStation, lowerStation, { upperEnd = 44, lowerEnd = 44, mezzanineOffset = 6 } = {}) {
     super();
     if (upperStation.stationId !== lowerStation.stationId) throw new Error('Transfer platforms must belong to the same network station.');
     this.name = `${upperStation.displayName}PhysicalTransfer`;
@@ -64,7 +64,7 @@ export class NetworkTransfer extends THREE.Group {
     if (this.upperY - this.lowerY < 12 - 0.001) throw new Error('Network transfer requires at least twelve metres between railway levels.');
     const aligned = Math.hypot(upper.position.x - lower.position.x, upper.position.z - lower.position.z) < 0.001
       && Math.abs(Math.sin(upper.yaw - lower.yaw)) < 0.001 && Math.cos(upper.yaw - lower.yaw) > 0;
-    this.mezzanineY = aligned ? null : this.lowerY + 6;
+    this.mezzanineY = aligned ? null : this.lowerY + mezzanineOffset;
     this.towers = [];
     const mezzanineRectangles = [], mezzanineOpenings = [];
     if (aligned) {

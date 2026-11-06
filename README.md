@@ -1,3 +1,30 @@
+# Aurealis-Bahn — Phase 6
+
+Phase 6 adds yellow U9 and a fully traversable U5 historic river loop while retaining the original six line definitions, all 37 existing station nodes and all 44 existing platform poses. The game now has 45 station nodes, 55 physical platforms and seven independently operating trains. Architecture, materials and textures are generated locally; no new dependencies or remote runtime assets are required.
+
+- **U9:** Central → Kaiserforum → Goldmarkt → Sonnenviertel → Nordklinikum → Hohenbrück → Kronenplatz → Waldtor. The two U5 anchors are the existing Nordklinikum and Waldtor stations, as approved. Their U9 platforms are at −48 m; protected stairways connect to their unchanged U5 platforms. Central connects U9 to U3 and the established interchange passages/stairs.
+- **U5 direct:** The original ten-stop line and its exact track curves remain intact and are the default. Open `?line=U5&u5=direct`.
+- **U5 scenic:** Open `?line=U5&u5=scenic`, or use **Ride U5 · River loop**. The branch leaves the final Hafenbogen–Ostbahnhof link at `(1.57, −24, −730)`, crosses a 400 m historic stone arch bridge, serves an eastern-bank through-station, makes a broad loop, crosses back on the other bridge track, and rejoins at `(1.57, −24, −580)`. Ostbahnhof remains the terminus. The three new stops are Altstadtbrücke, Uferpromenade and Steinbogen.
+- **Quick river tour:** `?line=U5&u5=scenic&tour=river&station=u5-altstadtbruecke` launches the same U5 service stopped at Altstadtbrücke. Approach an open doorway and press **E**. The normal acceleration, door interlocks, dwell and boarding mechanics apply.
+
+The bridge has ten actual open masonry arches, individually modelled voussoirs, cutwaters, low stone parapets, sculptures and historic gateway turrets. Its two tracks and graded approaches use continuous measured paths. Reflective animated water is visible through closed train windows on both crossings. Full car and bogie pitch follows the grades. A shared reservation protects both turnouts and the underground approach diamond; conflicting movements stop before the home signal.
+
+Each of the eight new named stations has a separate roof design and physical floor pattern. The three added interchange platforms also have individual architecture. See [PHASE6_REPORT.md](PHASE6_REPORT.md) for the route survey and verification evidence.
+
+```sh
+npm ci
+npm run dev -- --port 5173 --strictPort
+# Open http://localhost:5173/app.html
+node tests/phase6-mechanics.mjs
+node tests/phase6-geometry.mjs
+npx playwright test tests/phase6.spec.js --timeout=180000
+npm run build
+```
+
+The root `index.html` and `dist/index.html` are generated standalone builds. GitHub Pages still uses the existing `.github/workflows/pages.yml`. `?network=original` and `?network=phase5` remain available for regression inspection. The sections below document the preserved Phase 5 network and earlier milestones.
+
+---
+
 # Aurealis-Bahn — Six-Line Metro Network
 
 A playable first-person Three.js metro network with 37 shared station nodes, 44 physical line platforms, and six independently operating three-car trains. Phase 5 completes U1, U2 and U3 to seven stops each. All existing station names and platform positions, U4–U6 routes, acceleration, braking and dwell settings are retained. The fleet uses the original flat white/light-grey face, broad windshield, teal-green livery and two rectangular headlights, recovered from the original Nordplatz design. Existing interiors and their repaired floors are retained.
