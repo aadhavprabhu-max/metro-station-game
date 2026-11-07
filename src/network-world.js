@@ -10,6 +10,7 @@ import { SchattenuferStation, OstbahnhofStation, StadtbrueckeStation } from './m
 import { KaiserHumboldtStation, WestbahnhofStation, ArabellaparkStation } from './historic-stations.js';
 import { box, instances } from './geometry.js';
 import { batchStaticGeometry } from './optimize.js';
+import { U10_TRANSFERS } from './u10-network.js';
 
 const PRESERVED_TYPES = {
   'station-1': Station, 'station-3': Station,
@@ -74,6 +75,10 @@ function stationOptions(stop, route, index) {
   for (const transfer of NEW_TRANSFERS) if (stop.id === transfer.id && route.network.lines.has(transfer.lowerLine)) {
     if (route.lineId === transfer.upperLine) openEnd(transfer.upperEnd);
     if (route.lineId === transfer.lowerLine) openEnd(transfer.lowerEnd);
+  }
+  // The two approved Phase 7 transfer apertures; all pre-existing poses stay fixed.
+  if (route.network.lines.has('U10')) for (const transfer of U10_TRANSFERS) {
+    if (stop.id === transfer.id && route.lineId === transfer.upperLine) openEnd(transfer.upperEnd);
   }
   if (stop.id === 'station-1') { options.signageColor = '#396057'; options.platformSignColor = '#496a60'; }
   if (stop.id === 'station-2' && route.lineId === 'U1') options.signageColor = '#365c78';

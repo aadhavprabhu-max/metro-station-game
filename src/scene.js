@@ -12,6 +12,11 @@ import { VerticalInterchange } from './vertical-interchange.js';
 import { NetworkTransfer } from './network-transfers.js';
 import { PassengerInformation } from './passenger-info.js';
 import { attachPassengerDisplays } from './passenger-displays.js';
+import { addU10ToNetwork, U10_TRANSFERS } from './u10-network.js';
+import { ExpressLineWorld } from './u10-world.js';
+import { ExpressTrain } from './u10-train.js';
+import { MetropolitanCity } from './metropolitan-city.js';
+import { U10_SERVICE_OPTIONS, U10Timetable } from './u10-timetable.js';
 
 export function createScene(container) {
   if (!container) throw new Error('The 3D scene container is missing.');
@@ -66,17 +71,19 @@ export function createScene(container) {
   const originalNetwork = new URLSearchParams(location.search).get('network') === 'original';
   const network = originalNetwork ? createMetroNetwork() : createCompleteMetroNetwork();
   if (originalNetwork) { addU2ToNetwork(network); addLowerLinesToNetwork(network); }
+  if (!originalNetwork && new URLSearchParams(location.search).get('network') !== 'phase5') addU10ToNetwork(network);
   const routes = Object.fromEntries([...network.lines.keys()].map(lineId => [lineId, new MetroRoute(network, lineId)]));
   for (const route of Object.values(routes)) if (route.lineId !== 'U1') route.directionNames = { 1: 'Outbound', '-1': 'Inbound' };
-  const lineWorlds = Object.fromEntries(Object.values(routes).map(route => [route.lineId, new NetworkLineWorld(materials, route)]));
+  const lineWorlds = Object.fromEntries(Object.values(routes).map(route => [route.lineId,
+    route.lineId === 'U10' ? new ExpressLineWorld(materials, route) : new NetworkLineWorld(materials, route)]));
   const stations = Object.values(lineWorlds).flatMap(root => root.stations);
   const routeWorld = lineWorlds.U1, u2World = lineWorlds.U2;
   const station = routeWorld.stations[0], route = routes.U1;
   const services = Object.values(routes).map(nextRoute => {
     const side = nextRoute.stops[0].platformSide ?? (['U2', 'U4'].includes(nextRoute.lineId) ? 1 : -1);
-    const nextTrain = new Train(materials, { lineId: nextRoute.lineId, platformSide: side,
+    const nextTrain = nextRoute.lineId === 'U10' ? new ExpressTrain(materials) : new Train(materials, { lineId: nextRoute.lineId, platformSide: side,
       ...(nextRoute.lineId === 'U1' ? {} : { accentColor: nextRoute.line.color }) });
-    return new TrainService(nextTrain, nextRoute, { initialDwell: nextRoute.lineId === 'U1' ? 30 : 40, deferReversal: nextRoute.lineId !== 'U1' });
+    return new TrainService(nextTrain, nextRoute, nextRoute.lineId === 'U10' ? U10_SERVICE_OPTIONS : { initialDwell: nextRoute.lineId === 'U1' ? 30 : 40, deferReversal: nextRoute.lineId !== 'U1' });
   });
   const service = services[0], train = service.train, trains = services.map(item => item.train);
   const lowerWorld = new THREE.Group(); lowerWorld.name = 'LowerRailwayWorld'; lowerWorld.floorY = -12; lowerWorld.level = 'lower';
@@ -99,7 +106,7 @@ export function createScene(container) {
   lineWorlds.U4.add(lowerPassage); lineWorlds.U4.interchange = lowerPassage;
   lowerWorld.interchange = lowerPassage; lowerWorld.interchanges = [lowerPassage];
   const verticalInterchange = new VerticalInterchange(materials, routeWorld.central, lineWorlds.U3.central);
-  const networkTransfers = NEW_TRANSFERS.filter(definition => routes[definition.lowerLine]).map(definition => {
+  const networkTransfers = [...NEW_TRANSFERS, ...U10_TRANSFERS].filter(definition => routes[definition.lowerLine]).map(definition => {
     const upper = stations.find(item => item.stationId === definition.id && item.lineId === definition.upperLine);
     const lower = stations.find(item => item.stationId === definition.id && item.lineId === definition.lowerLine);
     const transfer = new NetworkTransfer(materials, upper, lower, definition);
@@ -107,10 +114,11 @@ export function createScene(container) {
     return transfer;
   });
   const interchanges = [upperPassage, lowerPassage];
-  const pedestrianTransfers = [verticalInterchange, ...networkTransfers];
+  const entrances = lineWorlds.U10?.entrances ?? [];
+  const pedestrianTransfers = [verticalInterchange, ...networkTransfers, ...entrances];
   const passengerInformation = services.map(nextService => new PassengerInformation(nextService, network));
   const transferConnections = [...interchanges.map(passage => ({ type: 'passage', platformIds: passage.platformIds })),
-    ...pedestrianTransfers.map(stairs => ({ type: 'stairs', platformIds: stairs.platformIds }))];
+    ...pedestrianTransfers.filter(stairs => !stairs.isStreetEntrance).map(stairs => ({ type: 'stairs', platformIds: stairs.platformIds }))];
   for (const info of passengerInformation) info.configureTransfers(transferConnections);
   const passengerDisplays = trains.map((nextTrain, index) => attachPassengerDisplays(nextTrain, passengerInformation[index], nextTrain.materials));
   const lighting = new Lighting(scene, materials);
@@ -138,15 +146,20 @@ export function createScene(container) {
       { position: [-4.2, -8.8, -287], color: '#e7edf1', intensity: 52, distance: 9 },
     ],
   });
-  for (const transfer of networkTransfers) lighting.addStationFixtures(0, {
+  for (const transfer of [...networkTransfers, ...entrances]) lighting.addStationFixtures(0, {
     platformId: transfer.name, fixtures: false, pointDefinitions: transfer.lightDefinitions,
   });
   scene.add(...trains, lighting, routeWorld, u2World, lowerWorld, verticalInterchange, ...networkTransfers,
-    ...Object.entries(lineWorlds).filter(([id]) => ['U5', 'U6'].includes(id)).map(([, root]) => root));
+    ...Object.entries(lineWorlds).filter(([id]) => ['U5', 'U6', 'U10'].includes(id)).map(([, root]) => root));
+  const city = routes.U10 ? new MetropolitanCity(routes.U10) : null;
+  if (city) { city.visible = false; scene.add(city); }
+  const expressService = services.find(s => s.lineId === 'U10');
+  const u10Timetable = expressService ? new U10Timetable(expressService) : null;
   const world = {
     scene, renderer, camera, station, stations, train, route, network, routeWorld, service,
     routes, services, trains, passengerInformation, passengerDisplays, u2World, lowerWorld, verticalInterchange,
-    lineWorlds, interchanges, networkTransfers, pedestrianTransfers,
+    lineWorlds, interchanges, networkTransfers, pedestrianTransfers, city, u10Timetable,
+    lifts: pedestrianTransfers.flatMap(transfer => transfer.lifts ?? []),
     lighting, resize, environment, viewport, quality: { softwareGraphics, shadowSize: softwareGraphics ? 1024 : 2048 }, onResize: null,
   };
   const handleResize = () => { if (resize()) world.onResize?.(); };

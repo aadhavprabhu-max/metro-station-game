@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { box, instances, label } from './geometry.js';
 import { batchStaticGeometry } from './optimize.js';
+import { TransferLift } from './transfer-lift.js';
 
 const WIDTH = 6;
 const NEAR = 16;
@@ -47,10 +48,11 @@ function contains(bounds, x, z, margin = 0) {
 
 /** Protected, physical stairs/corridors between two platforms of one shared node. */
 export class NetworkTransfer extends THREE.Group {
-  constructor(materials, upperStation, lowerStation, { upperEnd = 44, lowerEnd = 44 } = {}) {
+  constructor(materials, upperStation, lowerStation, { upperEnd = 44, lowerEnd = 44, accessible = false } = {}) {
     super();
     if (upperStation.stationId !== lowerStation.stationId) throw new Error('Transfer platforms must belong to the same network station.');
     this.name = `${upperStation.displayName}PhysicalTransfer`;
+    this.accessible = accessible; this.lifts = [];
     this.stationId = upperStation.stationId;
     this.platforms = [upperStation, lowerStation];
     this.platformIds = this.platforms.map(station => station.platformId);
@@ -82,6 +84,7 @@ export class NetworkTransfer extends THREE.Group {
         const approach = { minX: -WIDTH / 2, maxX: WIDTH / 2, minZ: 10.5, maxZ: LANDING_START };
         mezzanineRectangles.push(boundsFor(tower.group, approach));
         mezzanineOpenings.push(boundsFor(tower.group, { minX: -3, maxX: 3, minZ: LANDING_START - 0.02, maxZ: LANDING_START + 0.02 }));
+        if (accessible) mezzanineOpenings.push(boundsFor(tower.group, { minX: -3.02, maxX: -2.98, minZ: 11, maxZ: 14 }));
       }
       const start = first.group.localToWorld(new THREE.Vector3(0, 0, BRIDGE_AT));
       const end = second.group.localToWorld(new THREE.Vector3(0, 0, BRIDGE_AT));
@@ -95,6 +98,7 @@ export class NetworkTransfer extends THREE.Group {
       this.lightDefinitions.push({ position: [bend.x, this.mezzanineY + 2.7, bend.z], color: '#e4ece9', intensity: 55, distance: 15 });
     }
     this.buildWayfinding(materials, upper, lower);
+    if (accessible) this.lifts = this.towers.map(tower => new TransferLift(this, tower, materials));
     this.updateWorldMatrix(true, true);
     const bounds = new THREE.Box3().setFromObject(this);
     this.worldBounds = { minX: bounds.min.x, maxX: bounds.max.x, minZ: bounds.min.z, maxZ: bounds.max.z,
@@ -234,7 +238,11 @@ export class NetworkTransfer extends THREE.Group {
     const bounds = { minX: -3, maxX: 3, minZ: start, maxZ: end };
     this.addSurface(group, id, bounds, () => y, { floorY: y, kind: 'entry', edges: { minZ: false, maxZ: false } });
     this.floor(group, m, bounds, y);
-    for (const x of [-3.12, 3.12]) box(group, m.wallTile, [0.2, CORRIDOR_HEIGHT, end - start], [x, y + CORRIDOR_HEIGHT / 2, (start + end) / 2]);
+    for (const x of [-3.12, 3.12]) {
+      const sections = this.accessible && x < 0 ? [[start, 11], [14, end]] : [[start, end]];
+      for (const [a, b] of sections) if (b > a) box(group, m.wallTile, [0.2, CORRIDOR_HEIGHT, b - a], [x, y + CORRIDOR_HEIGHT / 2, (a + b) / 2]);
+      if (this.accessible && x < 0) box(group, m.wallTile, [0.2, CORRIDOR_HEIGHT - 2.6, 3], [x, y + (CORRIDOR_HEIGHT + 2.6) / 2, 12.5]);
+    }
     box(group, m.concrete, [6.4, 0.18, end - start], [0, y + CORRIDOR_HEIGHT + 0.09, (start + end) / 2]);
     box(group, m.dark, [0.18, 0.08, end - start - 0.3], [0, y + 3.12, (start + end) / 2], { shadow: false });
     box(group, m.tubeLight, [0.1, 0.018, end - start - 0.4], [0, y + 3.07, (start + end) / 2], { shadow: false });

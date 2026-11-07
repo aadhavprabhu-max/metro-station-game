@@ -62,6 +62,11 @@ export class UI {
         const badge = document.createElement('span'); badge.className = 'line-badge';
         badge.textContent = line.id; badge.style.backgroundColor = line.color;
         const route = document.createElement('span'); route.textContent = line.stations.join(' ↔ ');
+        if (line.id === 'U10') route.textContent = this.services[index].route.stops.map(stop => {
+          const connections = stop.servedLines.filter(id => id !== 'U10');
+          const platform = stop.node.platforms.U10;
+          return `${stop.name}${connections.length ? ' ⇄ ' + connections.join('/') : ''} (${platform.position.y < 0 ? 'underground' : platform.outdoor ? 'open elevated' : 'enclosed elevated'})`;
+        }).join(' → ');
         row.append(badge, route); map.append(row);
       }
     }
@@ -189,6 +194,11 @@ export class UI {
     const links = this.stationInformation.get(station)?.interchanges ?? [];
     if (!links.length) return '';
     if (station.stationId === 'station-2') {
+      if (this.services.some(s => s.lineId === 'U10')) return station.lineId === 'U10'
+        ? 'U3 / U4 ↑ transfer stairs · U1 / U2 via upper stairs'
+        : station.lineId === 'U3' ? 'U10 ↓ north-end stairs · U4 via passage · U1 / U2 ↑ south-end stairs'
+          : station.lineId === 'U4' ? 'U3 via passage · U10 ↓ via U3 · U1 / U2 ↑ stairs'
+            : 'U1 / U2 upper · U3 / U4 ↓ stairs · U10 via U3';
       return station.level === 'lower' || (station.floorY ?? 0) < 0
         ? 'Upper: U1 / U2 ↑ stairs · Lower: U3 / U4'
         : 'Upper: U1 / U2 · Lower: U3 / U4 ↓ stairs';
@@ -217,7 +227,7 @@ export class UI {
     const lower = (station?.level ?? current.level ?? (floorY < 0 ? 'lower' : 'upper')) === 'lower';
     const atCentral = !riding || docked ? station?.stationId === 'station-2' : false;
     this.setText(this.locationElement, stationName);
-    this.setText(this.locationPlatform, riding && !docked ? `${lineId} · Connecting tunnel` : `${station?.lineId ?? lineId} · Platform ${station?.platformNumber ?? current.platform ?? '01'}${atCentral ? lower ? ' · Lower level' : ' · Upper level' : ''}`);
+    this.setText(this.locationPlatform, riding && !docked ? `${lineId} · ${lineId === 'U10' ? this.player.camera.position.y > 5 ? 'Elevated railway' : 'Underground railway' : 'Connecting tunnel'}` : `${station?.lineId ?? lineId} · Platform ${station?.platformNumber ?? current.platform ?? '01'}${atCentral ? lineId === 'U10' ? ' · Airport Express level' : lower ? ' · Lower level' : ' · Upper level' : ''}`);
     this.setText(this.locationDirection, direction);
     const transferText = !riding || docked ? this.transferText(station) : '';
     this.setText(this.transferElement, transferText);
@@ -234,7 +244,7 @@ export class UI {
     this.setText(this.nextStopElement, `Next stop · ${nextStop.name}`);
     this.setText(this.platformElement, docked ? `Platform ${current.platform ?? '01'} →` : `${lineId} · In service`);
     const countdown = service.state === 'boarding' ? service.dwellRemaining
-      : ['travelling', 'arriving', 'departing'].includes(service.state) ? state.arrivalSeconds : null;
+      : ['travelling', 'arriving', 'departing'].includes(service.state) ? service.measuredTimetable?.arrivalCountdown() ?? state.arrivalSeconds : null;
     this.setText(this.minutesElement, countdown === null || !Number.isFinite(countdown) ? '—' : String(Math.max(0, Math.ceil(countdown))));
     this.setText(this.countdownUnit, countdown === null || !Number.isFinite(countdown) ? '' : 'sec');
     this.setText(this.countdownLabel, service.state === 'boarding' ? 'DOORS CLOSE' : ['travelling', 'arriving', 'departing'].includes(service.state) ? 'NEXT STOP' : '');
@@ -258,6 +268,7 @@ export class UI {
       if (!board) continue;
       const servicesAtStation = this.stationServices.get(station) ?? [];
       const rows = servicesAtStation.flatMap(item => item.departuresFor(station.stationId).map(departure => {
+        const measuredWait = item.measuredTimetable?.waitingFor(station.stationId).find(w => w.direction === departure.direction);
         let due;
         if (departure.atPlatform) {
           due = departure.state === 'boarding' ? `${Math.max(0, Math.ceil(item.dwellRemaining))} s`
@@ -265,7 +276,7 @@ export class UI {
         } else if (departure.state === 'arriving') {
           due = 'Arriving';
         } else {
-          const seconds = Math.max(1, Math.ceil(departure.dueSeconds));
+          const seconds = Math.max(1, Math.ceil(measuredWait?.seconds ?? departure.dueSeconds));
           due = seconds < 60 ? `${seconds} s` : `${Math.ceil(seconds / 60)} min`;
         }
         return {

@@ -22,7 +22,8 @@ test.describe('complete six-line network — scripted production-model journeys'
     page.on('console', message => { if (message.type() === 'error') runtimeErrors.push(message.text()); });
     page.on('requestfailed', request => failedRequests.push(`${request.method()} ${request.url()}: ${request.failure()?.errorText}`));
     page.on('response', response => { if (response.status() >= 400) failedRequests.push(`${response.status()} ${response.url()}`); });
-    const response = await page.goto(process.env.METRO_PRODUCTION_URL || '/');
+    // The unchanged six-line regression fixture remains available alongside Phase 7.
+    const response = await page.goto(process.env.METRO_PRODUCTION_URL ? `${process.env.METRO_PRODUCTION_URL}?network=phase5` : '/?network=phase5');
     if (process.env.METRO_PRODUCTION_URL) {
       const hash = bytes => createHash('sha256').update(bytes).digest('hex');
       const built = await readFile(new URL('../dist/index.html', import.meta.url));

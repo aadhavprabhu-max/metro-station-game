@@ -30,5 +30,8 @@
 
 /* Line controls inherit the actual network colours and stay within the HUD. */
 .line-starts{grid-template-columns:repeat(3,minmax(0,1fr))}.line-starts button[aria-pressed=true]{background:var(--line-color,#316c65);border-color:var(--line-color,#316c65);color:#f4f7ee}.network-map p{overflow-wrap:anywhere}.location-transfer{overflow-wrap:anywhere}
+.u10-timings{border:1px solid #7e9db566;border-radius:5px;padding:10px;margin:16px 0;color:#e7f0f5}.u10-timings summary{cursor:pointer;font-size:12px;font-weight:600}.u10-timings .timing-segment{font-size:10px;margin:6px 0}.u10-timings .timing-direction{font-weight:700;color:#fff}.u10-timings .timing-dwell{font-size:9px;margin:5px 0;color:#adbfca}.u10-timings select{width:100%;padding:8px;background:#123b75;color:white;border:1px solid #8aa8be;border-radius:4px}
+.lift-action{position:absolute;bottom:112px;left:32px;padding:12px 20px;border:1px solid #b8cadb;border-radius:6px;background:#123b75;color:white;font-size:13px}.lift-action:disabled{background:#31485e;color:#c6d6df;cursor:default}
+.journey-times-button{pointer-events:auto;display:block;width:calc(100% - 24px);margin:2px 12px 10px;padding:8px;border:1px solid #8ba5b966;border-radius:4px;background:#123b75;color:white;font-size:10px}
 @media(max-height:600px){.line-starts{grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;padding:5px 8px}.line-starts button{font-size:8px;min-height:27px;padding:4px 2px}}
 @media(max-width:420px){.line-starts{grid-template-columns:repeat(3,minmax(0,1fr))}.line-starts button{min-height:28px}.location-transfer{max-width:230px}}

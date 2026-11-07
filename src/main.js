@@ -4,6 +4,11 @@ import { PlayerController } from './player.js';
 import { UI, showError } from './ui.js';
 import { WorldVisibility } from './visibility.js';
 import { AnnouncementController } from './announcements.js';
+import { mountU10Timetable } from './u10-timetable.js';
+import { Color } from 'three';
+
+const interiorBackground = new Color('#64736b'), exteriorBackground = new Color('#a9ccdf');
+const interiorFog = new Color('#6c7a6f'), exteriorFog = new Color('#b7cfdb');
 
 try {
   const world = createScene(document.querySelector('#scene'));
@@ -16,6 +21,10 @@ try {
   const announcer = new AnnouncementController(world.passengerInformation, player);
   ui.configureAnnouncements(announcer);
   world.announcer = announcer;
+  const updateTimetable = world.u10Timetable ? mountU10Timetable(world.u10Timetable, player) : null;
+  const liftButton = document.createElement('button'); liftButton.className = 'lift-action'; liftButton.hidden = true;
+  document.querySelector('#app').append(liftButton); let activeLift = null;
+  liftButton.addEventListener('click', () => activeLift?.activate(player));
   const visibility = new WorldVisibility(world);
   world.visibility = visibility;
   let shadowTimer = 0;
@@ -25,12 +34,37 @@ try {
   let shadowLine = 'U1';
   world.update = delta => {
     for (const service of world.services) service.update(delta);
+    for (const lift of world.lifts) lift.update(delta);
+    world.u10Timetable?.update(delta);
     for (const info of world.passengerInformation) info.update(delta);
     player.update(delta);
     announcer.update(delta);
     for (const displays of world.passengerDisplays) displays.update();
     visibility.update(player);
     ui.update(delta);
+    updateTimetable?.();
+    activeLift = world.lifts.find(lift => lift.hint(player)) ?? null;
+    const liftHint = activeLift?.hint(player);
+    liftButton.hidden = !liftHint; liftButton.disabled = !liftHint?.enabled;
+    if (liftHint && liftButton.textContent !== liftHint.text) liftButton.textContent = liftHint.text;
+    const exposure = player.service?.lineId === 'U10' ? Math.max(0, Math.min(1, (player.camera.position.y - 1) / 15)) : 0;
+    const outdoorBlend = exposure * exposure * (3 - 2 * exposure);
+    const expressOutdoors = outdoorBlend > 0;
+    if (world.city) world.city.visible = expressOutdoors;
+    if (world.outdoorBlend !== outdoorBlend) {
+      world.outdoorBlend = outdoorBlend;
+      world.scene.background.copy(interiorBackground).lerp(exteriorBackground, outdoorBlend);
+      world.scene.fog.color.copy(interiorFog).lerp(exteriorFog, outdoorBlend);
+      world.scene.fog.near = 62 + 1038 * outdoorBlend; world.scene.fog.far = 125 + 6875 * outdoorBlend;
+      world.camera.far = 180 + 8320 * outdoorBlend; world.camera.updateProjectionMatrix();
+    }
+    if (world.expressOutdoors !== expressOutdoors) {
+      world.expressOutdoors = expressOutdoors;
+      Object.assign(world.lighting.keyLight.shadow.camera, expressOutdoors
+        ? { left: -65, right: 65, top: 65, bottom: -65, far: 400 }
+        : { left: -37, right: 37, top: 30, bottom: -30, far: 75 });
+      world.lighting.keyLight.shadow.camera.updateProjectionMatrix(); world.renderer.shadowMap.needsUpdate = true;
+    }
     shadowTimer += delta;
     const active = player.service ?? world.service;
     const closestStop = player.ridingCar ? active.route.stops.reduce((nearest, stop) =>
@@ -44,7 +78,7 @@ try {
     const anchorX = player.transferSurface ? player.camera.position.x : player.ridingCar && active.route.hasCurves ? active.train.position.x : matrix[12];
     const anchorY = player.transferSurface?.floorY ?? matrix[13];
     if (Math.abs(anchor - shadowAnchor) > 0.75 || Math.abs(anchorX - shadowAnchorX) > 0.75 || Math.abs(anchorY - shadowAnchorY) > 0.3 || active.lineId !== shadowLine) {
-      world.lighting.keyLight.position.set(anchorX - 5 * matrix[0] - 25 * matrix[8], anchorY + 4.8, anchor - 5 * matrix[2] - 25 * matrix[10]);
+      world.lighting.keyLight.position.set(anchorX - 5 * matrix[0] - (expressOutdoors ? 85 : 25) * matrix[8], anchorY + (expressOutdoors ? 160 : 4.8), anchor - 5 * matrix[2] - (expressOutdoors ? 85 : 25) * matrix[10]);
       world.lighting.keyLight.target.position.set(anchorX + matrix[0] - 12 * matrix[8], anchorY, anchor + matrix[2] - 12 * matrix[10]);
       shadowAnchor = anchor;
       shadowAnchorX = anchorX;

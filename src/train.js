@@ -324,7 +324,7 @@ export class TrainCar extends THREE.Group {
 }
 
 export class Train extends THREE.Group {
-  constructor(materials, { carCount = 3, position = [1.57, 0, 0], lineId = 'U1', platformSide = -1, accentColor = null } = {}) {
+  constructor(materials, { carCount = 3, position = [1.57, 0, 0], lineId = 'U1', platformSide = -1, accentColor = null, carType = TrainCar } = {}) {
     super();
     this.name = lineId === 'U1' ? 'MetroTrain' : `${lineId}-MetroTrain`;
     this.lineId = lineId;
@@ -344,7 +344,7 @@ export class Train extends THREE.Group {
     this.gangwayStart = new THREE.Vector3();
     this.gangwayEnd = new THREE.Vector3();
     for (let i = 0; i < carCount; i++) {
-      const car = new TrainCar(materials, { index: i, leading: i === 0, trailing: i === carCount - 1, lineId, platformSide });
+      const car = new carType(materials, { index: i, leading: i === 0, trailing: i === carCount - 1, lineId, platformSide });
       car.position.z = (i - (carCount - 1) / 2) * CAR_SPACING;
       car.userData.nominalRouteOffset = car.position.z;
       this.cars.push(car); this.add(car);
