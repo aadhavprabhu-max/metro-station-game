@@ -27,7 +27,7 @@ try {
       const camera = root.localToWorld(new Vector3(...position)), look = root.localToWorld(new Vector3(...target));
       world.camera.position.copy(camera); const delta = look.sub(camera);
       player.yaw = Math.atan2(-delta.x, -delta.z); player.pitch = Math.atan2(delta.y, Math.hypot(delta.x, delta.z)); player.applyLook();
-      world.update(0); world.scene.updateMatrixWorld(true);
+      world.update(0.13); world.scene.updateMatrixWorld(true);
       const start = performance.now(); world.renderer.render(world.scene, world.camera);
       return { name, stationId, snapshot: window.metro.snapshot(), cpuSubmitMilliseconds: performance.now() - start,
         city: world.city.userData, botanical: world.lineWorlds.U10.stations[6].vegetation.userData, glError: world.renderer.getContext().getError() };

@@ -73,6 +73,18 @@ export class UI {
     this.setText(document.querySelector('#network-line-count'), `${networkInfo.length} LINES`);
     this.setText(document.querySelector('#network-summary'), `${networkInfo.length} metro lines run independently in both directions. Choose a starting line, approach an open door and press E to board. Explore your carriage and read the onboard screens.`);
     this.networkInfo = networkInfo;
+    if (this.services.some(s => s.lineId === 'U9') && starts) {
+      const routes = document.createElement('nav'); routes.className = 'phase6-routes'; routes.setAttribute('aria-label', 'Phase 6 journeys');
+      for (const [text, query] of [
+        ['Ride U9 · Central', '?line=U9'],
+        ['Ride U5 · River loop', '?line=U5&u5=scenic&tour=river&station=u5-altstadtbruecke'],
+        ['U5 · Original direct route', '?line=U5&u5=direct'],
+      ]) { const link = document.createElement('a'); link.href = query; link.textContent = text; routes.append(link); }
+      starts.after(routes);
+      const u5 = this.services.find(s => s.lineId === 'U5');
+      this.setText(document.querySelector('#network-summary'), `Phase 6 · U9 connects Central, Nordklinikum and Waldtor. U5 ${u5.route.variant === 'scenic' ? 'takes the historic river loop before Ostbahnhof' : 'uses its preserved direct route; select River loop for the bridge journey'}. Approach an open door and press E to board.`);
+    }
+    if (this.services.some(s => s.lineId === 'U10')) this.setText(document.querySelector('#network-summary'), 'Phase 7 · U10 Airport Express connects Central with Aurealis International Airport through the metropolitan skyline and East Botanical Garden. All existing lines, U9 and both U5 routes remain available. Approach an open door and press E to board. Use the lifts or stairs to change platforms.');
     this.stationServices = new Map();
     this.stationInformation = new Map();
     this.informationRevisions = new Map();
@@ -195,13 +207,13 @@ export class UI {
     if (!links.length) return '';
     if (station.stationId === 'station-2') {
       if (this.services.some(s => s.lineId === 'U10')) return station.lineId === 'U10'
-        ? 'U3 / U4 ↑ transfer stairs · U1 / U2 via upper stairs'
-        : station.lineId === 'U3' ? 'U10 ↓ north-end stairs · U4 via passage · U1 / U2 ↑ south-end stairs'
-          : station.lineId === 'U4' ? 'U3 via passage · U10 ↓ via U3 · U1 / U2 ↑ stairs'
-            : 'U1 / U2 upper · U3 / U4 ↓ stairs · U10 via U3';
+        ? 'U9 ↑ stairs / lifts · U3 / U4 via U9 · U1 / U2 via upper stairs'
+        : station.lineId === 'U9' ? 'U10 ↓ south-end stairs / lifts · U3 ↑ north-end stairs'
+          : 'U1 / U2 upper · U3 / U4 lower · U9 ↓ via U3 · U10 via U9';
+      if (station.lineId === 'U9') return 'U3 ↑ stairs · U4 via U3 passage · U1 / U2 via upper stairs';
       return station.level === 'lower' || (station.floorY ?? 0) < 0
-        ? 'Upper: U1 / U2 ↑ stairs · Lower: U3 / U4'
-        : 'Upper: U1 / U2 · Lower: U3 / U4 ↓ stairs';
+        ? `Upper: U1 / U2 ↑ stairs · Lower: U3 / U4${this.services.some(s => s.lineId === 'U9') ? ' · U9 ↓ via U3' : ''}`
+        : `Upper: U1 / U2 · Lower: U3 / U4 ↓ stairs${this.services.some(s => s.lineId === 'U9') ? ' · U9 via U3' : ''}`;
     }
     return `Change: ${links.map(link => `${link.lineId} · Platform ${link.platformNumber}${link.connection === 'stairs' ? ' via stairs' : ' via passage'}`).join(' / ')}`;
   }
@@ -227,7 +239,9 @@ export class UI {
     const lower = (station?.level ?? current.level ?? (floorY < 0 ? 'lower' : 'upper')) === 'lower';
     const atCentral = !riding || docked ? station?.stationId === 'station-2' : false;
     this.setText(this.locationElement, stationName);
-    this.setText(this.locationPlatform, riding && !docked ? `${lineId} · ${lineId === 'U10' ? this.player.camera.position.y > 5 ? 'Elevated railway' : 'Underground railway' : 'Connecting tunnel'}` : `${station?.lineId ?? lineId} · Platform ${station?.platformNumber ?? current.platform ?? '01'}${atCentral ? lineId === 'U10' ? ' · Airport Express level' : lower ? ' · Lower level' : ' · Upper level' : ''}`);
+    const infrastructure = lineId === 'U10' ? this.player.camera.position.y > 5 ? 'Elevated railway' : 'Underground railway'
+      : service.route.variant === 'scenic' && service.train.position.y > -9 ? 'River loop' : 'In service';
+    this.setText(this.locationPlatform, riding && !docked ? `${lineId} · ${infrastructure}` : `${station?.lineId ?? lineId} · Platform ${station?.platformNumber ?? current.platform ?? '01'}${atCentral ? lineId === 'U10' ? ' · Airport Express level' : lower ? ' · Lower level' : ' · Upper level' : ''}`);
     this.setText(this.locationDirection, direction);
     const transferText = !riding || docked ? this.transferText(station) : '';
     this.setText(this.transferElement, transferText);
@@ -239,7 +253,7 @@ export class UI {
     }
     this.setText(this.serviceLabel, `${lineId} LIVE SERVICE`);
     this.serviceCard?.setAttribute('aria-label', `Live ${lineId} train service`);
-    this.setText(this.statusElement, STATE_LABELS[service.state] ?? service.state);
+    this.setText(this.statusElement, service.waitingForSignal ? 'Waiting at signal' : STATE_LABELS[service.state] ?? service.state);
     this.setText(this.detailElement, `${direction} · ${docked ? 'At ' + current.name : 'From ' + current.name}`);
     this.setText(this.nextStopElement, `Next stop · ${nextStop.name}`);
     this.setText(this.platformElement, docked ? `Platform ${current.platform ?? '01'} →` : `${lineId} · In service`);

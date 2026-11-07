@@ -22,13 +22,15 @@ export function createTimingTrain() {
 /** Timings are observed from 1/60 s controller steps, never distance/speed estimates. */
 export function measureU10Timetable(route, options = U10_SERVICE_OPTIONS) {
   const controller = new TrainService(createTimingTrain(), route, options);
-  const departures = [], arrivals = [], segments = [];
-  let tick = 0, moving = false, departure = null, initialDeparture = null;
+  const departures = [], arrivals = [], segments = [], dwells = [];
+  let tick = 0, moving = false, departure = null, initialDeparture = null, boardingTick = 0;
   const maxTicks = 60 * 7200;
   while (tick < maxTicks) {
-    const previousLegs = controller.completedLegs;
+    const previousLegs = controller.completedLegs, previousState = controller.state;
     controller.update(1 / 60); tick++;
     const seconds = tick / 60;
+    if (previousState !== 'boarding' && controller.state === 'boarding') boardingTick = tick;
+    if (previousState === 'boarding' && controller.state === 'closing') dwells.push({ stationId: controller.currentStop.id, closingSeconds: seconds, seconds: (tick - boardingTick) / 60 });
     if (controller.speed > 0 && !moving) {
       departure = { stationId: controller.currentStop.id, name: controller.currentStop.name, direction: controller.direction, seconds, tick };
       departures.push(departure); initialDeparture ??= departure; moving = true;
@@ -47,13 +49,15 @@ export function measureU10Timetable(route, options = U10_SERVICE_OPTIONS) {
     const legs = segments.filter(s => s.direction === direction);
     const intermediate = legs.slice(0, -1).map(s => {
       const next = departures.find(d => d.stationId === s.toId && d.seconds > s.arrivalSeconds);
-      return { station: s.to, standstillSeconds: next.seconds - s.arrivalSeconds, passengerDwellSeconds: options.dwellDuration,
-        doorAndDepartureSeconds: next.seconds - s.arrivalSeconds - options.dwellDuration };
+      const dwell = dwells.find(d => d.stationId === s.toId && d.closingSeconds > s.arrivalSeconds && d.closingSeconds < next.seconds);
+      if (!dwell) throw new Error(`Missing observed boarding dwell at ${s.to}.`);
+      return { station: s.to, standstillSeconds: next.seconds - s.arrivalSeconds, passengerDwellSeconds: dwell.seconds,
+        doorAndDepartureSeconds: next.seconds - s.arrivalSeconds - dwell.seconds };
     });
     const runningSeconds = legs.reduce((sum, leg) => sum + leg.seconds, 0);
     const intermediateStandstillSeconds = intermediate.reduce((sum, s) => sum + s.standstillSeconds, 0);
     return { direction, from: legs[0].from, to: legs.at(-1).to, segments: legs, intermediate,
-      runningSeconds, passengerDwellSeconds: intermediate.length * options.dwellDuration,
+      runningSeconds, passengerDwellSeconds: intermediate.reduce((n, s) => n + s.passengerDwellSeconds, 0),
       intermediateStandstillSeconds, totalSeconds: runningSeconds + intermediateStandstillSeconds };
   });
   return { measured: true, method: 'Production TrainService + production TrainCar door integration at 60 steps/second',

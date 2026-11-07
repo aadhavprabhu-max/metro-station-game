@@ -2,20 +2,20 @@ import { createExpressPath } from './u10-path.js';
 
 export const U10_COLOR = '#123B75';
 export const U10_STATIONS = Object.freeze([
-  { id: 'station-2', name: 'Central', x: 1.57, y: -48, z: -240, yaw: -Math.PI / 2, outdoor: false, design: 'central' },
-  { id: 'u10-finanzforum', name: 'Finanzforum', x: 480, y: -48, z: -240, yaw: -Math.PI / 2, outdoor: false, design: 'finance' },
-  { id: 'u6-ringplatz', name: 'Ringplatz', x: 1056.43, y: -48, z: -720, yaw: 0, outdoor: false, design: 'ring' },
-  { id: 'u10-eastend', name: 'Eastend', x: 1056.43, y: -48, z: -1700, yaw: 0, outdoor: false, design: 'eastend' },
-  { id: 'u10-skyline', name: 'Skylinequartier', x: 1056.43, y: 26, z: -4000, yaw: 0, outdoor: true, design: 'skyline' },
-  { id: 'u10-metropol', name: 'Metropolbrücke', x: 2200, y: 26, z: -4900, yaw: -Math.PI / 2, outdoor: true, design: 'bridge' },
-  { id: 'u10-botanical', name: 'East Botanical Garden', x: 3200, y: 26, z: -4900, yaw: -Math.PI / 2, outdoor: false, design: 'botanical' },
-  { id: 'u10-europa', name: 'Europaplatz', x: 4100, y: 26, z: -4900, yaw: -Math.PI / 2, outdoor: true, design: 'europa' },
-  { id: 'u10-airportpark', name: 'Flughafenpark', x: 5300, y: 26, z: -4900, yaw: -Math.PI / 2, outdoor: true, design: 'airportpark' },
-  { id: 'u10-airport', name: 'Aurealis International Airport', x: 6600, y: 26, z: -4900, yaw: -Math.PI / 2, outdoor: false, design: 'airport' },
+  { id: 'station-2', name: 'Central', x: 1.57, y: -72, z: -240, yaw: -Math.PI / 2, outdoor: false, design: 'central' },
+  { id: 'u10-finanzforum', name: 'Finanzforum', x: 480, y: -72, z: -240, yaw: -Math.PI / 2, outdoor: false, design: 'finance' },
+  { id: 'u6-ringplatz', name: 'Ringplatz', x: 1056.43, y: -72, z: -720, yaw: 0, outdoor: false, design: 'ring' },
+  { id: 'u10-eastend', name: 'Eastend', x: 1056.43, y: -72, z: -1700, yaw: 0, outdoor: false, design: 'eastend' },
+  { id: 'u10-skyline', name: 'Skylinequartier', x: 1056.43, y: 26, z: -4800, yaw: 0, outdoor: true, design: 'skyline' },
+  { id: 'u10-metropol', name: 'Metropolbrücke', x: 2200, y: 26, z: -5800, yaw: -Math.PI / 2, outdoor: true, design: 'bridge' },
+  { id: 'u10-botanical', name: 'East Botanical Garden', x: 3200, y: 26, z: -5800, yaw: -Math.PI / 2, outdoor: false, design: 'botanical' },
+  { id: 'u10-europa', name: 'Europaplatz', x: 4100, y: 26, z: -5800, yaw: -Math.PI / 2, outdoor: true, design: 'europa' },
+  { id: 'u10-airportpark', name: 'Flughafenpark', x: 5300, y: 26, z: -5800, yaw: -Math.PI / 2, outdoor: true, design: 'airportpark' },
+  { id: 'u10-airport', name: 'Aurealis International Airport', x: 6600, y: 26, z: -5800, yaw: -Math.PI / 2, outdoor: false, design: 'airport' },
 ]);
 
 export const U10_TRANSFERS = Object.freeze([
-  { id: 'station-2', upperLine: 'U3', lowerLine: 'U10', upperEnd: 44, lowerEnd: -44, accessible: true },
+  { id: 'station-2', upperLine: 'U9', lowerLine: 'U10', upperEnd: -44, lowerEnd: -44, accessible: true },
   { id: 'u6-ringplatz', upperLine: 'U6', lowerLine: 'U10', upperEnd: 44, lowerEnd: 44, accessible: true },
 ]);
 

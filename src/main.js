@@ -41,6 +41,10 @@ try {
     announcer.update(delta);
     for (const displays of world.passengerDisplays) displays.update();
     visibility.update(player);
+    if (world.phase6World && player.service?.lineId === 'U10') {
+      world.phase6World.visible = false;
+      world.phase6World.authority.update(world.services.find(s => s.lineId === 'U5'));
+    } else world.phase6World?.update(delta, player, world);
     ui.update(delta);
     updateTimetable?.();
     activeLift = world.lifts.find(lift => lift.hint(player)) ?? null;
@@ -51,13 +55,21 @@ try {
     const outdoorBlend = exposure * exposure * (3 - 2 * exposure);
     const expressOutdoors = outdoorBlend > 0;
     if (world.city) world.city.visible = expressOutdoors;
-    if (world.outdoorBlend !== outdoorBlend) {
+    const onExpress = player.service?.lineId === 'U10';
+    if (onExpress) {
+      world.scene.fog = world.expressFog; world.scene.background = world.expressBackground;
+      world.camera.far = 180 + 8320 * outdoorBlend;
+    } else if (!world.phase6World && world.outdoorBlend !== undefined) {
+      world.scene.fog = world.undergroundFog; world.scene.background = world.undergroundBackground; world.camera.far = 180;
+    }
+    if (onExpress && world.outdoorBlend !== outdoorBlend) {
       world.outdoorBlend = outdoorBlend;
       world.scene.background.copy(interiorBackground).lerp(exteriorBackground, outdoorBlend);
       world.scene.fog.color.copy(interiorFog).lerp(exteriorFog, outdoorBlend);
       world.scene.fog.near = 62 + 1038 * outdoorBlend; world.scene.fog.far = 125 + 6875 * outdoorBlend;
       world.camera.far = 180 + 8320 * outdoorBlend; world.camera.updateProjectionMatrix();
     }
+    if (!onExpress) world.outdoorBlend = undefined;
     if (world.expressOutdoors !== expressOutdoors) {
       world.expressOutdoors = expressOutdoors;
       Object.assign(world.lighting.keyLight.shadow.camera, expressOutdoors
@@ -76,7 +88,7 @@ try {
     const matrix = player.ridingCar && active.route.hasCurves ? active.train.matrixWorld.elements : platform.matrixWorld.elements;
     const anchor = player.transferSurface ? player.camera.position.z : player.ridingCar ? active.train.position.z : matrix[14];
     const anchorX = player.transferSurface ? player.camera.position.x : player.ridingCar && active.route.hasCurves ? active.train.position.x : matrix[12];
-    const anchorY = player.transferSurface?.floorY ?? matrix[13];
+    const anchorY = player.transferSurface?.floorY ?? (player.ridingCar && active.route.hasGrades ? active.train.position.y : matrix[13]);
     if (Math.abs(anchor - shadowAnchor) > 0.75 || Math.abs(anchorX - shadowAnchorX) > 0.75 || Math.abs(anchorY - shadowAnchorY) > 0.3 || active.lineId !== shadowLine) {
       world.lighting.keyLight.position.set(anchorX - 5 * matrix[0] - (expressOutdoors ? 85 : 25) * matrix[8], anchorY + (expressOutdoors ? 160 : 4.8), anchor - 5 * matrix[2] - (expressOutdoors ? 85 : 25) * matrix[10]);
       world.lighting.keyLight.target.position.set(anchorX + matrix[0] - 12 * matrix[8], anchorY, anchor + matrix[2] - 12 * matrix[10]);

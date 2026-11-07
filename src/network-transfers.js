@@ -27,7 +27,7 @@ function portalPose(station, end) {
   station.updateWorldMatrix(true, false);
   const position = station.localToWorld(new THREE.Vector3(PORTAL_X, 0, end));
   const outward = station.localToWorld(new THREE.Vector3(PORTAL_X, 0, end + Math.sign(end))).sub(position).normalize();
-  return { position, yaw: Math.atan2(outward.x, outward.z) };
+  return { position, yaw: Math.atan2(outward.x, outward.z), liftSide: Math.sign(end) };
 }
 
 function rectangularBounds(from, to, width = 3.6) {
@@ -48,7 +48,7 @@ function contains(bounds, x, z, margin = 0) {
 
 /** Protected, physical stairs/corridors between two platforms of one shared node. */
 export class NetworkTransfer extends THREE.Group {
-  constructor(materials, upperStation, lowerStation, { upperEnd = 44, lowerEnd = 44, accessible = false } = {}) {
+  constructor(materials, upperStation, lowerStation, { upperEnd = 44, lowerEnd = 44, mezzanineOffset = 6, accessible = false } = {}) {
     super();
     if (upperStation.stationId !== lowerStation.stationId) throw new Error('Transfer platforms must belong to the same network station.');
     this.name = `${upperStation.displayName}PhysicalTransfer`;
@@ -66,7 +66,7 @@ export class NetworkTransfer extends THREE.Group {
     if (this.upperY - this.lowerY < 12 - 0.001) throw new Error('Network transfer requires at least twelve metres between railway levels.');
     const aligned = Math.hypot(upper.position.x - lower.position.x, upper.position.z - lower.position.z) < 0.001
       && Math.abs(Math.sin(upper.yaw - lower.yaw)) < 0.001 && Math.cos(upper.yaw - lower.yaw) > 0;
-    this.mezzanineY = aligned ? null : this.lowerY + 6;
+    this.mezzanineY = aligned ? null : this.lowerY + mezzanineOffset;
     this.towers = [];
     const mezzanineRectangles = [], mezzanineOpenings = [];
     if (aligned) {
@@ -84,7 +84,7 @@ export class NetworkTransfer extends THREE.Group {
         const approach = { minX: -WIDTH / 2, maxX: WIDTH / 2, minZ: 10.5, maxZ: LANDING_START };
         mezzanineRectangles.push(boundsFor(tower.group, approach));
         mezzanineOpenings.push(boundsFor(tower.group, { minX: -3, maxX: 3, minZ: LANDING_START - 0.02, maxZ: LANDING_START + 0.02 }));
-        if (accessible) mezzanineOpenings.push(boundsFor(tower.group, { minX: -3.02, maxX: -2.98, minZ: 11, maxZ: 14 }));
+        if (accessible) mezzanineOpenings.push(boundsFor(tower.group, { minX: tower.liftSide > 0 ? -3.02 : 2.98, maxX: tower.liftSide > 0 ? -2.98 : 3.02, minZ: 11, maxZ: 14 }));
       }
       const start = first.group.localToWorld(new THREE.Vector3(0, 0, BRIDGE_AT));
       const end = second.group.localToWorld(new THREE.Vector3(0, 0, BRIDGE_AT));
@@ -135,6 +135,7 @@ export class NetworkTransfer extends THREE.Group {
   buildTower(m, pose, topY, bottomY, name) {
     const group = new THREE.Group();
     group.name = `${name}SwitchbackStairTower`;
+    group.userData.liftSide = pose.liftSide ?? 1;
     group.position.set(pose.position.x, 0, pose.position.z);
     group.rotation.y = pose.yaw;
     this.add(group); group.updateWorldMatrix(true, false);
@@ -217,7 +218,7 @@ export class NetworkTransfer extends THREE.Group {
     for (const x of [-3.13, 3.13]) box(group, m.wallTile, [0.22, height, LANDING_END - LANDING_START + 0.3], [x, bottomY + height / 2, (LANDING_START + LANDING_END) / 2]);
     box(group, m.wall, [6.45, height, 0.22], [0, bottomY + height / 2, LANDING_END + 0.13]);
     box(group, m.concrete, [6.45, 0.18, LANDING_END - LANDING_START + 0.3], [0, topY + CORRIDOR_HEIGHT + 0.09, (LANDING_START + LANDING_END) / 2]);
-    const tower = { name, group, topY, bottomY, flights, drop, stepRise: drop / 16, tread: 0.375, walkingPath };
+    const tower = { name, group, topY, bottomY, flights, drop, stepRise: drop / 16, tread: 0.375, walkingPath, liftSide: pose.liftSide ?? 1 };
     this.towers.push(tower);
     return tower;
   }
@@ -239,9 +240,10 @@ export class NetworkTransfer extends THREE.Group {
     this.addSurface(group, id, bounds, () => y, { floorY: y, kind: 'entry', edges: { minZ: false, maxZ: false } });
     this.floor(group, m, bounds, y);
     for (const x of [-3.12, 3.12]) {
-      const sections = this.accessible && x < 0 ? [[start, 11], [14, end]] : [[start, end]];
+      const liftWall = this.accessible && x * (group.userData.liftSide ?? 1) < 0;
+      const sections = liftWall ? [[start, 11], [14, end]] : [[start, end]];
       for (const [a, b] of sections) if (b > a) box(group, m.wallTile, [0.2, CORRIDOR_HEIGHT, b - a], [x, y + CORRIDOR_HEIGHT / 2, (a + b) / 2]);
-      if (this.accessible && x < 0) box(group, m.wallTile, [0.2, CORRIDOR_HEIGHT - 2.6, 3], [x, y + (CORRIDOR_HEIGHT + 2.6) / 2, 12.5]);
+      if (liftWall) box(group, m.wallTile, [0.2, CORRIDOR_HEIGHT - 2.6, 3], [x, y + (CORRIDOR_HEIGHT + 2.6) / 2, 12.5]);
     }
     box(group, m.concrete, [6.4, 0.18, end - start], [0, y + CORRIDOR_HEIGHT + 0.09, (start + end) / 2]);
     box(group, m.dark, [0.18, 0.08, end - start - 0.3], [0, y + 3.12, (start + end) / 2], { shadow: false });

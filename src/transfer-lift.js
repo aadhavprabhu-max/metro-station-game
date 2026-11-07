@@ -6,7 +6,7 @@ export class TransferLift {
   constructor(transfer, tower, m) {
     this.transfer = transfer; this.tower = tower; this.floorY = tower.topY; this.targetY = this.floorY;
     this.topY = tower.topY; this.bottomY = tower.bottomY; this.rider = null; this.speed = 2.5;
-    const group = tower.group;
+    const group = new THREE.Group(); group.scale.x = tower.liftSide ?? 1; tower.group.add(group); this.group = group;
     const cabin = new THREE.Group(); cabin.name = 'AccessiblePassengerLift'; cabin.userData.dynamic = true;
     cabin.position.y = this.floorY; group.add(cabin); this.cabin = cabin;
     const glazing = new THREE.MeshStandardMaterial({ color: '#a8c8d1', transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide });
@@ -51,8 +51,9 @@ export class TransferLift {
   }
   update(delta) {
     const difference = this.targetY - this.floorY;
-    if (Math.abs(difference) < 1e-8) return;
-    this.floorY += Math.sign(difference) * Math.min(Math.abs(difference), this.speed * delta);
+    if (Math.abs(difference) < 1e-8 && !this.rider) return;
+    this.floorY = Math.abs(difference) <= this.speed * delta + 1e-8 ? this.targetY
+      : this.floorY + Math.sign(difference) * this.speed * delta;
     this.cabin.position.y = this.floorY;
     if (this.rider) this.rider.camera.position.y = this.floorY + 1.76;
     if (this.floorY === this.targetY && this.rider) { this.rider.setEnabled(true); this.rider = null; }

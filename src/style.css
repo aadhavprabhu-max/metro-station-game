@@ -35,3 +35,7 @@
 .journey-times-button{pointer-events:auto;display:block;width:calc(100% - 24px);margin:2px 12px 10px;padding:8px;border:1px solid #8ba5b966;border-radius:4px;background:#123b75;color:white;font-size:10px}
 @media(max-height:600px){.line-starts{grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;padding:5px 8px}.line-starts button{font-size:8px;min-height:27px;padding:4px 2px}}
 @media(max-width:420px){.line-starts{grid-template-columns:repeat(3,minmax(0,1fr))}.line-starts button{min-height:28px}.location-transfer{max-width:230px}}
+
+.phase6-routes { display: flex; flex-wrap: wrap; gap: .4rem; margin: .65rem 0; }
+.phase6-routes a { color: #f3df9b; border: 1px solid #697967; background: #24382f; border-radius: 5px; padding: .5rem .65rem; font-size: .75rem; text-decoration: none; }
+.phase6-routes a:hover, .phase6-routes a:focus-visible { background: #3c5143; outline: 2px solid #f7d348; outline-offset: 2px; }

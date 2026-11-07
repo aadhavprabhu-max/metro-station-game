@@ -3,7 +3,7 @@ import { instances, seededRandom, box } from './geometry.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const material = (color, roughness = 0.8, metalness = 0) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
-function meshBatch(group, mat, entries, name) { if (entries.length) { const mesh = instances(group, mat, entries, undefined, false); mesh.name = name; return mesh; } }
+function meshBatch(group, mat, entries, name, geometry) { if (entries.length) { const mesh = instances(group, mat, entries, geometry, false); mesh.name = name; return mesh; } }
 function nearestRail(points, x, z) { let best = Infinity; for (const p of points) best = Math.min(best, Math.hypot(p.x - x, p.z - z)); return best; }
 
 /** Kilometres of real 3D buildings. Detailed street chunks are limited to the exposed railway corridor. */
@@ -11,10 +11,13 @@ export class MetropolitanCity extends THREE.Group {
   constructor(route) {
     super(); this.name = 'AurealisMetropolitanRegion'; this.chunks = []; this.groundY = 10;
     const random = seededRandom(71072), rail = [];
+    const airportZ = route.stops.at(-1).position.z, botanicalZ = route.stops[6].position.z;
+    const skyline = route.stops[4].position;
     for (let d = route.stops[3].distance; d <= route.length; d += 65) rail.push(route.sample(d).position);
     const masonry = [material('#c7c2b2'), material('#9caaac'), material('#a98874'), material('#cfd5d3')];
     const glass = material('#60869b', 0.28, 0.4), roof = material('#626a70', 0.8, 0.18), window = material('#344e61', 0.3, 0.25);
     const pavement = material('#b1afa2'), road = material('#555b5b'), green = material('#7f8d68');
+    const windowPane = new THREE.PlaneGeometry(1, 1);
     // A real opening in the terrain exposes the retained cutting; no ground plane crosses the train.
     const cutting = rail.filter(p => p.y >= 3.5 && p.y <= 14);
     const cutMinZ = Math.min(...cutting.map(p => p.z)) - 60, cutMaxZ = Math.max(...cutting.map(p => p.z)) + 60;
@@ -27,24 +30,24 @@ export class MetropolitanCity extends THREE.Group {
     // Jittered urban blocks, neighbourhood density and clustered business districts.
     for (let gx = -6500; gx < 16000; gx += 180) for (let gz = -13500; gz < 4000; gz += 180) {
       const x = gx + (random() - 0.5) * 65, z = gz + (random() - 0.5) * 65;
-      if (x > 5750 && x < 8200 && Math.abs(z + 4900) < 800) continue;
-      if (Math.abs(x - 3200) < 145 && Math.abs(z + 4900) < 150) continue;
+      if (x > 5750 && x < 8200 && Math.abs(z - airportZ) < 800) continue;
+      if (Math.abs(x - 3200) < 145 && Math.abs(z - botanicalZ) < 150) continue;
       const distance = nearestRail(rail, x, z);
       if (distance < 58) continue;
       if (distance < 650 && x < 5700) for (const [dx, dz] of [[62, 0], [0, 64], [62, 64]]) {
         const xx = x + dx, zz = z + dz;
-        if (nearestRail(rail, xx, zz) < 48 || (Math.abs(xx - 3200) < 145 && Math.abs(zz + 4900) < 150)) continue;
+        if (nearestRail(rail, xx, zz) < 48 || (Math.abs(xx - 3200) < 145 && Math.abs(zz - botanicalZ) < 150)) continue;
         const h = 12 + random() * 22, w = 20 + random() * 13, dep = 22 + random() * 13;
         infill.push({ size: [w, h, dep], position: [xx, 10 + h / 2, zz], color: ['#c9bb9f', '#b49682', '#d2d0bd', '#acb5b5'][count % 4] });
         for (const side of [-1, 1]) {
           infillRoofs.push({ size: [w * 0.54, 0.35, dep + 0.8], position: [xx + side * w / 4, 10 + h + w * 0.08, zz], rotation: [0, 0, side * -0.29] });
           for (let yy = 13.5; yy < 10 + h - 1; yy += 3.4) for (let wx = -w / 2 + 2.2; wx < w / 2 - 1; wx += 4.2) {
-            infillWindows.push({ size: [1.4, 1.7, 0.05], position: [xx + wx, yy, zz + side * (dep / 2 + 0.04)] });
+            infillWindows.push({ size: [1.4, 1.7, 1], position: [xx + wx, yy, zz + side * (dep / 2 + 0.04)], rotation: [0, side > 0 ? 0 : Math.PI, 0] });
           }
         }
       }
-      const district = Math.exp(-((x - 1250) ** 2 + (z + 4100) ** 2) / 1700000)
-        + Math.exp(-((x - 3900) ** 2 + (z + 6000) ** 2) / 1700000);
+      const district = Math.exp(-((x - skyline.x - 180) ** 2 + (z - skyline.z + 180) ** 2) / 1700000)
+        + Math.exp(-((x - 3900) ** 2 + (z - botanicalZ + 1000) ** 2) / 1700000);
       const tower = random() < 0.12 + district * 0.2;
       const height = tower ? 58 + district * 75 + random() * 95 : 14 + random() * 35;
       const width = tower ? 22 + random() * 24 : 35 + random() * 47, depth = 28 + random() * 48;
@@ -77,26 +80,28 @@ export class MetropolitanCity extends THREE.Group {
         const yy = floor * 3.6 + 1;
         for (const side of [-1, 1]) {
           for (let xx = -width / 2 + 2; xx < width / 2 - 1; xx += tower ? 2.8 : 4.2) {
-            panes.push({ size: [tower ? 2.2 : 1.45, tower ? 2.85 : 1.75, 0.06], position: [xx, yy, side * (depth / 2 + 0.04)] });
+            panes.push({ size: [tower ? 2.2 : 1.45, tower ? 2.85 : 1.75, 1], position: [xx, yy, side * (depth / 2 + 0.04)], rotation: [0, side > 0 ? 0 : Math.PI, 0] });
           }
           for (let zz = -depth / 2 + 2; zz < depth / 2 - 1; zz += tower ? 2.8 : 4.2) {
-            panes.push({ size: [0.06, tower ? 2.85 : 1.75, tower ? 2.2 : 1.45], position: [side * (width / 2 + 0.04), yy, zz] });
+            panes.push({ size: [tower ? 2.2 : 1.45, tower ? 2.85 : 1.75, 1], position: [side * (width / 2 + 0.04), yy, zz], rotation: [0, side * Math.PI / 2, 0] });
           }
           if (tower) frames.push({ size: [width + 0.2, 0.12, 0.2], position: [0, yy + 1.5, side * (depth / 2 + 0.1)] });
         }
       }
       details.push({ size: [width * 0.22, 1.6, 4], position: [0, height + 0.8, 0] });
       details.push({ size: [1.9, 2.8, 0.09], position: [width * 0.15, 1.4, depth / 2 + 0.06] });
-      meshBatch(detailed, masonry[palette], shells, 'FacadesCornicesSetbacks');
-      meshBatch(detailed, tower ? glass : roof, frames, 'RoofPlanesAndFacadeStructure');
-      meshBatch(detailed, window, panes, 'PhysicalWindowBays'); meshBatch(detailed, roof, details, 'RooftopEquipmentAndEntrances');
+      // All basic shells/roofs share region-wide instance buffers. Only nearby
+      // windows and rooftop equipment need per-building LOD draw calls.
+      const worldEntry = entry => ({ ...entry, position: [entry.position[0] + x, entry.position[1] + 10, entry.position[2] + z] });
+      distant[palette].push(...shells.map(worldEntry));
+      (tower ? distantGlass : distantTops).push(...frames.map(worldEntry));
+      meshBatch(detailed, window, panes, 'PhysicalWindowBays', windowPane); meshBatch(detailed, roof, details, 'RooftopEquipmentAndEntrances');
       box(detailed, pavement, [width + 14, 0.18, depth + 14], [0, 0.04, 0], { shadow: false });
-      meshBatch(medium, masonry[palette], shells, 'MidDistanceBuildingGeometry'); meshBatch(medium, roof, frames, 'MidDistanceRoofGeometry');
       lod.addLevel(detailed, 0); lod.addLevel(medium, 650); this.add(lod); this.chunks.push(lod);
     }
     for (const [i, entries] of distant.entries()) meshBatch(this, masonry[i], entries, 'Distant3DNeighbourhoods');
     meshBatch(this, roof, distantTops, 'DistantRoofGeometry'); meshBatch(this, glass, distantGlass, 'DistantFinancialDistrictGlazing');
-    meshBatch(this, material('#ffffff'), infill, 'DenseEuropeanInfillBuildings'); meshBatch(this, roof, infillRoofs, 'InfillPitchedRoofGeometry'); meshBatch(this, window, infillWindows, 'InfillPhysicalWindows');
+    meshBatch(this, material('#ffffff'), infill, 'DenseEuropeanInfillBuildings'); meshBatch(this, roof, infillRoofs, 'InfillPitchedRoofGeometry'); meshBatch(this, window, infillWindows, 'InfillPhysicalWindows', windowPane);
     // Real roads, footways, junctions and street furniture follow urban blocks.
     const roads = [], footways = [], markings = [], lamps = [], poles = [];
     for (let x = 650; x < 5800; x += 360) {

@@ -11,6 +11,7 @@ import { KaiserHumboldtStation, WestbahnhofStation, ArabellaparkStation } from '
 import { box, instances } from './geometry.js';
 import { batchStaticGeometry } from './optimize.js';
 import { U10_TRANSFERS } from './u10-network.js';
+import { Phase6Station } from './phase6-stations.js';
 
 const PRESERVED_TYPES = {
   'station-1': Station, 'station-3': Station,
@@ -26,6 +27,12 @@ export const NEW_TRANSFERS = [
   { id: 'u3-ostbahnhof', upperLine: 'U3', lowerLine: 'U5', upperEnd: 44, lowerEnd: 44 },
   { id: 'u2-stadtzentrum', upperLine: 'U2', lowerLine: 'U6', upperEnd: 44, lowerEnd: 44 },
   { id: 'u4-arabellapark', upperLine: 'U4', lowerLine: 'U6', upperEnd: -44, lowerEnd: -44 },
+];
+
+export const PHASE6_TRANSFERS = [
+  { id: 'station-2', upperLine: 'U3', lowerLine: 'U9', upperEnd: 44, lowerEnd: 44 },
+  { id: 'u5-nordklinikum', upperLine: 'U5', lowerLine: 'U9', upperEnd: 44, lowerEnd: 44, mezzanineOffset: 12 },
+  { id: 'u5-waldtor', upperLine: 'U5', lowerLine: 'U9', upperEnd: -44, lowerEnd: 44, mezzanineOffset: 12 },
 ];
 
 function paletteFor(base, route, stop) {
@@ -49,7 +56,7 @@ function paletteFor(base, route, stop) {
 
 function stationOptions(stop, route, index) {
   const mirrored = (stop.platformSide ?? (['U2', 'U4'].includes(route.lineId) ? 1 : -1)) === 1;
-  const terminal = index === 0 || index === route.stops.length - 1;
+  const terminal = stop.isTerminus ?? (index === 0 || index === route.stops.length - 1);
   const options = {
     id: stop.id, displayName: stop.name, lineId: route.lineId, lineName: route.line.name,
     networkName: 'AUREALIS-BAHN', platformNumber: stop.platform, floorY: stop.floorY, level: stop.level,
@@ -65,14 +72,14 @@ function stationOptions(stop, route, index) {
     options.walkableAreas.push({ minX: -8.8, maxX: -2.8,
       minZ: z < 0 ? -45.6 : 41.5, maxZ: z < 0 ? -41.5 : 45.6 });
   };
-  if (stop.id === 'station-2') {
+  if (stop.id === 'station-2' && route.lineId !== 'U9') {
     const sign = mirrored ? 1 : -1;
     options.backwallOpening = { z: sign * 24, width: 4, height: 3.05 };
     options.walkableAreas.push({ minX: mirrored ? -13.2 : -13.4, maxX: mirrored ? -8.6 : -8.8,
       minZ: sign * 24 - 2, maxZ: sign * 24 + 2 });
     if (route.lineId === 'U1' || route.lineId === 'U3') openEnd(-44);
   }
-  for (const transfer of NEW_TRANSFERS) if (stop.id === transfer.id && route.network.lines.has(transfer.lowerLine)) {
+  for (const transfer of [...NEW_TRANSFERS, ...PHASE6_TRANSFERS]) if (stop.id === transfer.id && route.network.lines.has(transfer.lowerLine)) {
     if (route.lineId === transfer.upperLine) openEnd(transfer.upperEnd);
     if (route.lineId === transfer.lowerLine) openEnd(transfer.lowerEnd);
   }
@@ -88,7 +95,7 @@ function stationOptions(stop, route, index) {
 
 /** Same platform/track primitives and bespoke stations; all placement comes from the network. */
 export class NetworkLineWorld extends RouteGeometry {
-  constructor(materials, route) {
+  constructor(materials, route, { buildRailway = true, railwayOptions = {} } = {}) {
     super();
     this.name = `${route.lineId}RouteWorld`;
     this.lineId = route.lineId; this.route = route;
@@ -101,7 +108,7 @@ export class NetworkLineWorld extends RouteGeometry {
     if (legacy) { this.position.set(mirrored ? -22 : 0, this.floorY, 0); this.rotation.y = mirrored ? Math.PI : 0; }
     this.stations = route.stops.map((stop, index) => {
       const options = stationOptions(stop, route, index);
-      const StationType = stop.id === 'station-2'
+      const StationType = route.lineId === 'U9' || stop.id.startsWith('u5-altstadt') || stop.id === 'u5-uferpromenade' || stop.id === 'u5-steinbogen' ? Phase6Station : stop.id === 'station-2'
         ? (stop.floorY < 0 ? GoldenHiveStation : Station)
         : PRESERVED_TYPES[stop.id] ?? FamilyStation;
       const station = new StationType(paletteFor(materials, route, stop), options);
@@ -127,14 +134,17 @@ export class NetworkLineWorld extends RouteGeometry {
       this.buildConnectingTrack(this.materials, a, b, index);
       this.buildTunnel(this.materials, a, b, index, { fromPortalOffset: from.portalOffset ?? 44, toPortalOffset: to.portalOffset ?? 44 });
     }
-    else buildSampledRailway(this, materials, route);
+    else if (buildRailway) buildSampledRailway(this, materials, route, railwayOptions);
   }
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
 function pointAt(route, distance, x, y) {
   const pose = route.sampleExtended(distance);
-  return pose.position.add(new THREE.Vector3(x, y, 0).applyAxisAngle(UP, pose.yaw));
+  const offset = new THREE.Vector3(x, y, 0);
+  if (pose.pitch) offset.applyEuler(new THREE.Euler(pose.pitch, pose.yaw, 0, 'YXZ'));
+  else offset.applyAxisAngle(UP, pose.yaw);
+  return pose.position.add(offset);
 }
 
 /** Sweep actual cross-sections along the same arc-length path used by the trains. */
@@ -159,7 +169,7 @@ function sweep(parent, material, route, start, end, profile, name, step = 1.5) {
 }
 const rectangle = (x, y, w, h) => [[x - w / 2, y - h / 2], [x + w / 2, y - h / 2], [x + w / 2, y + h / 2], [x - w / 2, y + h / 2]];
 
-export function buildSampledRailway(root, m, route) {
+export function buildSampledRailway(root, m, route, options = {}) {
   const intervals = [];
   let previous = -75;
   for (const stop of route.stops) {
@@ -172,8 +182,14 @@ export function buildSampledRailway(root, m, route) {
     intervals.push([portal, stop.distance - 44, 'tunnel']); portal = stop.distance + 44;
   }
   intervals.push([portal, route.length + 75, 'tunnel']);
+  const clipped = [];
+  for (const [from, to, kind] of intervals) {
+    let spans = [[Math.max(from, options.start ?? -75), Math.min(to, options.end ?? route.length + 75)]];
+    if (kind === 'tunnel') for (const [a, b] of options.openIntervals ?? []) spans = spans.flatMap(([lo, hi]) => hi <= a || lo >= b ? [[lo, hi]] : [[lo, Math.min(a, hi)], [Math.max(b, lo), hi]]).filter(([lo, hi]) => hi > lo);
+    clipped.push(...spans.filter(([lo, hi]) => hi > lo).map(([lo, hi]) => [lo, hi, kind]));
+  }
   let ordinal = 0;
-  for (const [from, to, kind] of intervals) for (let start = from; start < to - 0.001; start += 24) {
+  for (const [from, to, kind] of clipped) for (let start = from; start < to - 0.001; start += 24) {
     const end = Math.min(to, start + 24), section = new THREE.Group();
     section.name = `${route.lineId}-${kind}-${ordinal++}`;
     section.userData.routeInterval = { start, end, lineId: route.lineId, kind };
@@ -189,8 +205,8 @@ export function buildSampledRailway(root, m, route) {
       const sleepers = [], clips = [];
       for (let d = Math.ceil(start / 0.65) * 0.65; d < end; d += 0.65) {
         const pose = route.sampleExtended(d);
-        sleepers.push({ size: [2.52, 0.14, 0.21], position: pointAt(route, d, 0, -1.22).toArray(), rotation: [0, pose.yaw, 0] });
-        for (const x of [-0.7175, 0.7175]) clips.push({ size: [0.2, 0.06, 0.12], position: pointAt(route, d, x, -1.12).toArray(), rotation: [0, pose.yaw, 0] });
+        sleepers.push({ size: [2.52, 0.14, 0.21], position: pointAt(route, d, 0, -1.22).toArray(), rotation: [pose.pitch ?? 0, pose.yaw, 0, 'YXZ'] });
+        for (const x of [-0.7175, 0.7175]) clips.push({ size: [0.2, 0.06, 0.12], position: pointAt(route, d, x, -1.12).toArray(), rotation: [pose.pitch ?? 0, pose.yaw, 0, 'YXZ'] });
       }
       if (sleepers.length) instances(section, m.sleeper, sleepers);
       if (clips.length) instances(section, m.dark, clips);
@@ -210,7 +226,7 @@ export function buildSampledRailway(root, m, route) {
     }
     batchStaticGeometry(section);
   }
-  for (const d of [-75, route.length + 75]) {
+  for (const d of options.terminalCaps === false ? [] : [-75, route.length + 75]) {
     const pose = route.sampleExtended(d), cap = new THREE.Group(); cap.name = `${route.lineId}TerminalSafetyWall`;
     cap.position.copy(pose.position); cap.rotation.y = pose.yaw;
     box(cap, m.concrete, [5.9, 5.65, 0.25], [0.81, 1.52, 0]);

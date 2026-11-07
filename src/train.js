@@ -366,14 +366,20 @@ export class Train extends THREE.Group {
       const carDistance = distance - car.userData.nominalRouteOffset;
       const sample = route.sampleExtended(carDistance);
       car.position.copy(this.worldToLocal(sample.position));
-      car.rotation.y = sample.yaw - this.rotation.y;
+      if (route.hasGrades) {
+        const world = new THREE.Quaternion().setFromEuler(new THREE.Euler(sample.pitch ?? 0, sample.yaw, 0, 'YXZ'));
+        car.quaternion.copy(this.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(world));
+      } else car.rotation.y = sample.yaw - this.rotation.y;
       car.userData.routeDistance = carDistance;
       car.updateWorldMatrix(false, false);
       for (const bogie of car.bogies) {
         const bogieDistance = carDistance - bogie.userData.localZ;
         const bogieSample = route.sampleExtended(bogieDistance);
         bogie.position.copy(car.worldToLocal(bogieSample.position));
-        bogie.rotation.y = bogieSample.yaw - sample.yaw;
+        if (route.hasGrades) {
+          const world = new THREE.Quaternion().setFromEuler(new THREE.Euler(bogieSample.pitch ?? 0, bogieSample.yaw, 0, 'YXZ'));
+          bogie.quaternion.copy(car.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(world));
+        } else bogie.rotation.y = bogieSample.yaw - sample.yaw;
         bogie.userData.routeDistance = bogieDistance;
       }
     }
@@ -386,7 +392,8 @@ export class Train extends THREE.Group {
       this.worldToLocal(to.localToWorld(end));
       group.position.copy(start).add(end).multiplyScalar(0.5);
       this.poseScratch.copy(end).sub(start);
-      group.rotation.y = Math.atan2(this.poseScratch.x, this.poseScratch.z);
+      if (route.hasGrades) group.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), this.poseScratch.clone().normalize());
+      else group.rotation.y = Math.atan2(this.poseScratch.x, this.poseScratch.z);
       // The bellows span the actual end faces, including the small change in
       // their separation on a curve. Cars never turn around at a terminus.
       group.scale.z = this.poseScratch.length() / 0.87;

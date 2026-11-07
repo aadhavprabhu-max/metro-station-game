@@ -127,6 +127,11 @@ export class ExpressStation extends Station {
     }
     box(group, m.stone, [18, 0.4, 120], [-19, -0.25, 0]);
     box(group, m.paving, [17.8, 0.04, 119.8], [-19, -0.025, 0]);
+    for (const z of [-42.5, 42.5]) {
+      beam(group, m.whiteSteel, [-27.5, 1.15, z], [-10, 1.15, z], 0.055);
+      for (let x = -27.5; x <= -10; x += 2.5) beam(group, m.whiteSteel, [x, 0, z], [x, 1.15, z], 0.04);
+      label(group, 'CONSERVATION GARDEN', 3.5, 0.24, [-18, 1.4, z], { rotation: [0, z < 0 ? 0 : Math.PI, 0], background: '#234e42', fontSize: 100 });
+    }
     box(group, m.stone, [30, 0.5, 122], [23, -0.3, 0]);
     box(group, m.paving, [29.8, 0.04, 121.8], [23, -0.025, 0]);
     this.walkableAreas.push({ minX: -27, maxX: -9, minZ: -42, maxZ: 42 });
@@ -146,6 +151,7 @@ export class ExpressStation extends Station {
       box(group, m.soil, [6.12, 0.05, 12.7], [x, 0.43, z]);
       box(group, m.moss, [5.8, 0.035, 12.1], [x, 0.47, z]);
       plants.tree(x, 0.46, z, 11 + i % 3 * 1.7, i % 2 ? 'magnolia' : 'oak');
+      plants.groundcover(x, 0.48, z, 5.8, 12.1);
       if (x < 0) this.addCollider(x, z, 6.5, 13.1);
       for (let k = 0; k < 5; k++) {
         plants.fern(x - 2 + k, 0.48, z - 4.3, 0.8 + k % 2 * 0.3);
@@ -226,7 +232,7 @@ export class ExpressStation extends Station {
       if (index < names.length - 1) { ctx.beginPath(); ctx.moveTo(75, y); ctx.lineTo(75, y + 88); ctx.stroke(); }
       ctx.fillStyle = name === this.displayName ? '#ba8e3e' : '#123b75'; ctx.beginPath(); ctx.arc(75, y, 12, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#18354c'; ctx.font = '500 34px Arial'; ctx.fillText(name, 110, y + 10, canvas.width - 145);
-      if (index === 0 || index === 2) { ctx.font = '22px Arial'; ctx.fillText(index === 0 ? 'Change: U1 / U2 / U3 / U4' : 'Change: U6', 110, y + 37); }
+      if (index === 0 || index === 2) { ctx.font = '22px Arial'; ctx.fillText(index === 0 ? 'Change: U1 / U2 / U3 / U4 / U9' : 'Change: U6', 110, y + 37); }
     }); texture.needsUpdate = true; this.addCollider(-9.5, 9, 0.2, 2.4);
   }
 }

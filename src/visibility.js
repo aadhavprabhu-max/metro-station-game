@@ -42,8 +42,8 @@ export class WorldVisibility {
       return this.nearest.distanceToSquared(camera) < range * range;
     };
     for (const station of world.stations) show(station,
-      visibleLines.has(station.lineId) && this.stationCenters.get(station).distanceToSquared(camera) < (station.lineId === 'U10' && feetY > 4 ? 1800 : this.range + 55) ** 2);
-    for (const { lineId, group, bounds } of this.sections) show(group, visibleLines.has(lineId) && near(bounds, lineId === 'U10' && feetY > 4 ? 1800 : this.range));
+      visibleLines.has(station.lineId) && this.stationCenters.get(station).distanceToSquared(camera) < (station.lineId === 'U10' && feetY > 4 ? 1300 : this.range + 55) ** 2);
+    for (const { lineId, group, bounds } of this.sections) show(group, visibleLines.has(lineId) && near(bounds, lineId === 'U10' && feetY > 4 ? 900 : this.range));
     for (const train of world.trains) show(train,
       visibleLines.has(train.lineId) && train.position.distanceToSquared(camera) < (train.lineId === 'U10' ? 600 : this.range + 30) ** 2);
     world.lighting.children.forEach(group => {

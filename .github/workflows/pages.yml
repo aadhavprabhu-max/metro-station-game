@@ -41,6 +41,8 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -48,3 +50,34 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  verify:
+    name: Verify playable public deployment
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install test dependencies
+        run: npm ci
+      - name: Check runner's preinstalled Chrome
+        run: google-chrome --version
+      - name: Test published Phase 6 and Phase 7 journeys
+        run: npx playwright test tests/phase6.spec.js tests/u10.spec.js --timeout=240000
+        env:
+          CI: 'true'
+          CHROMIUM_PATH: /usr/bin/google-chrome
+          METRO_PRODUCTION_URL: ${{ needs.deploy.outputs.page_url }}
+      - name: Retain deployment browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metro-deployment-browser-evidence
+          path: test-results/
+          retention-days: 7

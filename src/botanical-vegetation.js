@@ -116,6 +116,14 @@ export class BotanicalVegetation extends THREE.Group {
         size: [h, h, h], rotation: [-1.0 - r() * 0.4, r() * 6.28, 0], color: color(r, 0.08) });
     }
   }
+  groundcover(x, y, z, width, depth) {
+    const r = this.random; this.species.add('Pachysandra terminalis');
+    for (let plant = 0; plant < width * depth * 2; plant++) {
+      const xx = x + (r() - 0.5) * width, zz = z + (r() - 0.5) * depth;
+      for (let leaf = 0; leaf < 5; leaf++) this.leaves.magnolia.push({ position: [xx, y + r() * 0.09, zz],
+        size: [0.18, 0.18, 0.23], rotation: [-0.1, leaf * 1.256 + r() * 0.2, 0.1], color: color(r, 0.02) });
+    }
+  }
   vine(x, y, z, height = 9, hanging = false) {
     this.species.add('Hedera helix'); const r = this.random;
     for (let i = 0; i < height * 7; i++) {

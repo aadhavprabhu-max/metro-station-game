@@ -1,0 +1,3274 @@
+{
+  "nodes": [
+    [
+      "station-1",
+      {
+        "id": "station-1",
+        "name": "Nordplatz",
+        "position": {
+          "x": 1.57,
+          "y": 0,
+          "z": 0
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U1"
+        ],
+        "platforms": {
+          "U1": {
+            "id": "station-1:U1",
+            "lineId": "U1",
+            "number": "01",
+            "position": {
+              "x": 1.57,
+              "y": 0,
+              "z": 0
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper"
+          }
+        }
+      }
+    ],
+    [
+      "station-2",
+      {
+        "id": "station-2",
+        "name": "Central",
+        "position": {
+          "x": 1.57,
+          "y": 0,
+          "z": -240
+        },
+        "platform": "01",
+        "interchangeCapable": true,
+        "plannedLines": [],
+        "lineIds": [
+          "U1",
+          "U2",
+          "U3",
+          "U4",
+          "U9"
+        ],
+        "platforms": {
+          "U1": {
+            "id": "station-2:U1",
+            "lineId": "U1",
+            "number": "01",
+            "position": {
+              "x": 1.57,
+              "y": 0,
+              "z": -240
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper"
+          },
+          "U2": {
+            "id": "station-2:U2",
+            "lineId": "U2",
+            "number": "02",
+            "position": {
+              "x": -23.57,
+              "y": 0,
+              "z": -240
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper"
+          },
+          "U3": {
+            "id": "station-2:U3",
+            "lineId": "U3",
+            "number": "03",
+            "position": {
+              "x": 1.57,
+              "y": -12,
+              "z": -240
+            },
+            "yaw": 0,
+            "floorY": -12,
+            "level": "lower",
+            "platformSide": -1
+          },
+          "U4": {
+            "id": "station-2:U4",
+            "lineId": "U4",
+            "number": "04",
+            "position": {
+              "x": -23.57,
+              "y": -12,
+              "z": -240
+            },
+            "yaw": 0,
+            "floorY": -12,
+            "level": "lower",
+            "platformSide": 1
+          },
+          "U9": {
+            "id": "station-2:U9",
+            "lineId": "U9",
+            "number": "09",
+            "position": {
+              "x": 1.57,
+              "y": -48,
+              "z": -240
+            },
+            "yaw": 0,
+            "floorY": -48,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "station-3",
+      {
+        "id": "station-3",
+        "name": "Rosenheimer Platz",
+        "position": {
+          "x": 1.57,
+          "y": 0,
+          "z": -480
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U1"
+        ],
+        "platforms": {
+          "U1": {
+            "id": "station-3:U1",
+            "lineId": "U1",
+            "number": "01",
+            "position": {
+              "x": 1.57,
+              "y": 0,
+              "z": -480
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper"
+          }
+        }
+      }
+    ],
+    [
+      "u2-stadtzentrum",
+      {
+        "id": "u2-stadtzentrum",
+        "name": "Stadtzentrum",
+        "position": {
+          "x": -23.57,
+          "y": 0,
+          "z": 0
+        },
+        "platform": "02",
+        "interchangeCapable": true,
+        "plannedLines": [],
+        "lineIds": [
+          "U2",
+          "U6"
+        ],
+        "platforms": {
+          "U2": {
+            "id": "u2-stadtzentrum:U2",
+            "lineId": "U2",
+            "number": "02",
+            "position": {
+              "x": -23.57,
+              "y": 0,
+              "z": 0
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper"
+          },
+          "U6": {
+            "id": "u2-stadtzentrum:U6",
+            "lineId": "U6",
+            "number": "06",
+            "position": {
+              "x": -23.57,
+              "y": -36,
+              "z": 0
+            },
+            "yaw": -1.5707963267948966,
+            "floorY": -36,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u2-schwarzkopf",
+      {
+        "id": "u2-schwarzkopf",
+        "name": "Schwarzkopf-Tunnel",
+        "position": {
+          "x": -23.57,
+          "y": 0,
+          "z": -480
+        },
+        "platform": "02",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U2"
+        ],
+        "platforms": {
+          "U2": {
+            "id": "u2-schwarzkopf:U2",
+            "lineId": "U2",
+            "number": "02",
+            "position": {
+              "x": -23.57,
+              "y": 0,
+              "z": -480
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper"
+          }
+        }
+      }
+    ],
+    [
+      "u2-eisenwerk",
+      {
+        "id": "u2-eisenwerk",
+        "name": "Eisenwerk",
+        "position": {
+          "x": -23.57,
+          "y": 0,
+          "z": -720
+        },
+        "platform": "02",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U2"
+        ],
+        "platforms": {
+          "U2": {
+            "id": "u2-eisenwerk:U2",
+            "lineId": "U2",
+            "number": "02",
+            "position": {
+              "x": -23.57,
+              "y": 0,
+              "z": -720
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper"
+          }
+        }
+      }
+    ],
+    [
+      "u3-schattenufer",
+      {
+        "id": "u3-schattenufer",
+        "name": "Schattenufer",
+        "position": {
+          "x": 1.57,
+          "y": -12,
+          "z": 150
+        },
+        "platform": "03",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U3"
+        ],
+        "platforms": {
+          "U3": {
+            "id": "u3-schattenufer:U3",
+            "lineId": "U3",
+            "number": "03",
+            "position": {
+              "x": 1.57,
+              "y": -12,
+              "z": 150
+            },
+            "yaw": 0,
+            "floorY": -12,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u3-ostbahnhof",
+      {
+        "id": "u3-ostbahnhof",
+        "name": "Ostbahnhof",
+        "position": {
+          "x": 1.57,
+          "y": -12,
+          "z": -480
+        },
+        "platform": "03",
+        "interchangeCapable": true,
+        "plannedLines": [],
+        "lineIds": [
+          "U3",
+          "U5"
+        ],
+        "platforms": {
+          "U3": {
+            "id": "u3-ostbahnhof:U3",
+            "lineId": "U3",
+            "number": "03",
+            "position": {
+              "x": 1.57,
+              "y": -12,
+              "z": -480
+            },
+            "yaw": 0,
+            "floorY": -12,
+            "level": "lower",
+            "platformSide": -1
+          },
+          "U5": {
+            "id": "u3-ostbahnhof:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": 1.57,
+              "y": -24,
+              "z": -480
+            },
+            "yaw": 3.141592653589793,
+            "floorY": -24,
+            "level": "lower",
+            "platformSide": 1
+          }
+        }
+      }
+    ],
+    [
+      "u3-stadtbruecke",
+      {
+        "id": "u3-stadtbruecke",
+        "name": "Stadtbrücke",
+        "position": {
+          "x": 1.57,
+          "y": -12,
+          "z": -720
+        },
+        "platform": "03",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U3"
+        ],
+        "platforms": {
+          "U3": {
+            "id": "u3-stadtbruecke:U3",
+            "lineId": "U3",
+            "number": "03",
+            "position": {
+              "x": 1.57,
+              "y": -12,
+              "z": -720
+            },
+            "yaw": 0,
+            "floorY": -12,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u4-kaiser-humboldt",
+      {
+        "id": "u4-kaiser-humboldt",
+        "name": "Kaiser-Humboldt-Platz",
+        "position": {
+          "x": -23.57,
+          "y": -12,
+          "z": 240
+        },
+        "platform": "04",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U4"
+        ],
+        "platforms": {
+          "U4": {
+            "id": "u4-kaiser-humboldt:U4",
+            "lineId": "U4",
+            "number": "04",
+            "position": {
+              "x": -23.57,
+              "y": -12,
+              "z": 240
+            },
+            "yaw": 0,
+            "floorY": -12,
+            "level": "lower",
+            "platformSide": 1
+          }
+        }
+      }
+    ],
+    [
+      "u4-westbahnhof",
+      {
+        "id": "u4-westbahnhof",
+        "name": "Westbahnhof",
+        "position": {
+          "x": -23.57,
+          "y": -12,
+          "z": 0
+        },
+        "platform": "04",
+        "interchangeCapable": true,
+        "plannedLines": [],
+        "lineIds": [
+          "U4",
+          "U5"
+        ],
+        "platforms": {
+          "U4": {
+            "id": "u4-westbahnhof:U4",
+            "lineId": "U4",
+            "number": "04",
+            "position": {
+              "x": -23.57,
+              "y": -12,
+              "z": 0
+            },
+            "yaw": 0,
+            "floorY": -12,
+            "level": "lower",
+            "platformSide": 1
+          },
+          "U5": {
+            "id": "u4-westbahnhof:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": -23.57,
+              "y": -24,
+              "z": 0
+            },
+            "yaw": 1.5707963267948966,
+            "floorY": -24,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u4-arabellapark",
+      {
+        "id": "u4-arabellapark",
+        "name": "Arabellapark",
+        "position": {
+          "x": -23.57,
+          "y": -12,
+          "z": -480
+        },
+        "platform": "04",
+        "interchangeCapable": true,
+        "plannedLines": [],
+        "lineIds": [
+          "U4",
+          "U6"
+        ],
+        "platforms": {
+          "U4": {
+            "id": "u4-arabellapark:U4",
+            "lineId": "U4",
+            "number": "04",
+            "position": {
+              "x": -23.57,
+              "y": -12,
+              "z": -480
+            },
+            "yaw": 0,
+            "floorY": -12,
+            "level": "lower",
+            "platformSide": 1
+          },
+          "U6": {
+            "id": "u4-arabellapark:U6",
+            "lineId": "U6",
+            "number": "06",
+            "position": {
+              "x": -23.57,
+              "y": -36,
+              "z": -480
+            },
+            "yaw": 3.141592653589793,
+            "floorY": -36,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u5-suedstadt",
+      {
+        "id": "u5-suedstadt",
+        "name": "Südstadt",
+        "position": {
+          "x": -360,
+          "y": -24,
+          "z": 0
+        },
+        "platform": "05",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U5"
+        ],
+        "platforms": {
+          "U5": {
+            "id": "u5-suedstadt:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": -360,
+              "y": -24,
+              "z": 0
+            },
+            "yaw": 1.5707963267948966,
+            "floorY": -24,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u5-stadionpark",
+      {
+        "id": "u5-stadionpark",
+        "name": "Stadionpark",
+        "position": {
+          "x": -720,
+          "y": -24,
+          "z": 0
+        },
+        "platform": "05",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U5"
+        ],
+        "platforms": {
+          "U5": {
+            "id": "u5-stadionpark:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": -720,
+              "y": -24,
+              "z": 0
+            },
+            "yaw": 1.5707963267948966,
+            "floorY": -24,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u5-messepark",
+      {
+        "id": "u5-messepark",
+        "name": "Messepark",
+        "position": {
+          "x": -1080,
+          "y": -24,
+          "z": 0
+        },
+        "platform": "05",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U5"
+        ],
+        "platforms": {
+          "U5": {
+            "id": "u5-messepark:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": -1080,
+              "y": -24,
+              "z": 0
+            },
+            "yaw": 1.5707963267948966,
+            "floorY": -24,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u5-technologiecampus",
+      {
+        "id": "u5-technologiecampus",
+        "name": "Technologiecampus",
+        "position": {
+          "x": -1440,
+          "y": -24,
+          "z": -360
+        },
+        "platform": "05",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U5"
+        ],
+        "platforms": {
+          "U5": {
+            "id": "u5-technologiecampus:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": -1440,
+              "y": -24,
+              "z": -360
+            },
+            "yaw": 0,
+            "floorY": -24,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u5-flughafen",
+      {
+        "id": "u5-flughafen",
+        "name": "Flughafen",
+        "position": {
+          "x": -1440,
+          "y": -24,
+          "z": -720
+        },
+        "platform": "05",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U5"
+        ],
+        "platforms": {
+          "U5": {
+            "id": "u5-flughafen:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": -1440,
+              "y": -24,
+              "z": -720
+            },
+            "yaw": 0,
+            "floorY": -24,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u5-nordklinikum",
+      {
+        "id": "u5-nordklinikum",
+        "name": "Nordklinikum",
+        "position": {
+          "x": -1080,
+          "y": -24,
+          "z": -1080
+        },
+        "platform": "05",
+        "interchangeCapable": true,
+        "plannedLines": [],
+        "lineIds": [
+          "U5",
+          "U9"
+        ],
+        "platforms": {
+          "U5": {
+            "id": "u5-nordklinikum:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": -1080,
+              "y": -24,
+              "z": -1080
+            },
+            "yaw": -1.5707963267948966,
+            "floorY": -24,
+            "level": "lower",
+            "platformSide": -1
+          },
+          "U9": {
+            "id": "u5-nordklinikum:U9",
+            "lineId": "U9",
+            "number": "09",
+            "position": {
+              "x": -1080,
+              "y": -48,
+              "z": -1080
+            },
+            "yaw": 0,
+            "floorY": -48,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u5-waldtor",
+      {
+        "id": "u5-waldtor",
+        "name": "Waldtor",
+        "position": {
+          "x": -720,
+          "y": -24,
+          "z": -1080
+        },
+        "platform": "05",
+        "interchangeCapable": true,
+        "plannedLines": [],
+        "lineIds": [
+          "U5",
+          "U9"
+        ],
+        "platforms": {
+          "U5": {
+            "id": "u5-waldtor:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": -720,
+              "y": -24,
+              "z": -1080
+            },
+            "yaw": -1.5707963267948966,
+            "floorY": -24,
+            "level": "lower",
+            "platformSide": -1
+          },
+          "U9": {
+            "id": "u5-waldtor:U9",
+            "lineId": "U9",
+            "number": "09",
+            "position": {
+              "x": -720,
+              "y": -48,
+              "z": -1080
+            },
+            "yaw": 3.141592653589793,
+            "floorY": -48,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u5-hafenbogen",
+      {
+        "id": "u5-hafenbogen",
+        "name": "Hafenbogen",
+        "position": {
+          "x": -360,
+          "y": -24,
+          "z": -1080
+        },
+        "platform": "05",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U5"
+        ],
+        "platforms": {
+          "U5": {
+            "id": "u5-hafenbogen:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": -360,
+              "y": -24,
+              "z": -1080
+            },
+            "yaw": -1.5707963267948966,
+            "floorY": -24,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u6-theaterinsel",
+      {
+        "id": "u6-theaterinsel",
+        "name": "Theaterinsel",
+        "position": {
+          "x": 336.43,
+          "y": -36,
+          "z": 0
+        },
+        "platform": "06",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U6"
+        ],
+        "platforms": {
+          "U6": {
+            "id": "u6-theaterinsel:U6",
+            "lineId": "U6",
+            "number": "06",
+            "position": {
+              "x": 336.43,
+              "y": -36,
+              "z": 0
+            },
+            "yaw": -1.5707963267948966,
+            "floorY": -36,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u6-suedklinikum",
+      {
+        "id": "u6-suedklinikum",
+        "name": "Südklinikum",
+        "position": {
+          "x": 696.43,
+          "y": -36,
+          "z": 0
+        },
+        "platform": "06",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U6"
+        ],
+        "platforms": {
+          "U6": {
+            "id": "u6-suedklinikum:U6",
+            "lineId": "U6",
+            "number": "06",
+            "position": {
+              "x": 696.43,
+              "y": -36,
+              "z": 0
+            },
+            "yaw": -1.5707963267948966,
+            "floorY": -36,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u6-sonnenfeld",
+      {
+        "id": "u6-sonnenfeld",
+        "name": "Sonnenfeld",
+        "position": {
+          "x": 1056.43,
+          "y": -36,
+          "z": -360
+        },
+        "platform": "06",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U6"
+        ],
+        "platforms": {
+          "U6": {
+            "id": "u6-sonnenfeld:U6",
+            "lineId": "U6",
+            "number": "06",
+            "position": {
+              "x": 1056.43,
+              "y": -36,
+              "z": -360
+            },
+            "yaw": 0,
+            "floorY": -36,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u6-ringplatz",
+      {
+        "id": "u6-ringplatz",
+        "name": "Ringplatz",
+        "position": {
+          "x": 1056.43,
+          "y": -36,
+          "z": -720
+        },
+        "platform": "06",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U6"
+        ],
+        "platforms": {
+          "U6": {
+            "id": "u6-ringplatz:U6",
+            "lineId": "U6",
+            "number": "06",
+            "position": {
+              "x": 1056.43,
+              "y": -36,
+              "z": -720
+            },
+            "yaw": 0,
+            "floorY": -36,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u6-waldsee",
+      {
+        "id": "u6-waldsee",
+        "name": "Waldsee",
+        "position": {
+          "x": 1056.43,
+          "y": -36,
+          "z": -1080
+        },
+        "platform": "06",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U6"
+        ],
+        "platforms": {
+          "U6": {
+            "id": "u6-waldsee:U6",
+            "lineId": "U6",
+            "number": "06",
+            "position": {
+              "x": 1056.43,
+              "y": -36,
+              "z": -1080
+            },
+            "yaw": 0,
+            "floorY": -36,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u6-feldkirchen",
+      {
+        "id": "u6-feldkirchen",
+        "name": "Feldkirchen",
+        "position": {
+          "x": 696.43,
+          "y": -36,
+          "z": -1440
+        },
+        "platform": "06",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U6"
+        ],
+        "platforms": {
+          "U6": {
+            "id": "u6-feldkirchen:U6",
+            "lineId": "U6",
+            "number": "06",
+            "position": {
+              "x": 696.43,
+              "y": -36,
+              "z": -1440
+            },
+            "yaw": 1.5707963267948966,
+            "floorY": -36,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u6-industriepark",
+      {
+        "id": "u6-industriepark",
+        "name": "Industriepark",
+        "position": {
+          "x": 336.43,
+          "y": -36,
+          "z": -1440
+        },
+        "platform": "06",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U6"
+        ],
+        "platforms": {
+          "U6": {
+            "id": "u6-industriepark:U6",
+            "lineId": "U6",
+            "number": "06",
+            "position": {
+              "x": 336.43,
+              "y": -36,
+              "z": -1440
+            },
+            "yaw": 1.5707963267948966,
+            "floorY": -36,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u1-lindenallee",
+      {
+        "id": "u1-lindenallee",
+        "name": "Lindenallee",
+        "position": {
+          "x": 1.57,
+          "y": 0,
+          "z": -960
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U1"
+        ],
+        "platforms": {
+          "U1": {
+            "id": "u1-lindenallee:U1",
+            "lineId": "U1",
+            "number": "01",
+            "position": {
+              "x": 1.57,
+              "y": 0,
+              "z": -960
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u1-universitaetsviertel",
+      {
+        "id": "u1-universitaetsviertel",
+        "name": "Universitätsviertel",
+        "position": {
+          "x": 1.57,
+          "y": 0,
+          "z": -1320
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U1"
+        ],
+        "platforms": {
+          "U1": {
+            "id": "u1-universitaetsviertel:U1",
+            "lineId": "U1",
+            "number": "01",
+            "position": {
+              "x": 1.57,
+              "y": 0,
+              "z": -1320
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u1-botanischer-garten",
+      {
+        "id": "u1-botanischer-garten",
+        "name": "Botanischer Garten",
+        "position": {
+          "x": 1.57,
+          "y": 0,
+          "z": -1680
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U1"
+        ],
+        "platforms": {
+          "U1": {
+            "id": "u1-botanischer-garten:U1",
+            "lineId": "U1",
+            "number": "01",
+            "position": {
+              "x": 1.57,
+              "y": 0,
+              "z": -1680
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u1-ostgaerten",
+      {
+        "id": "u1-ostgaerten",
+        "name": "Ostgärten",
+        "position": {
+          "x": 1.57,
+          "y": 0,
+          "z": -2040
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U1"
+        ],
+        "platforms": {
+          "U1": {
+            "id": "u1-ostgaerten:U1",
+            "lineId": "U1",
+            "number": "01",
+            "position": {
+              "x": 1.57,
+              "y": 0,
+              "z": -2040
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u2-rathausmarkt",
+      {
+        "id": "u2-rathausmarkt",
+        "name": "Rathausmarkt",
+        "position": {
+          "x": -23.57,
+          "y": 0,
+          "z": -120
+        },
+        "platform": "02",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U2"
+        ],
+        "platforms": {
+          "U2": {
+            "id": "u2-rathausmarkt:U2",
+            "lineId": "U2",
+            "number": "02",
+            "position": {
+              "x": -23.57,
+              "y": 0,
+              "z": -120
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper",
+            "platformSide": 1
+          }
+        }
+      }
+    ],
+    [
+      "u2-kupfergasse",
+      {
+        "id": "u2-kupfergasse",
+        "name": "Kupfergasse",
+        "position": {
+          "x": -23.57,
+          "y": 0,
+          "z": -360
+        },
+        "platform": "02",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U2"
+        ],
+        "platforms": {
+          "U2": {
+            "id": "u2-kupfergasse:U2",
+            "lineId": "U2",
+            "number": "02",
+            "position": {
+              "x": -23.57,
+              "y": 0,
+              "z": -360
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper",
+            "platformSide": 1
+          }
+        }
+      }
+    ],
+    [
+      "u2-stahlhof",
+      {
+        "id": "u2-stahlhof",
+        "name": "Stahlhof",
+        "position": {
+          "x": -23.57,
+          "y": 0,
+          "z": -600
+        },
+        "platform": "02",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U2"
+        ],
+        "platforms": {
+          "U2": {
+            "id": "u2-stahlhof:U2",
+            "lineId": "U2",
+            "number": "02",
+            "position": {
+              "x": -23.57,
+              "y": 0,
+              "z": -600
+            },
+            "yaw": 0,
+            "floorY": 0,
+            "level": "upper",
+            "platformSide": 1
+          }
+        }
+      }
+    ],
+    [
+      "u3-museumsinsel",
+      {
+        "id": "u3-museumsinsel",
+        "name": "Museumsinsel",
+        "position": {
+          "x": 1.57,
+          "y": -12,
+          "z": -1080
+        },
+        "platform": "03",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U3"
+        ],
+        "platforms": {
+          "U3": {
+            "id": "u3-museumsinsel:U3",
+            "lineId": "U3",
+            "number": "03",
+            "position": {
+              "x": 1.57,
+              "y": -12,
+              "z": -1080
+            },
+            "yaw": 0,
+            "floorY": -12,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u3-kanalpark",
+      {
+        "id": "u3-kanalpark",
+        "name": "Kanalpark",
+        "position": {
+          "x": 1.57,
+          "y": -12,
+          "z": -1440
+        },
+        "platform": "03",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U3"
+        ],
+        "platforms": {
+          "U3": {
+            "id": "u3-kanalpark:U3",
+            "lineId": "U3",
+            "number": "03",
+            "position": {
+              "x": 1.57,
+              "y": -12,
+              "z": -1440
+            },
+            "yaw": 0,
+            "floorY": -12,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u3-seetor",
+      {
+        "id": "u3-seetor",
+        "name": "Seetor",
+        "position": {
+          "x": 1.57,
+          "y": -12,
+          "z": -1800
+        },
+        "platform": "03",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U3"
+        ],
+        "platforms": {
+          "U3": {
+            "id": "u3-seetor:U3",
+            "lineId": "U3",
+            "number": "03",
+            "position": {
+              "x": 1.57,
+              "y": -12,
+              "z": -1800
+            },
+            "yaw": 0,
+            "floorY": -12,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u5-altstadtbruecke",
+      {
+        "id": "u5-altstadtbruecke",
+        "name": "Altstadtbrücke",
+        "position": {
+          "x": 1150,
+          "y": 0,
+          "z": -430
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U5"
+        ],
+        "platforms": {
+          "U5": {
+            "id": "u5-altstadtbruecke:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": 1150,
+              "y": 0,
+              "z": -430
+            },
+            "yaw": -1.5707963267948966,
+            "floorY": 0,
+            "level": "surface",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u5-uferpromenade",
+      {
+        "id": "u5-uferpromenade",
+        "name": "Uferpromenade",
+        "position": {
+          "x": 3500,
+          "y": 0,
+          "z": -430
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U5"
+        ],
+        "platforms": {
+          "U5": {
+            "id": "u5-uferpromenade:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": 3500,
+              "y": 0,
+              "z": -430
+            },
+            "yaw": -1.5707963267948966,
+            "floorY": 0,
+            "level": "surface",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u5-steinbogen",
+      {
+        "id": "u5-steinbogen",
+        "name": "Steinbogen",
+        "position": {
+          "x": 3550,
+          "y": 0,
+          "z": -1070
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U5"
+        ],
+        "platforms": {
+          "U5": {
+            "id": "u5-steinbogen:U5",
+            "lineId": "U5",
+            "number": "05",
+            "position": {
+              "x": 3550,
+              "y": 0,
+              "z": -1070
+            },
+            "yaw": 1.5707963267948966,
+            "floorY": 0,
+            "level": "surface",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u9-kaiserforum",
+      {
+        "id": "u9-kaiserforum",
+        "name": "Kaiserforum",
+        "position": {
+          "x": 1.57,
+          "y": -48,
+          "z": -460
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U9"
+        ],
+        "platforms": {
+          "U9": {
+            "id": "u9-kaiserforum:U9",
+            "lineId": "U9",
+            "number": "09",
+            "position": {
+              "x": 1.57,
+              "y": -48,
+              "z": -460
+            },
+            "yaw": 0,
+            "floorY": -48,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u9-goldmarkt",
+      {
+        "id": "u9-goldmarkt",
+        "name": "Goldmarkt",
+        "position": {
+          "x": -340,
+          "y": -48,
+          "z": -850
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U9"
+        ],
+        "platforms": {
+          "U9": {
+            "id": "u9-goldmarkt:U9",
+            "lineId": "U9",
+            "number": "09",
+            "position": {
+              "x": -340,
+              "y": -48,
+              "z": -850
+            },
+            "yaw": 1.5707963267948966,
+            "floorY": -48,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u9-sonnenviertel",
+      {
+        "id": "u9-sonnenviertel",
+        "name": "Sonnenviertel",
+        "position": {
+          "x": -700,
+          "y": -48,
+          "z": -850
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U9"
+        ],
+        "platforms": {
+          "U9": {
+            "id": "u9-sonnenviertel:U9",
+            "lineId": "U9",
+            "number": "09",
+            "position": {
+              "x": -700,
+              "y": -48,
+              "z": -850
+            },
+            "yaw": 1.5707963267948966,
+            "floorY": -48,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u9-hohenbrueck",
+      {
+        "id": "u9-hohenbrueck",
+        "name": "Hohenbrück",
+        "position": {
+          "x": -1440,
+          "y": -48,
+          "z": -1900
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U9"
+        ],
+        "platforms": {
+          "U9": {
+            "id": "u9-hohenbrueck:U9",
+            "lineId": "U9",
+            "number": "09",
+            "position": {
+              "x": -1440,
+              "y": -48,
+              "z": -1900
+            },
+            "yaw": 0,
+            "floorY": -48,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ],
+    [
+      "u9-kronenplatz",
+      {
+        "id": "u9-kronenplatz",
+        "name": "Kronenplatz",
+        "position": {
+          "x": -1080,
+          "y": -48,
+          "z": -2260
+        },
+        "platform": "01",
+        "interchangeCapable": false,
+        "plannedLines": [],
+        "lineIds": [
+          "U9"
+        ],
+        "platforms": {
+          "U9": {
+            "id": "u9-kronenplatz:U9",
+            "lineId": "U9",
+            "number": "09",
+            "position": {
+              "x": -1080,
+              "y": -48,
+              "z": -2260
+            },
+            "yaw": -1.5707963267948966,
+            "floorY": -48,
+            "level": "lower",
+            "platformSide": -1
+          }
+        }
+      }
+    ]
+  ],
+  "links": [
+    [
+      "u1-nordplatz-central",
+      {
+        "id": "u1-nordplatz-central",
+        "from": "station-1",
+        "to": "station-2",
+        "length": 240,
+        "permittedLineIds": [
+          "U1"
+        ]
+      }
+    ],
+    [
+      "u1-central-rosenheimer",
+      {
+        "id": "u1-central-rosenheimer",
+        "from": "station-2",
+        "to": "station-3",
+        "length": 240,
+        "permittedLineIds": [
+          "U1"
+        ]
+      }
+    ],
+    [
+      "u3-schattenufer-central",
+      {
+        "id": "u3-schattenufer-central",
+        "from": "u3-schattenufer",
+        "to": "station-2",
+        "length": 390,
+        "permittedLineIds": [
+          "U3"
+        ]
+      }
+    ],
+    [
+      "u3-central-ostbahnhof",
+      {
+        "id": "u3-central-ostbahnhof",
+        "from": "station-2",
+        "to": "u3-ostbahnhof",
+        "length": 240,
+        "permittedLineIds": [
+          "U3"
+        ]
+      }
+    ],
+    [
+      "u3-ostbahnhof-stadtbruecke",
+      {
+        "id": "u3-ostbahnhof-stadtbruecke",
+        "from": "u3-ostbahnhof",
+        "to": "u3-stadtbruecke",
+        "length": 240,
+        "permittedLineIds": [
+          "U3"
+        ]
+      }
+    ],
+    [
+      "u4-kaiser-humboldt-westbahnhof",
+      {
+        "id": "u4-kaiser-humboldt-westbahnhof",
+        "from": "u4-kaiser-humboldt",
+        "to": "u4-westbahnhof",
+        "length": 240,
+        "permittedLineIds": [
+          "U4"
+        ]
+      }
+    ],
+    [
+      "u4-westbahnhof-central",
+      {
+        "id": "u4-westbahnhof-central",
+        "from": "u4-westbahnhof",
+        "to": "station-2",
+        "length": 240,
+        "permittedLineIds": [
+          "U4"
+        ]
+      }
+    ],
+    [
+      "u4-central-arabellapark",
+      {
+        "id": "u4-central-arabellapark",
+        "from": "station-2",
+        "to": "u4-arabellapark",
+        "length": 240,
+        "permittedLineIds": [
+          "U4"
+        ]
+      }
+    ],
+    [
+      "u5-westbahnhof-suedstadt",
+      {
+        "id": "u5-westbahnhof-suedstadt",
+        "from": "u4-westbahnhof",
+        "to": "u5-suedstadt",
+        "length": 336.43,
+        "permittedLineIds": [
+          "U5"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -23.57,
+                -24,
+                0
+              ],
+              [
+                -360,
+                -24,
+                0
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u5-suedstadt-stadionpark",
+      {
+        "id": "u5-suedstadt-stadionpark",
+        "from": "u5-suedstadt",
+        "to": "u5-stadionpark",
+        "length": 360,
+        "permittedLineIds": [
+          "U5"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -360,
+                -24,
+                0
+              ],
+              [
+                -720,
+                -24,
+                0
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u5-stadionpark-messepark",
+      {
+        "id": "u5-stadionpark-messepark",
+        "from": "u5-stadionpark",
+        "to": "u5-messepark",
+        "length": 360,
+        "permittedLineIds": [
+          "U5"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -720,
+                -24,
+                0
+              ],
+              [
+                -1080,
+                -24,
+                0
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u5-messepark-technologiecampus",
+      {
+        "id": "u5-messepark-technologiecampus",
+        "from": "u5-messepark",
+        "to": "u5-technologiecampus",
+        "length": 593.4497439306494,
+        "permittedLineIds": [
+          "U5"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -1080,
+                -24,
+                0
+              ],
+              [
+                -1145,
+                -24,
+                -3.980102097228898e-15
+              ]
+            ]
+          },
+          {
+            "type": "cubic",
+            "points": [
+              [
+                -1145,
+                -24,
+                -3.980102097228898e-15
+              ],
+              [
+                -1307.9240012000841,
+                -24,
+                -1.3956319925927022e-14
+              ],
+              [
+                -1440,
+                -24,
+                -132.0759987999159
+              ],
+              [
+                -1440,
+                -24,
+                -295
+              ]
+            ]
+          },
+          {
+            "type": "line",
+            "points": [
+              [
+                -1440,
+                -24,
+                -295
+              ],
+              [
+                -1440,
+                -24,
+                -360
+              ]
+            ]
+          }
+        ],
+        "hasCurves": true
+      }
+    ],
+    [
+      "u5-technologiecampus-flughafen",
+      {
+        "id": "u5-technologiecampus-flughafen",
+        "from": "u5-technologiecampus",
+        "to": "u5-flughafen",
+        "length": 360,
+        "permittedLineIds": [
+          "U5"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -1440,
+                -24,
+                -360
+              ],
+              [
+                -1440,
+                -24,
+                -720
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u5-flughafen-nordklinikum",
+      {
+        "id": "u5-flughafen-nordklinikum",
+        "from": "u5-flughafen",
+        "to": "u5-nordklinikum",
+        "length": 593.4497439306494,
+        "permittedLineIds": [
+          "U5"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -1440,
+                -24,
+                -720
+              ],
+              [
+                -1440,
+                -24,
+                -785
+              ]
+            ]
+          },
+          {
+            "type": "cubic",
+            "points": [
+              [
+                -1440,
+                -24,
+                -785
+              ],
+              [
+                -1440,
+                -24,
+                -947.9240012000841
+              ],
+              [
+                -1307.9240012000841,
+                -24,
+                -1080
+              ],
+              [
+                -1145,
+                -24,
+                -1080
+              ]
+            ]
+          },
+          {
+            "type": "line",
+            "points": [
+              [
+                -1145,
+                -24,
+                -1080
+              ],
+              [
+                -1080,
+                -24,
+                -1080
+              ]
+            ]
+          }
+        ],
+        "hasCurves": true
+      }
+    ],
+    [
+      "u5-nordklinikum-waldtor",
+      {
+        "id": "u5-nordklinikum-waldtor",
+        "from": "u5-nordklinikum",
+        "to": "u5-waldtor",
+        "length": 360,
+        "permittedLineIds": [
+          "U5"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -1080,
+                -24,
+                -1080
+              ],
+              [
+                -720,
+                -24,
+                -1080
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u5-waldtor-hafenbogen",
+      {
+        "id": "u5-waldtor-hafenbogen",
+        "from": "u5-waldtor",
+        "to": "u5-hafenbogen",
+        "length": 360,
+        "permittedLineIds": [
+          "U5"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -720,
+                -24,
+                -1080
+              ],
+              [
+                -360,
+                -24,
+                -1080
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u5-hafenbogen-ostbahnhof",
+      {
+        "id": "u5-hafenbogen-ostbahnhof",
+        "from": "u5-hafenbogen",
+        "to": "u3-ostbahnhof",
+        "length": 834.3462391780097,
+        "permittedLineIds": [
+          "U5"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -360,
+                -24,
+                -1080
+              ],
+              [
+                -295,
+                -24,
+                -1080
+              ]
+            ]
+          },
+          {
+            "type": "cubic",
+            "points": [
+              [
+                -295,
+                -24,
+                -1080
+              ],
+              [
+                -131.20891174268158,
+                -24,
+                -1080
+              ],
+              [
+                1.5700000000000573,
+                -24,
+                -947.2210882573185
+              ],
+              [
+                1.5700000000000374,
+                -24,
+                -783.4300000000001
+              ]
+            ]
+          },
+          {
+            "type": "line",
+            "points": [
+              [
+                1.5700000000000374,
+                -24,
+                -783.4300000000001
+              ],
+              [
+                1.57,
+                -24,
+                -480
+              ]
+            ]
+          }
+        ],
+        "hasCurves": true
+      }
+    ],
+    [
+      "u6-stadtzentrum-theaterinsel",
+      {
+        "id": "u6-stadtzentrum-theaterinsel",
+        "from": "u2-stadtzentrum",
+        "to": "u6-theaterinsel",
+        "length": 360,
+        "permittedLineIds": [
+          "U6"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -23.57,
+                -36,
+                0
+              ],
+              [
+                336.43,
+                -36,
+                0
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u6-theaterinsel-suedklinikum",
+      {
+        "id": "u6-theaterinsel-suedklinikum",
+        "from": "u6-theaterinsel",
+        "to": "u6-suedklinikum",
+        "length": 359.99999999999994,
+        "permittedLineIds": [
+          "U6"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                336.43,
+                -36,
+                0
+              ],
+              [
+                696.43,
+                -36,
+                0
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u6-suedklinikum-sonnenfeld",
+      {
+        "id": "u6-suedklinikum-sonnenfeld",
+        "from": "u6-suedklinikum",
+        "to": "u6-sonnenfeld",
+        "length": 593.4497439306497,
+        "permittedLineIds": [
+          "U6"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                696.43,
+                -36,
+                0
+              ],
+              [
+                761.4300000000001,
+                -36,
+                -3.980102097228905e-15
+              ]
+            ]
+          },
+          {
+            "type": "cubic",
+            "points": [
+              [
+                761.4300000000001,
+                -36,
+                -3.980102097228905e-15
+              ],
+              [
+                924.3540012000842,
+                -36,
+                -1.395631992592703e-14
+              ],
+              [
+                1056.43,
+                -36,
+                -132.0759987999159
+              ],
+              [
+                1056.43,
+                -36,
+                -295
+              ]
+            ]
+          },
+          {
+            "type": "line",
+            "points": [
+              [
+                1056.43,
+                -36,
+                -295
+              ],
+              [
+                1056.43,
+                -36,
+                -360
+              ]
+            ]
+          }
+        ],
+        "hasCurves": true
+      }
+    ],
+    [
+      "u6-sonnenfeld-ringplatz",
+      {
+        "id": "u6-sonnenfeld-ringplatz",
+        "from": "u6-sonnenfeld",
+        "to": "u6-ringplatz",
+        "length": 360,
+        "permittedLineIds": [
+          "U6"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                1056.43,
+                -36,
+                -360
+              ],
+              [
+                1056.43,
+                -36,
+                -720
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u6-ringplatz-waldsee",
+      {
+        "id": "u6-ringplatz-waldsee",
+        "from": "u6-ringplatz",
+        "to": "u6-waldsee",
+        "length": 360,
+        "permittedLineIds": [
+          "U6"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                1056.43,
+                -36,
+                -720
+              ],
+              [
+                1056.43,
+                -36,
+                -1080
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u6-waldsee-feldkirchen",
+      {
+        "id": "u6-waldsee-feldkirchen",
+        "from": "u6-waldsee",
+        "to": "u6-feldkirchen",
+        "length": 593.4497439306496,
+        "permittedLineIds": [
+          "U6"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                1056.43,
+                -36,
+                -1080
+              ],
+              [
+                1056.43,
+                -36,
+                -1145
+              ]
+            ]
+          },
+          {
+            "type": "cubic",
+            "points": [
+              [
+                1056.43,
+                -36,
+                -1145
+              ],
+              [
+                1056.43,
+                -36,
+                -1307.9240012000841
+              ],
+              [
+                924.3540012000842,
+                -36,
+                -1440
+              ],
+              [
+                761.4300000000001,
+                -36,
+                -1440
+              ]
+            ]
+          },
+          {
+            "type": "line",
+            "points": [
+              [
+                761.4300000000001,
+                -36,
+                -1440
+              ],
+              [
+                696.43,
+                -36,
+                -1440
+              ]
+            ]
+          }
+        ],
+        "hasCurves": true
+      }
+    ],
+    [
+      "u6-feldkirchen-industriepark",
+      {
+        "id": "u6-feldkirchen-industriepark",
+        "from": "u6-feldkirchen",
+        "to": "u6-industriepark",
+        "length": 359.99999999999994,
+        "permittedLineIds": [
+          "U6"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                696.43,
+                -36,
+                -1440
+              ],
+              [
+                336.43,
+                -36,
+                -1440
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u6-industriepark-arabellapark",
+      {
+        "id": "u6-industriepark-arabellapark",
+        "from": "u6-industriepark",
+        "to": "u4-arabellapark",
+        "length": 1193.4497439306494,
+        "permittedLineIds": [
+          "U6"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                336.43,
+                -36,
+                -1440
+              ],
+              [
+                271.43,
+                -36,
+                -1440
+              ]
+            ]
+          },
+          {
+            "type": "cubic",
+            "points": [
+              [
+                271.43,
+                -36,
+                -1440
+              ],
+              [
+                108.50599879991594,
+                -36,
+                -1440
+              ],
+              [
+                -23.569999999999897,
+                -36,
+                -1307.9240012000841
+              ],
+              [
+                -23.56999999999992,
+                -36,
+                -1145
+              ]
+            ]
+          },
+          {
+            "type": "line",
+            "points": [
+              [
+                -23.56999999999992,
+                -36,
+                -1145
+              ],
+              [
+                -23.57,
+                -36,
+                -480
+              ]
+            ]
+          }
+        ],
+        "hasCurves": true
+      }
+    ],
+    [
+      "u1-rosenheimer-lindenallee",
+      {
+        "id": "u1-rosenheimer-lindenallee",
+        "from": "station-3",
+        "to": "u1-lindenallee",
+        "length": 480,
+        "permittedLineIds": [
+          "U1"
+        ]
+      }
+    ],
+    [
+      "u1-lindenallee-universitaetsviertel",
+      {
+        "id": "u1-lindenallee-universitaetsviertel",
+        "from": "u1-lindenallee",
+        "to": "u1-universitaetsviertel",
+        "length": 360,
+        "permittedLineIds": [
+          "U1"
+        ]
+      }
+    ],
+    [
+      "u1-universitaetsviertel-botanischer-garten",
+      {
+        "id": "u1-universitaetsviertel-botanischer-garten",
+        "from": "u1-universitaetsviertel",
+        "to": "u1-botanischer-garten",
+        "length": 360,
+        "permittedLineIds": [
+          "U1"
+        ]
+      }
+    ],
+    [
+      "u1-botanischer-garten-ostgaerten",
+      {
+        "id": "u1-botanischer-garten-ostgaerten",
+        "from": "u1-botanischer-garten",
+        "to": "u1-ostgaerten",
+        "length": 360,
+        "permittedLineIds": [
+          "U1"
+        ]
+      }
+    ],
+    [
+      "u2-stadtzentrum-rathausmarkt",
+      {
+        "id": "u2-stadtzentrum-rathausmarkt",
+        "from": "u2-stadtzentrum",
+        "to": "u2-rathausmarkt",
+        "length": 120,
+        "permittedLineIds": [
+          "U2"
+        ]
+      }
+    ],
+    [
+      "u2-rathausmarkt-central",
+      {
+        "id": "u2-rathausmarkt-central",
+        "from": "u2-rathausmarkt",
+        "to": "station-2",
+        "length": 120,
+        "permittedLineIds": [
+          "U2"
+        ]
+      }
+    ],
+    [
+      "u2-central-kupfergasse",
+      {
+        "id": "u2-central-kupfergasse",
+        "from": "station-2",
+        "to": "u2-kupfergasse",
+        "length": 120,
+        "permittedLineIds": [
+          "U2"
+        ]
+      }
+    ],
+    [
+      "u2-kupfergasse-schwarzkopf",
+      {
+        "id": "u2-kupfergasse-schwarzkopf",
+        "from": "u2-kupfergasse",
+        "to": "u2-schwarzkopf",
+        "length": 120,
+        "permittedLineIds": [
+          "U2"
+        ]
+      }
+    ],
+    [
+      "u2-schwarzkopf-stahlhof",
+      {
+        "id": "u2-schwarzkopf-stahlhof",
+        "from": "u2-schwarzkopf",
+        "to": "u2-stahlhof",
+        "length": 120,
+        "permittedLineIds": [
+          "U2"
+        ]
+      }
+    ],
+    [
+      "u2-stahlhof-eisenwerk",
+      {
+        "id": "u2-stahlhof-eisenwerk",
+        "from": "u2-stahlhof",
+        "to": "u2-eisenwerk",
+        "length": 120,
+        "permittedLineIds": [
+          "U2"
+        ]
+      }
+    ],
+    [
+      "u3-stadtbruecke-museumsinsel",
+      {
+        "id": "u3-stadtbruecke-museumsinsel",
+        "from": "u3-stadtbruecke",
+        "to": "u3-museumsinsel",
+        "length": 360,
+        "permittedLineIds": [
+          "U3"
+        ]
+      }
+    ],
+    [
+      "u3-museumsinsel-kanalpark",
+      {
+        "id": "u3-museumsinsel-kanalpark",
+        "from": "u3-museumsinsel",
+        "to": "u3-kanalpark",
+        "length": 360,
+        "permittedLineIds": [
+          "U3"
+        ]
+      }
+    ],
+    [
+      "u3-kanalpark-seetor",
+      {
+        "id": "u3-kanalpark-seetor",
+        "from": "u3-kanalpark",
+        "to": "u3-seetor",
+        "length": 360,
+        "permittedLineIds": [
+          "U3"
+        ]
+      }
+    ],
+    [
+      "u9-station-2-u9-kaiserforum",
+      {
+        "id": "u9-station-2-u9-kaiserforum",
+        "from": "station-2",
+        "to": "u9-kaiserforum",
+        "length": 220,
+        "permittedLineIds": [
+          "U9"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                1.57,
+                -48,
+                -240
+              ],
+              [
+                1.57,
+                -48,
+                -460
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u9-u9-kaiserforum-u9-goldmarkt",
+      {
+        "id": "u9-u9-kaiserforum-u9-goldmarkt",
+        "from": "u9-kaiserforum",
+        "to": "u9-goldmarkt",
+        "length": 612.9259175555931,
+        "permittedLineIds": [
+          "U9"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                1.57,
+                -48,
+                -460
+              ],
+              [
+                1.57,
+                -48,
+                -573.4300000000001
+              ]
+            ]
+          },
+          {
+            "type": "cubic",
+            "points": [
+              [
+                1.57,
+                -48,
+                -573.4300000000001
+              ],
+              [
+                1.57,
+                -48,
+                -726.1753932607027
+              ],
+              [
+                -122.25460673929743,
+                -48,
+                -850
+              ],
+              [
+                -275,
+                -48,
+                -850
+              ]
+            ]
+          },
+          {
+            "type": "line",
+            "points": [
+              [
+                -275,
+                -48,
+                -850
+              ],
+              [
+                -340,
+                -48,
+                -850
+              ]
+            ]
+          }
+        ],
+        "hasCurves": true
+      }
+    ],
+    [
+      "u9-u9-goldmarkt-u9-sonnenviertel",
+      {
+        "id": "u9-u9-goldmarkt-u9-sonnenviertel",
+        "from": "u9-goldmarkt",
+        "to": "u9-sonnenviertel",
+        "length": 360,
+        "permittedLineIds": [
+          "U9"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -340,
+                -48,
+                -850
+              ],
+              [
+                -700,
+                -48,
+                -850
+              ]
+            ]
+          }
+        ],
+        "hasCurves": false
+      }
+    ],
+    [
+      "u9-u9-sonnenviertel-u5-nordklinikum",
+      {
+        "id": "u9-u9-sonnenviertel-u5-nordklinikum",
+        "from": "u9-sonnenviertel",
+        "to": "u5-nordklinikum",
+        "length": 539.2176533849397,
+        "permittedLineIds": [
+          "U9"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -700,
+                -48,
+                -850
+              ],
+              [
+                -915,
+                -48,
+                -850
+              ]
+            ]
+          },
+          {
+            "type": "cubic",
+            "points": [
+              [
+                -915,
+                -48,
+                -850
+              ],
+              [
+                -1006.1269837220809,
+                -48,
+                -850
+              ],
+              [
+                -1080,
+                -48,
+                -923.8730162779191
+              ],
+              [
+                -1080,
+                -48,
+                -1015
+              ]
+            ]
+          },
+          {
+            "type": "line",
+            "points": [
+              [
+                -1080,
+                -48,
+                -1015
+              ],
+              [
+                -1080,
+                -48,
+                -1080
+              ]
+            ]
+          }
+        ],
+        "hasCurves": true
+      }
+    ],
+    [
+      "u9-u5-nordklinikum-u9-hohenbrueck",
+      {
+        "id": "u9-u5-nordklinikum-u9-hohenbrueck",
+        "from": "u5-nordklinikum",
+        "to": "u9-hohenbrueck",
+        "length": 941.1687989617494,
+        "permittedLineIds": [
+          "U9"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -1080,
+                -48,
+                -1080
+              ],
+              [
+                -1080,
+                -48,
+                -1145
+              ]
+            ]
+          },
+          {
+            "type": "cubic",
+            "points": [
+              [
+                -1080,
+                -48,
+                -1145
+              ],
+              [
+                -1080,
+                -48,
+                -1526.0764773832475
+              ],
+              [
+                -1440,
+                -48,
+                -1453.9235226167525
+              ],
+              [
+                -1440,
+                -48,
+                -1835
+              ]
+            ]
+          },
+          {
+            "type": "line",
+            "points": [
+              [
+                -1440,
+                -48,
+                -1835
+              ],
+              [
+                -1440,
+                -48,
+                -1900
+              ]
+            ]
+          }
+        ],
+        "hasCurves": true
+      }
+    ],
+    [
+      "u9-u9-hohenbrueck-u9-kronenplatz",
+      {
+        "id": "u9-u9-hohenbrueck-u9-kronenplatz",
+        "from": "u9-hohenbrueck",
+        "to": "u9-kronenplatz",
+        "length": 593.4497439306496,
+        "permittedLineIds": [
+          "U9"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -1440,
+                -48,
+                -1900
+              ],
+              [
+                -1440,
+                -48,
+                -1965
+              ]
+            ]
+          },
+          {
+            "type": "cubic",
+            "points": [
+              [
+                -1440,
+                -48,
+                -1965
+              ],
+              [
+                -1440,
+                -48,
+                -2127.924001200084
+              ],
+              [
+                -1307.9240012000841,
+                -48,
+                -2260
+              ],
+              [
+                -1145,
+                -48,
+                -2260
+              ]
+            ]
+          },
+          {
+            "type": "line",
+            "points": [
+              [
+                -1145,
+                -48,
+                -2260
+              ],
+              [
+                -1080,
+                -48,
+                -2260
+              ]
+            ]
+          }
+        ],
+        "hasCurves": true
+      }
+    ],
+    [
+      "u9-u9-kronenplatz-u5-waldtor",
+      {
+        "id": "u9-u9-kronenplatz-u5-waldtor",
+        "from": "u9-kronenplatz",
+        "to": "u5-waldtor",
+        "length": 1413.44974393065,
+        "permittedLineIds": [
+          "U9"
+        ],
+        "controlPoints": [
+          {
+            "type": "line",
+            "points": [
+              [
+                -1080,
+                -48,
+                -2260
+              ],
+              [
+                -1015,
+                -48,
+                -2260
+              ]
+            ]
+          },
+          {
+            "type": "cubic",
+            "points": [
+              [
+                -1015,
+                -48,
+                -2260
+              ],
+              [
+                -852.075998799916,
+                -48,
+                -2260
+              ],
+              [
+                -719.9999999999999,
+                -48,
+                -2127.924001200084
+              ],
+              [
+                -719.9999999999999,
+                -48,
+                -1965
+              ]
+            ]
+          },
+          {
+            "type": "line",
+            "points": [
+              [
+                -719.9999999999999,
+                -48,
+                -1965
+              ],
+              [
+                -720,
+                -48,
+                -1080
+              ]
+            ]
+          }
+        ],
+        "hasCurves": true
+      }
+    ]
+  ],
+  "lines": [
+    [
+      "U1",
+      {
+        "id": "U1",
+        "name": "U1",
+        "color": "#c8784d",
+        "nodeIds": [
+          "station-1",
+          "station-2",
+          "station-3",
+          "u1-lindenallee",
+          "u1-universitaetsviertel",
+          "u1-botanischer-garten",
+          "u1-ostgaerten"
+        ],
+        "linkIds": [
+          "u1-nordplatz-central",
+          "u1-central-rosenheimer",
+          "u1-rosenheimer-lindenallee",
+          "u1-lindenallee-universitaetsviertel",
+          "u1-universitaetsviertel-botanischer-garten",
+          "u1-botanischer-garten-ostgaerten"
+        ]
+      }
+    ],
+    [
+      "U2",
+      {
+        "id": "U2",
+        "name": "The Industrial Line",
+        "color": "#b4443d",
+        "nodeIds": [
+          "u2-stadtzentrum",
+          "u2-rathausmarkt",
+          "station-2",
+          "u2-kupfergasse",
+          "u2-schwarzkopf",
+          "u2-stahlhof",
+          "u2-eisenwerk"
+        ],
+        "linkIds": [
+          "u2-stadtzentrum-rathausmarkt",
+          "u2-rathausmarkt-central",
+          "u2-central-kupfergasse",
+          "u2-kupfergasse-schwarzkopf",
+          "u2-schwarzkopf-stahlhof",
+          "u2-stahlhof-eisenwerk"
+        ]
+      }
+    ],
+    [
+      "U3",
+      {
+        "id": "U3",
+        "name": "The Modern Line",
+        "color": "#3e71b6",
+        "nodeIds": [
+          "u3-schattenufer",
+          "station-2",
+          "u3-ostbahnhof",
+          "u3-stadtbruecke",
+          "u3-museumsinsel",
+          "u3-kanalpark",
+          "u3-seetor"
+        ],
+        "linkIds": [
+          "u3-schattenufer-central",
+          "u3-central-ostbahnhof",
+          "u3-ostbahnhof-stadtbruecke",
+          "u3-stadtbruecke-museumsinsel",
+          "u3-museumsinsel-kanalpark",
+          "u3-kanalpark-seetor"
+        ]
+      }
+    ],
+    [
+      "U4",
+      {
+        "id": "U4",
+        "name": "The Historic Line",
+        "color": "#8d58ac",
+        "nodeIds": [
+          "u4-kaiser-humboldt",
+          "u4-westbahnhof",
+          "station-2",
+          "u4-arabellapark"
+        ],
+        "linkIds": [
+          "u4-kaiser-humboldt-westbahnhof",
+          "u4-westbahnhof-central",
+          "u4-central-arabellapark"
+        ]
+      }
+    ],
+    [
+      "U5",
+      {
+        "id": "U5",
+        "name": "The West–East City Connector",
+        "color": "#b88c39",
+        "nodeIds": [
+          "u4-westbahnhof",
+          "u5-suedstadt",
+          "u5-stadionpark",
+          "u5-messepark",
+          "u5-technologiecampus",
+          "u5-flughafen",
+          "u5-nordklinikum",
+          "u5-waldtor",
+          "u5-hafenbogen",
+          "u3-ostbahnhof"
+        ],
+        "linkIds": [
+          "u5-westbahnhof-suedstadt",
+          "u5-suedstadt-stadionpark",
+          "u5-stadionpark-messepark",
+          "u5-messepark-technologiecampus",
+          "u5-technologiecampus-flughafen",
+          "u5-flughafen-nordklinikum",
+          "u5-nordklinikum-waldtor",
+          "u5-waldtor-hafenbogen",
+          "u5-hafenbogen-ostbahnhof"
+        ]
+      }
+    ],
+    [
+      "U6",
+      {
+        "id": "U6",
+        "name": "The Southern Growth Corridor",
+        "color": "#35947b",
+        "nodeIds": [
+          "u2-stadtzentrum",
+          "u6-theaterinsel",
+          "u6-suedklinikum",
+          "u6-sonnenfeld",
+          "u6-ringplatz",
+          "u6-waldsee",
+          "u6-feldkirchen",
+          "u6-industriepark",
+          "u4-arabellapark"
+        ],
+        "linkIds": [
+          "u6-stadtzentrum-theaterinsel",
+          "u6-theaterinsel-suedklinikum",
+          "u6-suedklinikum-sonnenfeld",
+          "u6-sonnenfeld-ringplatz",
+          "u6-ringplatz-waldsee",
+          "u6-waldsee-feldkirchen",
+          "u6-feldkirchen-industriepark",
+          "u6-industriepark-arabellapark"
+        ]
+      }
+    ],
+    [
+      "U9",
+      {
+        "id": "U9",
+        "name": "The Golden Southwest Line",
+        "color": "#f7d348",
+        "nodeIds": [
+          "station-2",
+          "u9-kaiserforum",
+          "u9-goldmarkt",
+          "u9-sonnenviertel",
+          "u5-nordklinikum",
+          "u9-hohenbrueck",
+          "u9-kronenplatz",
+          "u5-waldtor"
+        ],
+        "linkIds": [
+          "u9-station-2-u9-kaiserforum",
+          "u9-u9-kaiserforum-u9-goldmarkt",
+          "u9-u9-goldmarkt-u9-sonnenviertel",
+          "u9-u9-sonnenviertel-u5-nordklinikum",
+          "u9-u5-nordklinikum-u9-hohenbrueck",
+          "u9-u9-hohenbrueck-u9-kronenplatz",
+          "u9-u9-kronenplatz-u5-waldtor"
+        ]
+      }
+    ]
+  ]
+}

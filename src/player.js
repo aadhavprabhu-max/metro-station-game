@@ -23,6 +23,7 @@ export class PlayerController {
     this.previousRideOffset = new THREE.Vector3();
     this.previousRidingCar = null;
     this.previousRideYaw = null;
+    this.previousRidePitch = null;
     this.interiorObstacles = [];
     this.keys = new Set();
     this.walkSpeed = 4.5;
@@ -156,6 +157,7 @@ export class PlayerController {
       this.ridingCar = null;
       this.previousRidingCar = null;
       this.previousRideYaw = null;
+    this.previousRidePitch = null;
       this.transferSurface = null;
       this.useStation(station);
       this.camera.position.copy(localExit);
@@ -177,6 +179,7 @@ export class PlayerController {
     this.previousRideOffset.copy(this.ridingOffset);
     this.previousRidingCar = this.ridingCar;
     this.previousRideYaw = null;
+    this.previousRidePitch = null;
     if (this.ridingCar.userData.interiorLayout) {
       // Furniture and driver partitions supply their own car-local bounds.
       this.interiorObstacles = this.ridingCar.interiorColliders;
@@ -212,6 +215,11 @@ export class PlayerController {
       this.previousRidingCar = car;
       const matrix = car.matrixWorld.elements;
       const carYaw = Math.atan2(matrix[8], matrix[10]);
+      if (this.service.route.hasGrades) {
+        const carPitch = Math.atan2(-matrix[9], Math.hypot(matrix[8], matrix[10]));
+        if (this.previousRidePitch != null) this.pitch = THREE.MathUtils.clamp(this.pitch + carPitch - this.previousRidePitch, -1.25, 1.25);
+        this.previousRidePitch = carPitch;
+      }
       if (this.previousRideYaw !== null) {
         this.yaw += Math.atan2(Math.sin(carYaw - this.previousRideYaw), Math.cos(carYaw - this.previousRideYaw));
         this.applyLook();
@@ -229,6 +237,7 @@ export class PlayerController {
     this.ridingCar = null;
     this.previousRidingCar = null;
     this.previousRideYaw = null;
+    this.previousRidePitch = null;
     this.transferSurface = null;
     const start = this.stations.find(station => station.stationId === this.startStationId && (station.lineId ?? 'U1') === this.startLineId) ?? this.stations[0];
     this.useStation(start);

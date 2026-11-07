@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { writeFile } from 'node:fs/promises';
 import { createCompleteMetroNetwork } from '../src/network.js';
+import { createPhase6Network } from '../src/phase6-network.js';
 import { addU10ToNetwork, U10_TRANSFERS } from '../src/u10-network.js';
 import { MetroRoute } from '../src/route.js';
 import { ExpressLineWorld } from '../src/u10-world.js';
@@ -12,7 +13,7 @@ import { createMaterials } from '../src/materials.js';
 
 const context = new Proxy({}, { get: (_, key) => key === 'measureText' ? s => ({ width: s.length * 12 }) : () => {} });
 globalThis.document = { createElement: () => ({ getContext: () => context }) };
-const network = addU10ToNetwork(createCompleteMetroNetwork()), materials = createMaterials();
+const network = addU10ToNetwork(createPhase6Network()), materials = createMaterials();
 const route = new MetroRoute(network, 'U10'), express = new ExpressLineWorld(materials, route), train = new ExpressTrain(materials);
 const scene = new THREE.Group(); scene.add(express);
 const transfers = U10_TRANSFERS.map(definition => {
@@ -31,7 +32,7 @@ function hits(a, b) {
   const box = new THREE.Box3().setFromPoints([a, b]).expandByScalar(0.001);
   return new THREE.Raycaster(a, delta.normalize(), 0.003, length - 0.003).intersectObjects(records.filter(r => r.bounds.intersectsBox(box)).map(r => r.mesh), false);
 }
-const report = { transfers: [], entrances: express.entrances.length, railProbes: 0, trainPoseProbes: 0, maxCarError: 0, maxBogieError: 0, obstacles: [] };
+const report = { transfers: [], entrances: express.entrances.length, railProbes: 0, trainPoseProbes: 0, maxCarError: 0, maxBogieError: 0, obstacles: [], clearanceProbes: 0, clearanceFailures: [], openStationProbes: [] };
 for (const transfer of [...transfers, ...express.entrances]) {
   let probes = 0; const failures = [];
   for (let i = 0; i < transfer.walkingPath.length - 1; i++) {
@@ -59,6 +60,11 @@ for (let d = -50; d <= route.length + 50; d += 11) {
       report.maxBogieError = Math.max(report.maxBogieError, bogie.getWorldPosition(new THREE.Vector3()).distanceTo(bp.position));
     }
     report.trainPoseProbes++;
+    if (report.trainPoseProbes % 15 === 0) for (const x of [-1.46, 1.46]) for (const z of car.cabs.length ? [-10.4, 6] : [-6, 6]) {
+      const a = car.localToWorld(new THREE.Vector3(x, 0.22, z)), b = car.localToWorld(new THREE.Vector3(x, 3.43, z));
+      const collisions = hits(a, b); report.clearanceProbes++;
+      if (collisions.length) report.clearanceFailures.push({ distance: d, x, z, object: collisions[0].object.name, point: collisions[0].point.toArray() });
+    }
   }
   for (const side of [-1, 1]) {
     const a = new THREE.Vector3(side * 0.7175, 0.15, 0).applyQuaternion(pose.quaternion).add(pose.position);
@@ -68,9 +74,32 @@ for (let d = -50; d <= route.length + 50; d += 11) {
   }
 }
 const botanical = express.stations[6]; assert(botanical.vegetation.userData.treeCount >= 40); assert(botanical.vegetation.userData.species.length >= 8);
+const airport = express.stations.at(-1);
+for (let x = -3; x >= -145; x -= 0.5) {
+  const a = airport.localToWorld(new THREE.Vector3(x, 0.3, 0)), b = airport.localToWorld(new THREE.Vector3(x, -0.45, 0));
+  assert(hits(a, b).length, `Airport public concourse has an unsupported floor at ${x}.`);
+}
+assert.equal(hits(airport.localToWorld(new THREE.Vector3(-3, 1.76, 2)), airport.localToWorld(new THREE.Vector3(-145, 1.76, 2))).length, 0, 'Airport circulation aisle obstructed.');
+for (const station of express.stations.filter(s => s.outdoor)) {
+  const z = station.definition.design === 'skyline' ? -11 : 1;
+  const start = station.localToWorld(new THREE.Vector3(-2, 2.5, z));
+  const sky = new THREE.Raycaster(start, new THREE.Vector3(0, 1, 0), 0.01, 100).intersectObject(station, true);
+  const sideStart = station.localToWorld(new THREE.Vector3(-2, 2.5, 7));
+  const outward = new THREE.Vector3(-1, 0, 0).transformDirection(station.matrixWorld);
+  const side = new THREE.Raycaster(sideStart, outward, 0.01, 20).intersectObject(station, true);
+  report.openStationProbes.push({ name: station.displayName, skyHits: sky.length, sideHits: side.length });
+  assert.equal(sky.length, 0, `${station.displayName}: sky obstructed.`); assert.equal(side.length, 0, `${station.displayName}: open side enclosed.`);
+}
+for (const transfer of transfers) for (const lift of transfer.lifts) for (const y of [lift.topY, lift.bottomY]) {
+  const a = lift.group.localToWorld(new THREE.Vector3(-1.7, y + 1.76, 12.5));
+  const b = lift.group.localToWorld(new THREE.Vector3(-5.3, y + 1.76, 12.5));
+  const obstruction = hits(a, b);
+  assert.equal(obstruction.length, 0, `${transfer.name}: lift doorway obstructed at ${y}: ${JSON.stringify(obstruction.map(h => ({ object: h.object.name, point: h.point.toArray(), material: h.object.material.color?.getHexString() })))}`);
+}
 assert(express.stations.filter(s => s.outdoor).every(s => s.userData.architecture.actualOpenSides));
 assert(train.cars[0].cabs[0].shellMetadata.aerodynamic); assert.equal(train.cars[0].cabs[0].shellMetadata.noseLength, 4.45);
 await writeFile('/tmp/metro-u10-geometry.json', JSON.stringify(report, null, 2));
 console.log(JSON.stringify({ ...report, obstacles: report.obstacles.slice(0, 5), transfers: report.transfers.map(t => ({ ...t, failureCount: t.failures.length, failures: t.failures.slice(0, 5) })) }, null, 2));
 assert(report.transfers.every(t => !t.failures.length), 'Physical transfer route obstructed or unsupported.');
 assert.equal(report.obstacles.length, 0); assert(report.maxCarError < 1e-8); assert(report.maxBogieError < 1e-8);
+assert.equal(report.clearanceFailures.length, 0, 'Train body envelope clips physical railway or architecture.');

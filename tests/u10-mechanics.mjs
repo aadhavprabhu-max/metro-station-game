@@ -2,15 +2,19 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createCompleteMetroNetwork } from '../src/network.js';
+import { createPhase6Network } from '../src/phase6-network.js';
 import { addU10ToNetwork, U10_STATIONS } from '../src/u10-network.js';
 import { MetroRoute } from '../src/route.js';
 import { TrainService } from '../src/service.js';
 import { createTimingTrain, measureU10Timetable, U10_SERVICE_OPTIONS } from '../src/u10-timetable.js';
 
 const baseline = JSON.parse(await readFile(new URL('./fixtures/phase5-network.json', import.meta.url), 'utf8'));
-const network = createCompleteMetroNetwork();
+const phase5 = createCompleteMetroNetwork();
+assert.deepEqual(JSON.parse(JSON.stringify({ nodes: [...phase5.nodes], links: [...phase5.links].map(([id, { path, ...v }]) => [id, v]), lines: [...phase5.lines] })), baseline);
+const phase6Baseline = JSON.parse(await readFile(new URL('./fixtures/phase6-network.json', import.meta.url), 'utf8'));
+const network = createPhase6Network();
 const protectedData = { nodes: [...network.nodes], links: [...network.links].map(([id, { path, ...v }]) => [id, v]), lines: [...network.lines] };
-assert.deepEqual(JSON.parse(JSON.stringify(protectedData)), baseline, 'The six-line baseline changed before U10 was appended.');
+assert.deepEqual(JSON.parse(JSON.stringify(protectedData)), phase6Baseline, 'The Phase 6 baseline changed before U10 was appended.');
 const preserved = JSON.parse(JSON.stringify(protectedData));
 addU10ToNetwork(network);
 for (const [id, node] of preserved.nodes) {
@@ -22,11 +26,11 @@ for (const [id, node] of preserved.nodes) {
 for (const [id, line] of preserved.lines) assert.deepEqual(network.lines.get(id), line);
 for (const [id, link] of preserved.links) { const { path, ...next } = network.links.get(id); assert.deepEqual(next, link); }
 const route = new MetroRoute(network, 'U10');
-assert.equal(network.nodes.size, 45); assert.equal(network.links.size, 47); assert.equal(network.lines.size, 7);
-assert.equal([...network.nodes.values()].reduce((n, node) => n + Object.keys(node.platforms).length, 0), 54);
+assert.equal(network.nodes.size, 53); assert.equal(network.links.size, 54); assert.equal(network.lines.size, 8);
+assert.equal([...network.nodes.values()].reduce((n, node) => n + Object.keys(node.platforms).length, 0), 65);
 assert.equal(U10_STATIONS.filter(s => s.outdoor).length, 4); assert.equal(U10_STATIONS.length, 10);
 assert.equal(route.stops[0].id, 'station-2'); assert.equal(route.line.color, '#123B75');
-assert.deepEqual(network.nodes.get('station-2').lineIds, ['U1', 'U2', 'U3', 'U4', 'U10']);
+assert.deepEqual(network.nodes.get('station-2').lineIds, ['U1', 'U2', 'U3', 'U4', 'U9', 'U10']);
 assert.deepEqual(network.nodes.get('u6-ringplatz').lineIds, ['U6', 'U10']);
 assert.notEqual(route.stops.at(-1).id, 'u5-flughafen');
 let maxGrade = 0, maxQuaternionError = 0;
@@ -62,8 +66,8 @@ while (service.completedLegs < 18) {
 }
 const expected = measured.directions.flatMap(d => d.segments);
 assert.deepEqual(actual, expected.map(s => ({ station: s.toId, seconds: s.seconds })));
-const report = { protectedStations: preserved.nodes.length, protectedPlatforms: 44, protectedLinks: preserved.links.length,
-  nodes: network.nodes.size, platforms: 54, links: network.links.size, lengthMetres: route.length, maxGrade, maxQuaternionError,
+const report = { protectedStations: preserved.nodes.length, protectedPlatforms: 55, protectedLinks: preserved.links.length,
+  nodes: network.nodes.size, platforms: 65, links: network.links.size, lengthMetres: route.length, maxGrade, maxQuaternionError,
   outdoor: 4, indoor: 6, actualStopEvents: actual.length, timetable: measured };
 await writeFile('/tmp/metro-u10-mechanics.json', JSON.stringify(report, null, 2));
 console.log(JSON.stringify({ ...report, timetable: { directions: measured.directions.map(d => ({ direction: d.direction, runningSeconds: d.runningSeconds, totalSeconds: d.totalSeconds })), headwaySeconds: measured.headwaySeconds } }, null, 2));

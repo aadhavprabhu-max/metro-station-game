@@ -32,7 +32,7 @@ function poseEntry(route, d, x, y, size) {
 
 export class ExpressLineWorld extends THREE.Group {
   constructor(base, route) {
-    super(); this.name = 'U10AirportExpressWorld'; this.lineId = 'U10'; this.route = route; this.floorY = -48; this.level = 'express-lower';
+    super(); this.name = 'U10AirportExpressWorld'; this.lineId = 'U10'; this.route = route; this.floorY = route.stops[0].floorY; this.level = 'express-lower';
     this.materials = expressMaterials(base); const m = this.materials;
     this.stations = route.stops.map((stop, index) => {
       const definition = U10_STATIONS[index];
@@ -72,6 +72,7 @@ export class ExpressLineWorld extends THREE.Group {
   }
   buildRailway() {
     const m = this.materials, route = this.route;
+    const farDecks = [], piers = [], foundations = [], crossbeams = [];
     let ordinal = 0;
     for (let start = -75; start < route.length + 75; start += 48) {
       const end = Math.min(route.length + 75, start + 48), center = (start + end) / 2;
@@ -121,13 +122,21 @@ export class ExpressLineWorld extends THREE.Group {
         }
         for (let d = Math.ceil(start / 32) * 32; d < end; d += 32) {
           const p = route.sampleExtended(d), height = p.position.y - 12.1;
-          box(section, m.concrete, [2.4, height, 2.2], [p.position.x, 10 + height / 2, p.position.z]);
-          box(section, m.concrete, [5.3, 0.8, 4.1], [p.position.x, 10.25, p.position.z]);
+          piers.push({ size: [2.4, height, 2.2], position: [p.position.x, 10 + height / 2, p.position.z] });
+          foundations.push({ size: [5.3, 0.8, 4.1], position: [p.position.x, 10.25, p.position.z] });
           const cap = new THREE.Vector3(0.5, -2.35, 0).applyQuaternion(p.quaternion).add(p.position);
-          const crossbeam = box(section, m.concrete, [7.8, 0.8, 1.8], cap.toArray()); crossbeam.quaternion.copy(p.quaternion);
+          crossbeams.push({ size: [7.8, 0.8, 1.8], position: cap.toArray(), rotation: new THREE.Euler().setFromQuaternion(p.quaternion).toArray().slice(0, 3) });
         }
       }
       batchStaticGeometry(section);
+    }
+    const far = new THREE.Group(); far.name = 'ContinuousDistantViaduct'; this.add(far);
+    for (let d = 0; d < route.length; d += 24) {
+      const p = route.sample(d + 12); if (p.position.y <= 14) continue;
+      farDecks.push(poseEntry(route, d + 12, 0.5, -2.3, [8.3, 0.4, 24.1]));
+    }
+    for (const [entries, name] of [[farDecks, 'DistantStructuralDeck'], [piers, 'ActualViaductPiers'], [foundations, 'ViaductFoundations'], [crossbeams, 'ViaductPierCaps']]) {
+      if (entries.length) instances(far, m.concrete, entries, undefined, false).name = name;
     }
     for (const d of [-68, route.length + 68]) {
       const p = route.sampleExtended(d), buffer = new THREE.Group(); buffer.position.copy(p.position); buffer.quaternion.copy(p.quaternion); buffer.name = 'U10TerminalBuffer';
