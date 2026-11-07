@@ -5,6 +5,7 @@ const directory = process.env.METRO_U10_CAPTURE_DIR || '/tmp/metro-u10-visuals';
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
   args: ['--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const errors = [], failures = [], observations = [];
+const selected = (process.env.METRO_U10_CAPTURE_NAMES || '').split(',').filter(Boolean);
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
   page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
@@ -14,6 +15,7 @@ try {
   const error = await page.locator('#error-message').textContent(); if (error) throw new Error(error);
   await page.evaluate(() => window.metro.world.renderer.setAnimationLoop(null));
   async function capture(name, stationId, position, target, trainView = false) {
+    if (selected.length && !selected.includes(name)) return;
     const observation = await page.evaluate(({ stationId, position, target, trainView, name }) => {
       const { world, player } = window.metro, service = world.services.find(s => s.lineId === 'U10');
       const station = world.lineWorlds.U10.stations.find(s => s.stationId === stationId);
@@ -48,6 +50,29 @@ try {
   await capture('11-airport-terminal', 'u10-airport', [-45, 1.76, 0], [-140, 6, 0]);
   // A diagnostic exterior camera checks the complete terminal and approach.
   await capture('12-airport-complex', 'u10-airport', [90, 70, -250], [-130, 5, 0]);
+  async function captureApproach(name, mode) {
+    if (selected.length && !selected.includes(name)) return;
+    const observation = await page.evaluate(mode => {
+      const { world, player } = metro, service = world.services.find(s => s.lineId === 'U10'), route = service.route;
+      let distance = route.length - 500;
+      if (mode === 'transition') { distance = route.stops[3].distance; while (route.sample(distance).position.y < 12.5) distance += 2; }
+      service.reset(); while (service.distance < distance) service.update(0.25);
+      player.ridingCar = null; player.startAt('U10', service.currentStop.id);
+      const car = service.train.cars[mode === 'transition' ? 0 : 1], Vector3 = world.camera.position.constructor;
+      player.ridingCar = car; player.previousRideYaw = null; player.previousRidePitch = null;
+      player.ridingLocalOffset.set(...(mode === 'transition' ? [0, 2.72, -6.9] : [-1.05, 1.85, -2.58]));
+      player.ridingOffset.copy(player.ridingLocalOffset); car.localToWorld(player.ridingOffset); service.train.worldToLocal(player.ridingOffset);
+      player.previousRideOffset.copy(player.ridingOffset); player.previousRidingCar = car; player.syncRide();
+      const look = car.localToWorld(new Vector3(...(mode === 'transition' ? [0, 2.72, -60] : [-220, 8, -502.58]))).sub(player.camera.position);
+      player.yaw = Math.atan2(-look.x, -look.z); player.pitch = Math.atan2(look.y, Math.hypot(look.x, look.z)); player.applyLook();
+      world.update(0.13); world.renderer.render(world.scene, world.camera);
+      return { mode, snapshot: metro.snapshot(), glError: world.renderer.getContext().getError(), diagnosticCamera: true };
+    }, mode);
+    await page.screenshot({ path: `${directory}/${name}.png`, timeout: 180000 }); observations.push({ name, ...observation });
+    console.log(JSON.stringify({ name, drawCalls: observation.snapshot.drawCalls, triangles: observation.snapshot.triangles, glError: observation.glError }));
+  }
+  await captureApproach('13-driver-windscreen-transition', 'transition');
+  await captureApproach('14-airport-approach-from-train', 'airport');
   await writeFile(`${directory}/inspection.json`, JSON.stringify({ errors, failures, observations }, null, 2));
   if (errors.length || failures.length || observations.some(o => o.glError)) throw new Error('Visual inspection reported a runtime, request or WebGL failure.');
 } finally { await browser.close(); }

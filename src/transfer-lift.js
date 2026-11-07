@@ -50,12 +50,21 @@ export class TransferLift {
     return true;
   }
   update(delta) {
+    // Reset/start controls detach the player; the unoccupied cabin continues its trip.
+    if (this.rider) {
+      const p = this.localPlayer(this.rider);
+      if (p.x < -6.99 || p.x > -3.61 || p.z < 10.76 || p.z > 14.24 || Math.abs(this.rider.camera.position.y - this.floorY - 1.76) > 0.5) {
+        this.rider.setEnabled(true); this.rider = null;
+      }
+    }
     const difference = this.targetY - this.floorY;
     if (Math.abs(difference) < 1e-8 && !this.rider) return;
     this.floorY = Math.abs(difference) <= this.speed * delta + 1e-8 ? this.targetY
       : this.floorY + Math.sign(difference) * this.speed * delta;
     this.cabin.position.y = this.floorY;
     if (this.rider) this.rider.camera.position.y = this.floorY + 1.76;
-    if (this.floorY === this.targetY && this.rider) { this.rider.setEnabled(true); this.rider = null; }
+    if (this.floorY === this.targetY && this.rider) {
+      this.rider.setEnabled(globalThis.document?.querySelector?.('#help-panel')?.hidden !== false); this.rider = null;
+    }
   }
 }

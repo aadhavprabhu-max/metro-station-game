@@ -127,6 +127,18 @@ test.describe('Phase 7 Airport Express', () => {
     });
     await testInfo.attach('physical-transfers-and-lifts', { body: JSON.stringify({ reports, lifts }, null, 2), contentType: 'application/json' });
     expect(lifts).toHaveLength(3); for (const lift of lifts) { expect(lift.activated && lift.enabled).toBe(true); expect(lift.floor).toBeCloseTo(lift.expected, 5); expect(lift.maxStep).toBeLessThan(0.05); }
+    await page.evaluate(() => {
+      const { world, player } = metro, lift = world.networkTransfers.find(t => t.platforms.some(s => s.lineId === 'U10')).lifts[0];
+      lift.targetY = lift.topY; for (let i = 0; i < 2000; i++) lift.update(1 / 60);
+      const station = lift.transfer.platforms[0]; player.startAt(station.lineId, station.stationId);
+      player.camera.position.set(-5.3, lift.topY + 1.76, 12.5); lift.group.localToWorld(player.camera.position); lift.activate(player); lift.update(1);
+    });
+    await page.getByRole('button', { name: 'Start U1', exact: true }).click();
+    const reset = await page.evaluate(() => {
+      const { world, player } = metro, before = player.camera.position.toArray(); for (const lift of world.lifts) lift.update(1);
+      return { before, after: player.camera.position.toArray(), enabled: player.enabled, line: player.service.lineId };
+    });
+    expect(reset.after).toEqual(reset.before); expect(reset.enabled).toBe(true); expect(reset.line).toBe('U1');
   });
 
   test('journey panel displays measured segment times, separate dwell and both waiting directions', async () => {

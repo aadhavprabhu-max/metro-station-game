@@ -42,6 +42,12 @@ function archedRoof(parent, m, { left = -10, right = 8, spring = 7, rise = 3, de
   for (let i = 0; i <= 12; i++) { const a = i / 12 * Math.PI; box(parent, m.whiteSteel, [0.06, 0.08, depth], [center - half * Math.cos(a), spring + rise * Math.sin(a), 0]); }
   return roof;
 }
+function glazedArchEnd(parent, material, left, right, spring, rise, z) {
+  const shape = new THREE.Shape(); shape.moveTo(left, spring);
+  for (let i = 1; i <= 40; i++) { const a = i / 40 * Math.PI; shape.lineTo((left + right) / 2 - (right - left) / 2 * Math.cos(a), spring + rise * Math.sin(a)); }
+  shape.closePath(); const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), material); mesh.position.z = z;
+  mesh.name = 'EnclosedStationArchEndGlazing'; parent.add(mesh);
+}
 
 export class ExpressStation extends Station {
   constructor(base, options) {
@@ -121,6 +127,7 @@ export class ExpressStation extends Station {
     for (const x of [-28, 38]) box(group, m.glazing, [0.06, 14, 122], [x, 7, 0]);
     // End glazing has an unobstructed railway opening and a garden doorway.
     for (const z of [-61, 61]) {
+      glazedArchEnd(group, m.glazing, -28, 38, 14, 10, z);
       for (const [left, right] of [[-28, -9], [8, 38]]) box(group, m.glazing, [right - left, 14, 0.06], [(left + right) / 2, 7, z]);
       box(group, m.glazing, [17, 8.5, 0.06], [-0.5, 9.75, z]);
       for (let x = -28; x <= 38; x += 6) beam(group, m.whiteSteel, [x, 0, z], [x, 14, z], 0.1);
@@ -198,7 +205,13 @@ export class ExpressStation extends Station {
       box(group, m.blue, [0.18, 3.3, 1.8], [-20, 1.65, z]);
       label(group, '✈  DEPARTURES  /  TERMINALS A · B', 5.8, 0.36, [-12, 4.5, z], { background: '#123b75', rotation: [0, Math.PI, 0], fontSize: 83 });
     }
-    for (const z of [-55, 55]) box(group, m.glazing, [12, 9, 0.05], [-16, 4.5, z]);
+    for (const z of [-55, 55]) {
+      glazedArchEnd(group, m.glazing, -22, 18, 9, 5, z);
+      for (const [a, b] of [[-22, -8.8], [-2.8, -0.2], [4.8, 18]]) box(group, m.glazing, [b - a, 9, 0.05], [(a + b) / 2, 4.5, z]);
+      box(group, m.glazing, [5, 4.5, 0.05], [2.3, 6.75, z]);
+      if (z > 0) box(group, m.glazing, [6, 5.9, 0.05], [-5.8, 6.05, z]);
+      else box(group, m.glazing, [6, 9, 0.05], [-5.8, 4.5, z]);
+    }
   }
   buildFurniture(m) {
     for (const z of [-14, 5, 25]) {

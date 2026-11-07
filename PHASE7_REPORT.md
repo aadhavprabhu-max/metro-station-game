@@ -83,7 +83,7 @@ The metropolitan region contains 12,989 three-dimensional buildings over a 22.5 
 
 Basic facades/roofs share regional instance buffers. Nearby windows and equipment use LOD; glass panes use their actual visible surfaces instead of hidden box faces. Distant districts remain real geometry. Rail detail is culled by distance while a continuous structural viaduct and its actual piers remain visible farther away. Materials and geometry are shared; foliage uses spatial leaf LOD. The outdoor camera reaches 8.5 km, with atmospheric fog from 1.1–7 km. Exposure/fog transition smoothly as U10 emerges from the cutting. Existing underground and Phase 6 river-view settings restore on changing lines.
 
-Hardware-GPU frame rate has not been measured. Software WebGL validation must run sequentially in this 8 GB container: an attempted concurrent browser inspection/regression run exhausted memory and lost a graphics context. The sequential focused U10 browser run passed. Final render measurements and full-suite/deployment status are recorded below when validation completes.
+Hardware-GPU frame rate has not been measured. Software WebGL validation must run sequentially in this 8 GB container: an attempted concurrent browser inspection/regression run exhausted memory and lost a graphics context. The sequential focused U10 browser run passed. The full browser suite and final focused U10 suite passed sequentially. Deployment provenance is recorded below after the public verification job completes.
 
 ## Validation
 
@@ -95,12 +95,13 @@ Hardware-GPU frame rate has not been measured. Software WebGL validation must ru
 - `node tests/phase6-geometry.mjs`: passed.
 - `node tests/u10-mechanics.mjs`: passed; protects all 45 Phase 6 station nodes, 55 platforms, 45 links and seven existing line definitions.
 - `node tests/u10-geometry.mjs`: passed; 2,124 rail probes, 3,186 train-pose probes, 848 body-envelope clearance probes, all ten stair routes, lift-door openings, airport floor support and four open-air station probes.
-- Focused U10 production browser run: **5 passed** (43.2 seconds), after repairing a lift arrival rounding issue found by the first focused run.
+- Focused U10 production browser run: **5 passed** (38.2 seconds), including lift rides, reset during a moving lift, measured actual-mesh journeys and restoration of Phase 6 rendering. An earlier diagnostic found and repaired a lift arrival rounding issue.
 - Twelve-view in-game visual inspection: no JavaScript errors, failed requests or WebGL errors. Diagnostic cameras and extended photo dwell are labelled inspection tools; they are not real-time journeys.
-- Full final browser suite: PENDING.
+- Full browser suite: **61 passed** (16.6 minutes). After the final U10-only lift-reset/end-glazing changes, the focused production U10 suite passed **5/5** (38.2 seconds).
 - Production build: passed; only the existing large-bundle advisory remains.
+- `node tests/u10-standalone.mjs`: passed with all external requests blocked; eight services, 53 nodes, U10 selection at −72 m, keyboard movement, reset and all 18 timing rows verified, with zero runtime/WebGL errors.
 - Standalone static verification: passed; root and dist HTML are identical and have no external script or stylesheet dependencies.
-- Standalone SHA-256: `4c1a9e3b1d7a74925d5a85d16424ab9668d48ef94b617808774538441b11d15c`.
+- Standalone SHA-256: `503af40e5a3cf895926cfce45bd0c386f13920c30744384df0e7931438fdd18d`.
 
 ## Files
 
@@ -108,7 +109,7 @@ New application modules: `src/u10-network.js`, `src/u10-path.js`, `src/u10-world
 
 Existing Phase 6 application integration: `src/scene.js`, `src/main.js`, `src/network-world.js`, `src/network-transfers.js`, `src/train.js`, `src/ui.js`, `src/visibility.js`, `src/style.css`, `app.html`; regenerated `index.html`. Existing `network.js`, `service.js`, `player.js` and Phase 6 station/world modules remain as on the preserved Phase 6 main branch.
 
-Validation/documentation: `tests/u10.spec.js`, `tests/u10-mechanics.mjs`, `tests/u10-geometry.mjs`, `tests/u10-inspect.mjs`, baseline network fixtures, explicit historical fixtures in `tests/expansion.spec.js` and `tests/phase6.spec.js`, `README.md`, this report. The established Pages verification job now checks Phase 6 and U10 against the actual public deployment and compares its HTML hash with the committed build. No dependency or lockfile changes.
+Validation/documentation: `tests/u10.spec.js`, `tests/u10-mechanics.mjs`, `tests/u10-geometry.mjs`, `tests/u10-inspect.mjs`, `tests/u10-standalone.mjs`, baseline network fixtures, explicit historical fixtures in `tests/expansion.spec.js` and `tests/phase6.spec.js`, `README.md`, this report. The established Pages verification job now checks Phase 6 and U10 against the actual public deployment and compares its HTML hash with the committed build. No dependency or lockfile changes.
 
 ## Deployment
 
