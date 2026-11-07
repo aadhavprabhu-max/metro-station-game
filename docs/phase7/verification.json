@@ -1,0 +1,73 @@
+{
+  "publicUrl": "https://aadhavprabhu-max.github.io/metro-station-game/",
+  "u10Url": "https://aadhavprabhu-max.github.io/metro-station-game/?line=U10",
+  "implementationCommit": "31016e972aa72bf4b3962f33f8ab748135acf51b",
+  "workflowRun": 42406017885,
+  "workflowUrl": "https://github.com/aadhavprabhu-max/metro-station-game/actions/runs/42406017885",
+  "build": "success",
+  "deploy": "success",
+  "publicBrowserVerification": "success",
+  "publicBrowserTestsPassed": 10,
+  "verificationJob": 128503884653,
+  "evidenceArtifact": 13586974057,
+  "standaloneSha256": "503af40e5a3cf895926cfce45bd0c386f13920c30744384df0e7931438fdd18d",
+  "publicHashMatchesCommittedBuild": true,
+  "verificationMethod": "GitHub Actions Chrome opened the actual Pages URL; the U10 suite required exact SHA-256 equality with the committed standalone index.html before its tests could run.",
+  "workspaceDirectPublicAccess": "Blocked by managed cloud outbound policy; public verification ran in the established GitHub Actions job.",
+  "localFullBrowserSuite": {
+    "passed": 61,
+    "minutes": 16.6
+  },
+  "finalFocusedU10BrowserSuite": {
+    "passed": 5,
+    "seconds": 38.2
+  },
+  "rawStandalone": {
+    "passed": true,
+    "externalRequests": 0,
+    "runtimeErrors": 0,
+    "webglErrors": 0
+  },
+  "releaseVisuals": {
+    "javascriptErrors": [],
+    "failedRequests": [],
+    "observations": [
+      {
+        "name": "03-open-skyline-station",
+        "drawCalls": 1164,
+        "triangles": 920732,
+        "webglError": 0
+      },
+      {
+        "name": "07-botanical-platform",
+        "drawCalls": 1323,
+        "triangles": 3509342,
+        "webglError": 0
+      },
+      {
+        "name": "08-botanical-garden-path",
+        "drawCalls": 594,
+        "triangles": 2625656,
+        "webglError": 0
+      },
+      {
+        "name": "12-airport-complex",
+        "drawCalls": 1430,
+        "triangles": 924840,
+        "webglError": 0
+      },
+      {
+        "name": "13-driver-windscreen-transition",
+        "drawCalls": 549,
+        "triangles": 786760,
+        "webglError": 0
+      },
+      {
+        "name": "14-airport-approach-from-train",
+        "drawCalls": 1008,
+        "triangles": 665750,
+        "webglError": 0
+      }
+    ]
+  }
+}

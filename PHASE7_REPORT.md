@@ -83,7 +83,7 @@ The metropolitan region contains 12,989 three-dimensional buildings over a 22.5 
 
 Basic facades/roofs share regional instance buffers. Nearby windows and equipment use LOD; glass panes use their actual visible surfaces instead of hidden box faces. Distant districts remain real geometry. Rail detail is culled by distance while a continuous structural viaduct and its actual piers remain visible farther away. Materials and geometry are shared; foliage uses spatial leaf LOD. The outdoor camera reaches 8.5 km, with atmospheric fog from 1.1–7 km. Exposure/fog transition smoothly as U10 emerges from the cutting. Existing underground and Phase 6 river-view settings restore on changing lines.
 
-Hardware-GPU frame rate has not been measured. Software WebGL validation must run sequentially in this 8 GB container: an attempted concurrent browser inspection/regression run exhausted memory and lost a graphics context. The sequential focused U10 browser run passed. The full browser suite and final focused U10 suite passed sequentially. Deployment provenance is recorded below after the public verification job completes.
+Hardware-GPU frame rate has not been measured. Software WebGL validation must run sequentially in this 8 GB container: an attempted concurrent browser inspection/regression run exhausted memory and lost a graphics context. The sequential focused U10 browser run passed. The full browser suite and final focused U10 suite passed sequentially. The public verification job also passed. Six final release views measured 549–1,430 draw calls and 665,750–3,509,342 rendered triangles, depending on camera position. These are rendering workload observations, not a hardware frame-rate benchmark.
 
 ## Validation
 
@@ -96,7 +96,7 @@ Hardware-GPU frame rate has not been measured. Software WebGL validation must ru
 - `node tests/u10-mechanics.mjs`: passed; protects all 45 Phase 6 station nodes, 55 platforms, 45 links and seven existing line definitions.
 - `node tests/u10-geometry.mjs`: passed; 2,124 rail probes, 3,186 train-pose probes, 848 body-envelope clearance probes, all ten stair routes, lift-door openings, airport floor support and four open-air station probes.
 - Focused U10 production browser run: **5 passed** (38.2 seconds), including lift rides, reset during a moving lift, measured actual-mesh journeys and restoration of Phase 6 rendering. An earlier diagnostic found and repaired a lift arrival rounding issue.
-- Twelve-view in-game visual inspection: no JavaScript errors, failed requests or WebGL errors. Diagnostic cameras and extended photo dwell are labelled inspection tools; they are not real-time journeys.
+- Twelve-view in-game visual inspection plus six final release captures: no JavaScript errors, failed requests or WebGL errors. Final captures include the windshield view at the tunnel/elevated transition and the airport approach through the train window. Diagnostic cameras and extended photo dwell are inspection tools; they are not real-time journeys.
 - Full browser suite: **61 passed** (16.6 minutes). After the final U10-only lift-reset/end-glazing changes, the focused production U10 suite passed **5/5** (38.2 seconds).
 - Production build: passed; only the existing large-bundle advisory remains.
 - `node tests/u10-standalone.mjs`: passed with all external requests blocked; eight services, 53 nodes, U10 selection at −72 m, keyboard movement, reset and all 18 timing rows verified, with zero runtime/WebGL errors.
@@ -113,6 +113,26 @@ Validation/documentation: `tests/u10.spec.js`, `tests/u10-mechanics.mjs`, `tests
 
 ## Deployment
 
-PENDING final regression and deployment. The managed workspace blocks direct requests to the public GitHub Pages hostname; the established GitHub Actions verification job opens that actual URL, exercises the published game, compares its SHA-256 with the committed standalone build and retains screenshots/provenance. Public success will be reported only after that job passes.
+**Published and verified.** [Play U10 Airport Express](https://aadhavprabhu-max.github.io/metro-station-game/?line=U10) or [visit East Botanical Garden](https://aadhavprabhu-max.github.io/metro-station-game/?line=U10&station=u10-botanical).
+
+[GitHub Actions run 42406017885](https://github.com/aadhavprabhu-max/metro-station-game/actions/runs/42406017885) successfully built and deployed implementation commit `31016e972aa72bf4b3962f33f8ab748135acf51b`. Chrome then opened the actual public Pages URL and passed **10/10** Phase 6/U10 browser cases in 1.0 minute. The U10 tests required the public HTML SHA-256 to equal the committed standalone build before running. The deployment job returned `https://aadhavprabhu-max.github.io/metro-station-game/` as its actual Pages URL.
+
+The managed workspace blocks direct requests to that hostname, so public verification used the repository’s established GitHub-hosted browser job. The verification record is in [docs/phase7/verification.json](docs/phase7/verification.json); the workflow retains browser evidence artifact `13586974057` for seven days. This documentation follow-up changes no game bytes.
 
 Local launch: `npm ci && npm run dev`; open `/app.html?line=U10`. Production preview: `npm run build && npm run preview`; open `/metro-station-game/?line=U10` on the displayed local server. These are local launch instructions, not public deployment links.
+
+## Actual in-game visual evidence
+
+These are actual rendered game captures. The platform/garden/airport overview images use diagnostic cameras and hold the train for photographic inspection; the timing tables above use the unmodified operating dwell. Train-window views show actual controller-driven approach positions.
+
+![ICE-inspired U10 at East Botanical Garden](docs/phase7/botanical-platform.png)
+
+![Botanical garden path with three-dimensional vegetation](docs/phase7/botanical-garden-path.png)
+
+![Open elevated station and metropolitan skyline](docs/phase7/open-elevated-station.png)
+
+![New international airport terminal](docs/phase7/international-airport.png)
+
+![Express windshield view during the elevated transition](docs/phase7/express-transition.png)
+
+![Airport approach viewed through the train window](docs/phase7/airport-approach.png)
