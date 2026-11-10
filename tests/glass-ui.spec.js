@@ -256,7 +256,8 @@ test('map keyboard controls only work while the map has focus, and Escape steps 
 test('element-relative pointer maths: tapping a drawn station selects it, with ring, card and real transfers', async ({ page }) => {
   await load(page);
   await openMap(page, 2);
-  await page.evaluate(() => { const c = metroHud.map.camera; c.zoomAbout(c.width / 2, c.visible().y1 / 2, 2.2); metroHud.map.changed(); }); await hudSettled(page);
+  // Centre Ringplatz at a readable zoom, clear of the toolbar, then tap it like a person.
+  await page.evaluate(() => { const m = metroHud.map, st = m.model.stations.get('u6-ringplatz'); m.camera.flyToPoint(st.x, st.y, Math.min(0.6, m.camera.maxScale)); m.changed(); }); await hudSettled(page);
   const point = await stationPoint(page, 'u6-ringplatz');
   await page.mouse.click(point.x, point.y); await hudSettled(page);
   await expect(page.locator('.gm-card h3')).toHaveText('Ringplatz');
