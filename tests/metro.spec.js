@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openMenu } from './hud.js';
 
 const distance = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]);
 
@@ -135,13 +136,16 @@ test('reset, focus loss, help, and reload leave controls in a clean state', asyn
   await page.keyboard.down('w');
   await page.waitForFunction(() => window.metro.player.distanceTravelled > 0.2);
   await page.keyboard.up('w');
+  await openMenu(page);
   await page.getByRole('button', { name: 'Reset view' }).click();
   expect((await page.evaluate(() => window.metro.snapshot())).position).toEqual(spawn.position);
-  await page.getByRole('button', { name: 'Show controls' }).click();
-  await expect(page.locator('#help-panel')).toBeVisible();
-  expect(await page.evaluate(() => window.metro.player.enabled)).toBe(false);
+  // The glass menu holds the controls reference; it does not pause walking (the
+  // legacy help panel's pause is covered by glass-ui.spec.js under ?ui=legacy).
+  await openMenu(page);
+  await expect(page.locator('#gh-controls')).toBeAttached();
+  expect(await page.evaluate(() => window.metro.player.enabled)).toBe(true);
   await page.keyboard.press('Escape');
-  await expect(page.locator('#help-panel')).toBeHidden();
+  await expect(page.locator('#gh-panel')).toBeHidden();
   await page.keyboard.down('ArrowUp');
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   expect(await page.evaluate(() => window.metro.player.keys.size)).toBe(0);

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openMenu, closeMenu } from './hud.js';
 
 let page; const errors = [];
 test.describe('Phase 6 playable network', () => {
@@ -27,7 +28,9 @@ test.describe('Phase 6 playable network', () => {
     expect(result.services).toEqual(['U1', 'U2', 'U3', 'U4', 'U5', 'U6', 'U9']);
     expect(result.u9).toEqual(['Central', 'Kaiserforum', 'Goldmarkt', 'Sonnenviertel', 'Nordklinikum', 'Hohenbrück', 'Kronenplatz', 'Waldtor']);
     expect(result.finalU5).toBe('Ostbahnhof'); expect(result.transferIds).toEqual(['station-2', 'u5-nordklinikum', 'u5-waldtor']); expect(result.gl).toBe(0);
+    await openMenu(page);
     await expect(page.getByRole('link', { name: 'U5 · Original direct route', exact: true })).toBeVisible();
+    await closeMenu(page);
   });
 
   for (const line of ['U9', 'U5']) test(`${line}: full outbound/return journey, every stop, boarding and real car/bogie orientation`, async ({}, testInfo) => {

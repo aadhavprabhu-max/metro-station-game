@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
+import { openMenu } from './hud.js';
 
 test('raw HTML preview renders the game with every external asset request blocked', async ({ page }) => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
@@ -58,6 +59,8 @@ test('raw HTML preview renders the game with every external asset request blocke
   expect(looked.yaw).toBeLessThan(spawn.yaw);
   expect(looked.pitch).toBeLessThan(spawn.pitch);
   expect(looked.dragging).toBe(false);
+  await expect(page.locator('#glass-hud')).toBeVisible();
+  await openMenu(page);
   await page.getByRole('button', { name: 'Reset view' }).click();
   expect((await page.evaluate(() => window.metro.snapshot())).position).toEqual(spawn.position);
   expect(errors).toEqual([]);

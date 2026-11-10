@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { startLine } from './hud.js';
 
 const lines = {
   U3: {
@@ -87,7 +88,7 @@ test('four services share Central while lower platforms, palettes, and original 
       expect(sample.position).toEqual([definition.x, -12, definition.startZ - sample.distance]);
       expect(sample.yaw).toBe(0);
     }
-    await page.locator(`#start-${id.toLowerCase()}-button`).click();
+    await startLine(page, id);
     await expect(page.locator('#location-line')).toHaveText(id);
     await expect(page.locator('#service-label')).toHaveText(`${id} LIVE SERVICE`);
   }
@@ -172,7 +173,7 @@ for (const [lineId, definition] of Object.entries(lines)) {
   });
 
   test(`${lineId} carries a rider through all stations, permits safe alighting, and preserves reset`, async ({ page }) => {
-    await page.locator(`#start-${lineId.toLowerCase()}-button`).click();
+    await startLine(page, lineId);
     const firstCar = await page.evaluate(() => {
       const { world, player } = window.metro;
       world.renderer.setAnimationLoop(null);

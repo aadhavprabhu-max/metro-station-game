@@ -1,5 +1,24 @@
 # Aurealis-Bahn — Phase 6
 
+## Liquid Glass HUD and interactive network map
+
+The default interface is a Liquid Glass HUD. Open `?ui=legacy` for the original HUD, which is kept unchanged for comparison and will only be removed after review.
+
+- **Menu:** the 44 px button beside the clock (top right) opens and closes the glass panel; Escape closes it and returns focus to the button. The panel holds *Start a line*, *Rides* (U9 · Central, U5 · River loop, U5 · Original direct route), U10 journey times, the controls reference, and Sound / Captions / Reset view. Every control calls the existing game handlers. While closed, the HUD takes no gameplay input.
+- **Network map:** the drawer at the bottom of the panel has three detents (collapsed 78 px, half ≈ 50 % of the viewport, full). Tap the grabber to cycle detents, drag it with spring settling, or use the arrow keys on it. The map is a separate 2D canvas: drag with momentum, rubber-band edges, cursor-centred wheel/pinch zoom, double-click zoom and spring `flyTo`, ported from the approved reference. Map keys (arrows, + / −, `/` for search) work only while the map has focus. Select a line to dim the others and draw it in; select a station for its card with lines, transfers and platform levels; search filters stations.
+- **Map data:** `src/network-map-layout.js` is a drawing-only table of schematic coordinates. Station names, lines, colours, stop order, the U5 river loop, transfers and levels are read from the live game network by `src/network-map-model.js`. `node tests/network-map-data.mjs` fails if the drawing and the game network disagree.
+- **Live service pill:** bottom centre. *NEXT* between stops, *ARRIVING* once the countdown reaches `APPROACHING_THRESHOLD_SECONDS` (10, in `src/glass-hud.js`), and *DOORS OPEN* with the current and next station at a platform. Values come from the existing service.
+- **Theme:** dark by default; use the theme button in the menu, or `?theme=light`. The choice is remembered. `prefers-reduced-motion` turns animations into jumps.
+
+```sh
+node tests/map-physics.mjs
+node tests/network-map-data.mjs
+npx playwright test tests/glass-ui.spec.js --timeout=240000
+```
+
+---
+
+
 Phase 7 adds the deep-blue **U10 Airport Express** to the preserved Phase 6 network: **53 station nodes, 65 physical platforms and eight independent services**. U1–U6, U9 and both U5 routes remain available.
 
 Choose **Start U10**, or open `?line=U10`, to begin at Central. U10 serves Central → Finanzforum → Ringplatz → Eastend → Skylinequartier → Metropolbrücke → East Botanical Garden → Europaplatz → Flughafenpark → Aurealis International Airport. Four stations are genuinely outdoor and six are indoor. Use **U10 journey times** for measured segment times, dwell and waiting information in both directions. Use the contextual lift button at new transfer/entrance lifts.
