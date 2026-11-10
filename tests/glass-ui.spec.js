@@ -455,7 +455,7 @@ test.describe('phone-sized viewport', () => {
     expect(await panelWidth()).toBeLessThanOrEqual(366);
     await page.locator('#gm-grab').tap(); await hudSettled(page);
     expect(await page.evaluate(() => metroHud.sheet.index)).toBe(1);
-    await page.evaluate(() => { const c = metroHud.map.camera; c.zoomAbout(c.width / 2, c.visible().y1 / 2, 2.4); metroHud.map.changed(); }); await hudSettled(page);
+    await page.evaluate(() => { const m = metroHud.map, st = m.model.stations.get('u6-ringplatz'); m.camera.flyToPoint(st.x, st.y, Math.min(0.6, m.camera.maxScale)); m.changed(); }); await hudSettled(page);
     const point = await stationPoint(page, 'u6-ringplatz');
     await page.touchscreen.tap(point.x, point.y); await hudSettled(page);
     await expect(page.locator('.gm-card h3')).toHaveText('Ringplatz');
