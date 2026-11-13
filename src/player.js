@@ -15,6 +15,8 @@ export class PlayerController {
     this.service = null;
     this.transfers = [];
     this.transferSurface = null;
+    this.surfaceWorld = null;
+    this.surfaceExploring = false;
     this.startLineId = station.lineId ?? 'U1';
     this.startStationId = station.stationId;
     this.ridingCar = null;
@@ -104,6 +106,13 @@ export class PlayerController {
     this.transferSurface = this.findTransferSurface(this.camera.position.x, this.camera.position.z, this.camera.position.y - SPAWN.y);
   }
 
+  configureSurface(surfaceWorld) { this.surfaceWorld = surfaceWorld; }
+
+  syncSurfaceContext() {
+    this.surfaceExploring = Boolean(!this.ridingCar && this.surfaceWorld?.findSurface(
+      this.camera.position.x, this.camera.position.z, this.camera.position.y - SPAWN.y, 0.06, this.radius));
+  }
+
   useStation(station) {
     this.station = station;
     this.bounds = station.bounds;
@@ -122,6 +131,7 @@ export class PlayerController {
   }
 
   interactionHint() {
+    if (this.surfaceExploring) return { text: 'Central old town · Return through the stone arch for U4', enabled: false, action: null };
     if (!this.service) return { text: '', enabled: false, action: null };
     const { service } = this;
     if (this.ridingCar) {
@@ -239,6 +249,7 @@ export class PlayerController {
     this.previousRideYaw = null;
     this.previousRidePitch = null;
     this.transferSurface = null;
+    this.surfaceExploring = false;
     const start = this.stations.find(station => station.stationId === this.startStationId && (station.lineId ?? 'U1') === this.startLineId) ?? this.stations[0];
     this.useStation(start);
     this.camera.position.set(SPAWN.x, SPAWN.y, SPAWN.z);
@@ -333,6 +344,13 @@ export class PlayerController {
           position.set(x, platform.floorY + SPAWN.y, z);
           this.transferSurface = null;
           this.useStation(platform.station);
+          continue;
+        }
+        const city = this.surfaceWorld?.findSurface(x, z, feetY, 0.45, this.radius);
+        if (city) {
+          position.set(x, city.floorY + SPAWN.y, z);
+          this.transferSurface = null;
+          this.surfaceExploring = true;
         }
       }
     }
@@ -345,6 +363,7 @@ export class PlayerController {
     if (!this.ridingCar) {
       this.transferSurface = this.findTransferSurface(this.camera.position.x, this.camera.position.z, this.camera.position.y - SPAWN.y);
       this.updatePlatformContext();
+      this.syncSurfaceContext();
     }
     let forward = Number(this.keys.has('KeyW') || this.keys.has('ArrowUp')) - Number(this.keys.has('KeyS') || this.keys.has('ArrowDown'));
     let strafe = Number(this.keys.has('KeyD') || this.keys.has('ArrowRight')) - Number(this.keys.has('KeyA') || this.keys.has('ArrowLeft'));
@@ -392,8 +411,9 @@ export class PlayerController {
       this.distanceTravelled += Math.hypot(position.x - oldX, position.z - oldZ);
       return;
     }
-    if (this.transferSurface) {
+    if (this.transferSurface || this.surfaceExploring) {
       this.moveOnTransfer(dx, dz, steps);
+      this.syncSurfaceContext();
       this.distanceTravelled += Math.hypot(position.x - oldX, position.y - oldY, position.z - oldZ);
       return;
     }

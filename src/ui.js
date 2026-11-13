@@ -188,6 +188,16 @@ export class UI {
   }
 
   update(delta) {
+    if (this.player.surfaceWorld) {
+      if (!this.surfaceStatus) {
+        this.surfaceStatus = document.createElement('aside');
+        this.surfaceStatus.className = 'surface-status gh-glass';
+        this.surfaceStatus.innerHTML = '<strong>Central · Old town</strong><small>U4 · Return through the stone arch</small>';
+        document.querySelector('#app').append(this.surfaceStatus);
+      }
+      this.surfaceStatus.hidden = !this.player.surfaceExploring;
+      document.querySelector('#app').classList.toggle('surface-exploring', this.player.surfaceExploring);
+    }
     this.elapsed += delta;
     // Use one station clock for the HUD and all physical timetables.
     const minutes = 14 * 60 + 32 + Math.floor(this.elapsed / 60);

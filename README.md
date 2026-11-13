@@ -1,4 +1,22 @@
-# Aurealis-Bahn — Phase 6
+# Aurealis-Bahn — Metro and Old Town
+
+## Central U4 surface district — Phase 1
+
+The default eight-line game now includes one real surface connection at **Central / U4** and a connected **268 × 260 m old-town district**. The original 53 station nodes, 65 railway platforms, U9, U10, U5 river loop and Liquid Glass interface are retained.
+
+For a quick visit, open `/app.html?line=U4&station=station-2` with the development server running. At Central's U4 platform, turn towards its north end and follow **OLD TOWN / ALTSTADT** into the stone-vaulted access hall. Walk all eight switchback flights to the medieval entrance. Outside, explore Central square, the western market, northern lanes, the eastern planted court and the canal promenade with three bridges. The same stone arch leads back to U4.
+
+All eight train services, door animations and transport clocks suspend while exploring the new surface district. They resume from their retained state on returning to the stairs. Existing U5 and U10 outdoor journeys continue operating normally when ridden; outdoor elevation alone does not trigger suspension. Keyboard, drag-look, sprint, touch movement and the glass menu/map remain available. Reset or Start returns to the selected railway start.
+
+This is the first surface milestone. The other three U4 surface exits, the rest of the city and reconstruction of Central's existing platform halls are outside this phase. Buildings have closed interiors; no NPCs or new dependencies were introduced. See [PHASE1_REPORT.md](PHASE1_REPORT.md) for branch provenance, preservation checks, validation and performance results.
+
+```sh
+node tests/surface-geometry.mjs
+# With the development server at port 5175:
+METRO_PRODUCTION_URL=http://127.0.0.1:5175/app.html npm test -- tests/surface.spec.js --timeout=180000
+# Uses the generated standalone build and ordinary production animation:
+node tests/surface-live-inspect.mjs
+```
 
 ## Liquid Glass HUD and interactive network map
 

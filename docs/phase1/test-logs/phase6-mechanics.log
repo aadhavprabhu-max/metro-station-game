@@ -1,0 +1,32 @@
+{
+  "preservedOriginalStations": 37,
+  "preservedOriginalLines": 6,
+  "preservedPlatforms": 44,
+  "phase6Stations": 45,
+  "branchLength": 9241.793332548192,
+  "minRadius": 297.54718880959416,
+  "maxGradePercent": 3.5999995682167154,
+  "bridgeSamples": {
+    "eastbound": 400,
+    "westbound": 400
+  },
+  "junctionProtection": "conflicting train stopped before home signal; resumed after release",
+  "journeys": [
+    {
+      "line": "U9",
+      "variant": "regular",
+      "visitedStops": 15,
+      "maxCarError": 6.43149122190529e-13,
+      "maxBogieError": 6.43149122190529e-13,
+      "maxOrientationError": 1.1710090180710446e-15
+    },
+    {
+      "line": "U5",
+      "variant": "scenic",
+      "visitedStops": 25,
+      "maxCarError": 9.713407672867936e-13,
+      "maxBogieError": 9.713407672867936e-13,
+      "maxOrientationError": 1.1102230246251565e-15
+    }
+  ]
+}

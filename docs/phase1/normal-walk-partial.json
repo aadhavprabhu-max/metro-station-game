@@ -1,0 +1,30 @@
+{
+  "status": "Intentionally stopped during supplementary inspection to complete handoff under the user\u2019s final scope/time direction; not counted as a passed full normal-animation test",
+  "method": "Ordinary production animation, genuine keyboard/mouse; no manual world.update or player repositioning during the walk",
+  "viewport": [
+    640,
+    400
+  ],
+  "completed": "Central U4 platform, all eight ascending flights, upper vaulted access, surface entrance, Central square and westward street exploration",
+  "notCompleted": "Normal-animation market return/descent and final exact-state comparison. These movements and simulation transitions passed separate deterministic input tests.",
+  "lastRecordedProgress": {
+    "progressSeconds": 1590.432,
+    "visited": 48,
+    "target": {
+      "x": -100.29506265309986,
+      "z": -234.00349394934938
+    },
+    "position": [
+      -88.29506798918112,
+      11.76,
+      -234.0148105708258
+    ],
+    "keys": [],
+    "enabled": true,
+    "frames": 1371,
+    "hidden": false,
+    "mode": true
+  },
+  "timingLimitation": "Wall time includes driver rounding stall; not gameplay FPS evidence",
+  "captures": "Preserved WebGL drawing buffer, scene-only; DOM HUD excluded"
+}

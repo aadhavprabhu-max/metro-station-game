@@ -1,0 +1,115 @@
+{
+  "stationNodes": 37,
+  "platforms": 44,
+  "lines": [
+    "U1",
+    "U2",
+    "U3",
+    "U4",
+    "U5",
+    "U6"
+  ],
+  "consideredMeshes": 5151,
+  "result": [
+    {
+      "station": "u4-westbahnhof",
+      "upperPose": [
+        -22,
+        -12,
+        0
+      ],
+      "upperYaw": 3.141592653589793,
+      "lowerPose": [
+        -23.57,
+        -24,
+        1.57
+      ],
+      "lowerYaw": 1.5707963267948963,
+      "towers": 2,
+      "flights": 4,
+      "supports": 615,
+      "headroomProbes": 631,
+      "eyePathHits": [],
+      "ceilingHits": [],
+      "supportFailures": [],
+      "eyePathHitSegments": 0,
+      "ceilingHitProbes": 0,
+      "unsupportedProbes": 0
+    },
+    {
+      "station": "u3-ostbahnhof",
+      "upperPose": [
+        0,
+        -12,
+        -480
+      ],
+      "upperYaw": 0,
+      "lowerPose": [
+        0,
+        -24,
+        -480
+      ],
+      "lowerYaw": -2.4492935982947064e-16,
+      "towers": 1,
+      "flights": 4,
+      "supports": 272,
+      "headroomProbes": 288,
+      "eyePathHits": [],
+      "ceilingHits": [],
+      "supportFailures": [],
+      "eyePathHitSegments": 0,
+      "ceilingHitProbes": 0,
+      "unsupportedProbes": 0
+    },
+    {
+      "station": "u2-stadtzentrum",
+      "upperPose": [
+        -22,
+        0,
+        0
+      ],
+      "upperYaw": 3.141592653589793,
+      "lowerPose": [
+        -23.57,
+        -36,
+        -1.57
+      ],
+      "lowerYaw": -1.5707963267948963,
+      "towers": 2,
+      "flights": 12,
+      "supports": 1024,
+      "headroomProbes": 1040,
+      "eyePathHits": [],
+      "ceilingHits": [],
+      "supportFailures": [],
+      "eyePathHitSegments": 0,
+      "ceilingHitProbes": 0,
+      "unsupportedProbes": 0
+    },
+    {
+      "station": "u4-arabellapark",
+      "upperPose": [
+        -21.99999999999994,
+        -12,
+        -480
+      ],
+      "upperYaw": 3.141592653589793,
+      "lowerPose": [
+        -22,
+        -36,
+        -480
+      ],
+      "lowerYaw": 3.141592653589793,
+      "towers": 1,
+      "flights": 8,
+      "supports": 448,
+      "headroomProbes": 464,
+      "eyePathHits": [],
+      "ceilingHits": [],
+      "supportFailures": [],
+      "eyePathHitSegments": 0,
+      "ceilingHitProbes": 0,
+      "unsupportedProbes": 0
+    }
+  ]
+}

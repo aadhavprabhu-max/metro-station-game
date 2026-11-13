@@ -1,0 +1,86 @@
+{
+  "lines": [
+    {
+      "id": "U1",
+      "stops": 7,
+      "railProbes": 866,
+      "portalProbes": 108
+    },
+    {
+      "id": "U2",
+      "stops": 7,
+      "railProbes": 338,
+      "portalProbes": 108
+    },
+    {
+      "id": "U3",
+      "stops": 7,
+      "railProbes": 830,
+      "portalProbes": 108
+    }
+  ],
+  "newStations": [
+    {
+      "id": "u1-lindenallee",
+      "signature": "linden-ceramic-portal-hall",
+      "floorY": 0,
+      "roofTop": 6.069999994039535
+    },
+    {
+      "id": "u1-universitaetsviertel",
+      "signature": "university-folded-concrete-plates",
+      "floorY": 0,
+      "roofTop": 7.578048959374428
+    },
+    {
+      "id": "u1-botanischer-garten",
+      "signature": "botanical-glass-timber-pergola",
+      "floorY": 0,
+      "roofTop": 7.800000000000001
+    },
+    {
+      "id": "u1-ostgaerten",
+      "signature": "east-garden-double-pitch-terminus",
+      "floorY": 0,
+      "roofTop": 7.700000047683716
+    },
+    {
+      "id": "u2-rathausmarkt",
+      "signature": "civic-stone-bronze-square-coffers",
+      "floorY": 0,
+      "roofTop": 6.06
+    },
+    {
+      "id": "u2-kupfergasse",
+      "signature": "copper-brick-ribbed-vault",
+      "floorY": 0,
+      "roofTop": 6.369999976158142
+    },
+    {
+      "id": "u2-stahlhof",
+      "signature": "steel-yard-blue-portal-trusses",
+      "floorY": 0,
+      "roofTop": 6.520000011920929
+    },
+    {
+      "id": "u3-museumsinsel",
+      "signature": "museum-deep-gallery-coffers",
+      "floorY": -12,
+      "roofTop": -5.54
+    },
+    {
+      "id": "u3-kanalpark",
+      "signature": "canal-teal-concave-ceiling",
+      "floorY": -12,
+      "roofTop": -5.560000011920929
+    },
+    {
+      "id": "u3-seetor",
+      "signature": "lake-gateway-wave-light-ceiling",
+      "floorY": -12,
+      "roofTop": -4.490000000000001
+    }
+  ],
+  "invalidVertices": 0,
+  "invalidNormals": 0
+}

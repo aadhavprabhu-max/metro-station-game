@@ -1,0 +1,154 @@
+
+> metro-station-game@1.0.0 test
+> playwright test --timeout=180000 --output=/tmp/aurealis-phase1-final-suite
+
+[WebServer] (node:7650) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:7670) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 85 tests using 1 worker
+
+(node:7691) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/expansion.spec.js:43:3 › complete six-line network — scripted production-model journeys › 37 shared stations have 44 real platforms, six independent services and the approved orders (1.9s)
+  ✓   2 tests/expansion.spec.js:74:5 › complete six-line network — scripted production-model journeys › U1: real three-car train makes every outbound/return stop with boarding and correct displays (18.7s)
+  ✓   3 tests/expansion.spec.js:74:5 › complete six-line network — scripted production-model journeys › U2: real three-car train makes every outbound/return stop with boarding and correct displays (23.0s)
+  ✓   4 tests/expansion.spec.js:74:5 › complete six-line network — scripted production-model journeys › U3: real three-car train makes every outbound/return stop with boarding and correct displays (21.4s)
+  ✓   5 tests/expansion.spec.js:74:5 › complete six-line network — scripted production-model journeys › U4: real three-car train makes every outbound/return stop with boarding and correct displays (12.7s)
+  ✓   6 tests/expansion.spec.js:74:5 › complete six-line network — scripted production-model journeys › U5: real three-car train makes every outbound/return stop with boarding and correct displays (34.4s)
+  ✓   7 tests/expansion.spec.js:74:5 › complete six-line network — scripted production-model journeys › U6: real three-car train makes every outbound/return stop with boarding and correct displays (31.8s)
+  ✓   8 tests/expansion.spec.js:206:3 › complete six-line network — scripted production-model journeys › Phase 5 landmark ceilings are visible physical geometry and restore their rendered image (6.1s)
+  ✓   9 tests/expansion.spec.js:246:3 › complete six-line network — scripted production-model journeys › completed U1, U2 and U3 remain connected through Central with live destination and transfer information (680ms)
+  ✓  10 tests/expansion.spec.js:308:3 › complete six-line network — scripted production-model journeys › all four added interchanges support keyboard walking both ways without a level jump (6.6s)
+  ✓  11 tests/glass-ui.spec.js:43:1 › the Liquid Glass HUD is the default and the original HUD remains available with ?ui=legacy (1.3m)
+  ✓  12 tests/glass-ui.spec.js:78:1 › the menu opens and closes by button and Escape, manages focus and never intercepts gameplay when closed (1.0m)
+  ✓  13 tests/glass-ui.spec.js:111:1 › dark is the default theme; light mode switches tokens, persists and keeps the glass treatment (2.1m)
+  ✓  14 tests/glass-ui.spec.js:132:1 › map drawer: grabber taps and drags move between collapsed, half-height and full-height detents (2.0m)
+  ✓  15 tests/glass-ui.spec.js:165:1 › map physics: cursor-centred wheel zoom, momentum, rubber-band settling, double-click and tool zoom (2.7m)
+  ✓  16 tests/glass-ui.spec.js:227:1 › map keyboard controls only work while the map has focus, and Escape steps back layer by layer (1.5m)
+  ✓  17 tests/glass-ui.spec.js:256:1 › element-relative pointer maths: tapping a drawn station selects it, with ring, card and real transfers (1.8m)
+  ✓  18 tests/glass-ui.spec.js:298:1 › the map is drawn from the live game network, not from a second railway database (58.7s)
+  ✓  19 tests/glass-ui.spec.js:329:27 › ride button “U9 · Central” is genuinely clickable and starts the correct route (1.4m)
+  ✓  20 tests/glass-ui.spec.js:329:27 › ride button “U5 · River loop” is genuinely clickable and starts the correct route (1.5m)
+  ✓  21 tests/glass-ui.spec.js:329:27 › ride button “U5 · Original direct route” is genuinely clickable and starts the correct route (1.5m)
+  ✓  22 tests/glass-ui.spec.js:344:1 › legacy ride buttons are clickable too (pointer-events fix) and keep the legacy flag (1.3m)
+  ✓  23 tests/glass-ui.spec.js:355:1 › live service pill: NEXT between stops, ARRIVING within the threshold and DOORS OPEN at a station, from the service values (24.6s)
+  ✓  24 tests/glass-ui.spec.js:408:1 › reduced motion jumps the menu, drawer and camera straight to their end states (47.7s)
+  ✓  25 tests/glass-ui.spec.js:428:1 › U10 journey times and the controls reference stay reachable from the menu (44.5s)
+  ✓  26 tests/glass-ui.spec.js:438:1 › the HUD map adds no WebGL draw calls (37.3s)
+  ✓  27 tests/glass-ui.spec.js:449:3 › phone-sized viewport › menu, map drawer, touch taps, pinch zoom and a ride link work on a phone (2.3m)
+  ✓  28 tests/journey.spec.js:8:1 › the connected train completes both directions continuously with doors shut before moving (28.2s)
+  ✘  29 tests/journey.spec.js:109:1 › keyboard boarding and the action button work only at a stopped open door (27.6s)
+(node:11928) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  30 tests/journey.spec.js:177:1 › rider controls, collisions, reset, and resizing remain valid during a journey (21.6s)
+  ✓  31 tests/lower-lines.spec.js:31:1 › four services share Central while lower platforms, palettes, and original operating settings stay independent (29.4s)
+  ✓  32 tests/lower-lines.spec.js:101:3 › U3 completes six continuous legs on its lower rails with synchronized cars and closed moving doors (23.3s)
+  ✓  33 tests/lower-lines.spec.js:175:3 › U3 carries a rider through all stations, permits safe alighting, and preserves reset (45.6s)
+  ✓  34 tests/lower-lines.spec.js:101:3 › U4 completes six continuous legs on its lower rails with synchronized cars and closed moving doors (28.0s)
+  ✓  35 tests/lower-lines.spec.js:175:3 › U4 carries a rider through all stations, permits safe alighting, and preserves reset (36.7s)
+  ✓  36 tests/lower-lines.spec.js:238:1 › Central stairs support a continuous keyboard descent and ascent with no shaft fall or level jump (27.0s)
+  ✓  37 tests/lower-lines.spec.js:308:1 › lower station signatures contain real monumental roofs and curved historic stonework (24.8s)
+[WebServer] 8:19:14 PM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  38 tests/metro.spec.js:11:1 › renders the train, station, and readable board at the exact spawn without runtime errors (50.4s)
+  ✓  39 tests/metro.spec.js:40:1 › real keyboard events move the camera in the running game (24.1s)
+  ✓  40 tests/metro.spec.js:50:1 › WASD, arrows, diagonal normalization, sprint, and delta time are consistent (18.5s)
+  ✓  41 tests/metro.spec.js:74:1 › mouse drag looks right and down naturally, clamps pitch, and releases (37.1s)
+  ✓  42 tests/metro.spec.js:106:1 › walls, track boundary, columns, and benches prevent penetration at sprint speed (23.4s)
+  ✓  43 tests/metro.spec.js:134:1 › reset, focus loss, help, and reload leave controls in a clean state (55.6s)
+  ✓  44 tests/metro.spec.js:161:1 › departures and separate platform-side door leaves can be updated (21.7s)
+  ✓  45 tests/metro.spec.js:184:1 › touch movement and responsive canvas work at a phone viewport (28.2s)
+[WebServer] 8:23:13 PM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  46 tests/network.spec.js:8:1 › U1 uses three shared station nodes and Central can support a second line without changing U1 (23.5s)
+  ✓  47 tests/network.spec.js:54:1 › station departures predict both Central directions and distinguish next stops from termini (23.0s)
+  ✓  48 tests/network.spec.js:111:1 › a passenger can board, alight, and walk with correct collisions at every U1 station (24.5s)
+  ✓  49 tests/passenger.spec.js:24:1 › all twelve carriages have real formed seats, grab rails, clear vestibules and source-derived passenger screens (20.5s)
+  ✓  50 tests/passenger.spec.js:104:1 › live passenger events and route maps follow every exact stop in both directions without repeated frame announcements (27.9s)
+  ✓  51 tests/passenger.spec.js:213:1 › real keyboard boarding uses authoritative furniture collisions, preserves the central aisle and permits platform exit (21.0s)
+  ✓  52 tests/passenger.spec.js:270:1 › sound is opt-in and unavailable speech remains honest while captions deduplicate and clear on alighting (45.2s)
+  ✓  53 tests/phase6.spec.js:22:3 › Phase 6 playable network › seven services, 55 physical platforms and real shared U9 interchanges (9.9s)
+  ✓  54 tests/phase6.spec.js:36:36 › Phase 6 playable network › U9: full outbound/return journey, every stop, boarding and real car/bogie orientation (6.5s)
+  ✓  55 tests/phase6.spec.js:36:36 › Phase 6 playable network › U5: full outbound/return journey, every stop, boarding and real car/bogie orientation (16.3s)
+  ✓  56 tests/phase6.spec.js:84:3 › Phase 6 playable network › all three U9 interchanges support continuous walking in both directions (494ms)
+  ✓  57 tests/phase6.spec.js:112:3 › Phase 6 playable network › both bridge crossings expose animated reflective water through closed train windows (3.9s)
+  ✓  58 tests/rendering.spec.js:21:1 › preview captures retain actual scene pixels between animation frames (21.3s)
+  ✓  59 tests/rendering.spec.js:31:1 › a preview container becoming visible resizes and renders without a window resize (15.4s)
+  ✓  60 tests/rendering.spec.js:56:1 › startup presents a real first frame even while document visibility is hidden (27.6s)
+  ✓  61 tests/standalone-preview.spec.js:5:1 › raw HTML preview renders the game with every external asset request blocked (59.1s)
+[WebServer] 8:29:29 PM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  62 tests/station-redesign.spec.js:22:1 › the approved station designs use curved glass and genuinely hollow three-dimensional coffers without obstructing trains or the upper level (25.0s)
+  ✓  63 tests/station-redesign.spec.js:146:1 › all three redesigned halls render their actual architecture with working visibility and lighting, and restore their rendered image after inspection (39.3s)
+  ✓  64 tests/surface.spec.js:56:2 › Central U4 surface milestone › the existing network and glass HUD coexist with exactly one new U4 entrance (15ms)
+  ✓  65 tests/surface.spec.js:66:2 › Central U4 surface milestone › genuine keyboard and mouse input walk all eight flights from U4 into the city (16.9s)
+  ✓  66 tests/surface.spec.js:80:2 › Central U4 surface milestone › the district is a continuous walkable loop extending well beyond the U4 corridor (4.2s)
+  ✓  67 tests/surface.spec.js:94:2 › Central U4 surface milestone › the protected glass menu and map remain usable on the surface (2.4s)
+  ✓  68 tests/surface.spec.js:104:2 › Central U4 surface milestone › every service state, door progress, events, timetable and junction reservation freeze exactly (4.3s)
+  ✓  69 tests/surface.spec.js:144:2 › Central U4 surface milestone › walking back down restores Central platform movement and the underground environment (11.7s)
+  ✓  70 tests/surface.spec.js:157:2 › Central U4 surface milestone › touch movement, look, menu and map remain usable in the surface district (28.2s)
+[WebServer] 8:32:03 PM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  71 tests/train-engineering.spec.js:17:1 › every carriage has one actual finished walking surface above its structural slab, with intact flat cab seams (19.8s)
+  ✓  72 tests/train-engineering.spec.js:119:1 › rendered train floors stay stable at stopped camera angles and hiding the covered structure cannot change their visible pixels (1.5m)
+[WebServer] 8:33:52 PM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  73 tests/train-model.spec.js:17:1 › original services retain broad flat Nordplatz faces, white/teal exteriors and two rectangular headlights without changing line identities (22.6s)
+[WebServer] 8:34:14 PM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  74 tests/train-model.spec.js:212:1 › sliding leaves expose physical door apertures and passengers cannot walk into either driver cab (20.7s)
+[WebServer] 8:34:35 PM [vite] (client) [console.warn] THREE.WARNING: Multiple instances of Three.js being imported.
+  ✓  75 tests/train-model.spec.js:283:1 › upgraded trains keep their rails and clear platforms/tunnels while both cab light states and destinations reverse correctly (24.4s)
+  ✓  76 tests/u10.spec.js:27:3 › Phase 7 Airport Express › the complete Phase 6 network is preserved alongside ten real U10 platforms (94ms)
+  ✓  77 tests/u10.spec.js:49:3 › Phase 7 Airport Express › actual express meshes complete the return journey with measured timings, aligned bogies and working boarding (11.9s)
+  ✓  78 tests/u10.spec.js:90:3 › Phase 7 Airport Express › Central and Ringplatz support keyboard transfers both ways and continuous lift rides (3.0s)
+  ✓  79 tests/u10.spec.js:146:3 › Phase 7 Airport Express › journey panel displays measured segment times, separate dwell and both waiting directions (1.6s)
+  ✓  80 tests/u10.spec.js:160:3 › Phase 7 Airport Express › open platforms expose sky, the botanical collection is real 3D and the city survives switching back to Phase 6 (11.0s)
+  ✓  81 tests/u2.spec.js:19:1 › U2 shares Central, adds three stations, and line start buttons leave both trains untouched (25.3s)
+  ✓  82 tests/u2.spec.js:89:1 › U2 completes its six-leg loop independently with smooth motion, safe doors, and deferred cab reversal (24.0s)
+  ✓  83 tests/u2.spec.js:175:1 › U2 keyboard boarding carries the rider through all six legs and alights on the correct rotated platforms (21.0s)
+  ✓  84 tests/u2.spec.js:254:1 › Central transfer is a continuous walk with real keyboard input and live boards for both lines (21.7s)
+  ✓  85 tests/u2.spec.js:318:1 › Schwarzkopf has a continuous irregular rock shell and Eisenwerk has real industrial structure (23.6s)
+
+
+  1) tests/journey.spec.js:109:1 › keyboard boarding and the action button work only at a stopped open door 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('#interact-button')
+    Expected: visible
+    Received: hidden
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toBeVisible" locator('#interact-button') with timeout 5000ms
+      - waiting for locator('#interact-button')
+        7 × locator resolved to <button hidden="" id="interact-button" class="interact-button">…</button>
+          - unexpected value "hidden"
+
+
+      116 |   });
+      117 |   await page.waitForFunction(() => window.metro.player.interactionHint().enabled);
+    > 118 |   await expect(page.locator('#interact-button')).toBeVisible();
+          |                                                  ^
+      119 |   await page.keyboard.press('e');
+      120 |   await page.waitForFunction(() => Boolean(window.metro.player.ridingCar));
+      121 |   expect(await page.evaluate(() => window.metro.player.ridingCar.carNumber)).toBe(101);
+        at /tmp/aurealis-phase1-validation/tests/journey.spec.js:118:50
+
+    Error Context: ../aurealis-phase1-final-suite/journey-keyboard-boarding--ef9e8-only-at-a-stopped-open-door/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../aurealis-phase1-final-suite/journey-keyboard-boarding--ef9e8-only-at-a-stopped-open-door/trace.zip
+    Usage:
+
+        npx playwright show-trace ../aurealis-phase1-final-suite/journey-keyboard-boarding--ef9e8-only-at-a-stopped-open-door/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Slow test file: tests/glass-ui.spec.js (24.0m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 failed
+    tests/journey.spec.js:109:1 › keyboard boarding and the action button work only at a stopped open door 
+  84 passed (51.0m)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
