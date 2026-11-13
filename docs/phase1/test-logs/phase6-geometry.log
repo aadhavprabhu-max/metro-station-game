@@ -1,0 +1,119 @@
+{
+  "stations": [
+    {
+      "station": "Central",
+      "line": "U9",
+      "floorHits": 12,
+      "roofHits": 12
+    },
+    {
+      "station": "Kaiserforum",
+      "line": "U9",
+      "floorHits": 12,
+      "roofHits": 12
+    },
+    {
+      "station": "Goldmarkt",
+      "line": "U9",
+      "floorHits": 12,
+      "roofHits": 12
+    },
+    {
+      "station": "Sonnenviertel",
+      "line": "U9",
+      "floorHits": 12,
+      "roofHits": 12
+    },
+    {
+      "station": "Nordklinikum",
+      "line": "U9",
+      "floorHits": 12,
+      "roofHits": 12
+    },
+    {
+      "station": "Hohenbrück",
+      "line": "U9",
+      "floorHits": 12,
+      "roofHits": 12
+    },
+    {
+      "station": "Kronenplatz",
+      "line": "U9",
+      "floorHits": 12,
+      "roofHits": 12
+    },
+    {
+      "station": "Waldtor",
+      "line": "U9",
+      "floorHits": 12,
+      "roofHits": 12
+    },
+    {
+      "station": "Altstadtbrücke",
+      "line": "U5",
+      "floorHits": 12,
+      "roofHits": 12
+    },
+    {
+      "station": "Uferpromenade",
+      "line": "U5",
+      "floorHits": 12,
+      "roofHits": 12
+    },
+    {
+      "station": "Steinbogen",
+      "line": "U5",
+      "floorHits": 12,
+      "roofHits": 12
+    }
+  ],
+  "transfers": [
+    {
+      "station": "station-2",
+      "supports": 539,
+      "probes": 553,
+      "obstructions": []
+    },
+    {
+      "station": "u5-nordklinikum",
+      "supports": 724,
+      "probes": 738,
+      "obstructions": []
+    },
+    {
+      "station": "u5-waldtor",
+      "supports": 682,
+      "probes": 696,
+      "obstructions": []
+    }
+  ],
+  "railProbes": 1540,
+  "missingRail": [],
+  "bodyObstructions": [],
+  "waterSightlines": [
+    {
+      "trackZ": -430,
+      "side": -1,
+      "firstHit": "AnimatedReflectiveRiver",
+      "waterVisible": true
+    },
+    {
+      "trackZ": -430,
+      "side": 1,
+      "firstHit": "AnimatedReflectiveRiver",
+      "waterVisible": true
+    },
+    {
+      "trackZ": -436,
+      "side": -1,
+      "firstHit": "AnimatedReflectiveRiver",
+      "waterVisible": true
+    },
+    {
+      "trackZ": -436,
+      "side": 1,
+      "firstHit": "AnimatedReflectiveRiver",
+      "waterVisible": true
+    }
+  ]
+}

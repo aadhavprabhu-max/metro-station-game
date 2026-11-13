@@ -1,0 +1,29 @@
+{
+  "protectedStations": 45,
+  "protectedPlatforms": 55,
+  "protectedLinks": 45,
+  "nodes": 53,
+  "platforms": 65,
+  "links": 54,
+  "lengthMetres": 11580.992965848742,
+  "maxGrade": 0.03537906137184116,
+  "maxQuaternionError": 5.697486465404679e-16,
+  "outdoor": 4,
+  "indoor": 6,
+  "actualStopEvents": 18,
+  "timetable": {
+    "directions": [
+      {
+        "direction": 1,
+        "runningSeconds": 726.4000000000001,
+        "totalSeconds": 918.6666666666667
+      },
+      {
+        "direction": -1,
+        "runningSeconds": 726.4,
+        "totalSeconds": 918.6666666666666
+      }
+    ],
+    "headwaySeconds": 1885.4
+  }
+}

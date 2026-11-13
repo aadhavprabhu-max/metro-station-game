@@ -1,0 +1,114 @@
+{
+  "transfers": [
+    {
+      "name": "CentralPhysicalTransfer",
+      "drop": 24,
+      "flights": 8,
+      "probes": 396,
+      "failures": [],
+      "failureCount": 0
+    },
+    {
+      "name": "RingplatzPhysicalTransfer",
+      "drop": 36,
+      "flights": 12,
+      "probes": 539,
+      "failures": [],
+      "failureCount": 0
+    },
+    {
+      "name": "FinanzforumEntranceStairs",
+      "drop": 82,
+      "flights": 28,
+      "probes": 1243,
+      "failures": [],
+      "failureCount": 0
+    },
+    {
+      "name": "EastendEntranceStairs",
+      "drop": 82,
+      "flights": 28,
+      "probes": 1243,
+      "failures": [],
+      "failureCount": 0
+    },
+    {
+      "name": "SkylinequartierEntranceStairs",
+      "drop": 16,
+      "flights": 6,
+      "probes": 275,
+      "failures": [],
+      "failureCount": 0
+    },
+    {
+      "name": "MetropolbrückeEntranceStairs",
+      "drop": 16,
+      "flights": 6,
+      "probes": 275,
+      "failures": [],
+      "failureCount": 0
+    },
+    {
+      "name": "East Botanical GardenEntranceStairs",
+      "drop": 16,
+      "flights": 6,
+      "probes": 275,
+      "failures": [],
+      "failureCount": 0
+    },
+    {
+      "name": "EuropaplatzEntranceStairs",
+      "drop": 16,
+      "flights": 6,
+      "probes": 275,
+      "failures": [],
+      "failureCount": 0
+    },
+    {
+      "name": "FlughafenparkEntranceStairs",
+      "drop": 16,
+      "flights": 6,
+      "probes": 275,
+      "failures": [],
+      "failureCount": 0
+    },
+    {
+      "name": "Aurealis International AirportEntranceStairs",
+      "drop": 16,
+      "flights": 6,
+      "probes": 275,
+      "failures": [],
+      "failureCount": 0
+    }
+  ],
+  "entrances": 8,
+  "railProbes": 2124,
+  "trainPoseProbes": 3186,
+  "maxCarError": 1.8749747265296273e-12,
+  "maxBogieError": 2.033691978340166e-12,
+  "obstacles": [],
+  "clearanceProbes": 848,
+  "clearanceFailures": [],
+  "openStationProbes": [
+    {
+      "name": "Skylinequartier",
+      "skyHits": 0,
+      "sideHits": 0
+    },
+    {
+      "name": "Metropolbrücke",
+      "skyHits": 0,
+      "sideHits": 0
+    },
+    {
+      "name": "Europaplatz",
+      "skyHits": 0,
+      "sideHits": 0
+    },
+    {
+      "name": "Flughafenpark",
+      "skyHits": 0,
+      "sideHits": 0
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "stations": 37,
+  "platforms": 44,
+  "lines": 6,
+  "results": [
+    {
+      "lineId": "U1",
+      "stops": 7,
+      "visits": 13,
+      "boards": 52,
+      "exits": 51,
+      "seconds": 828.5,
+      "minimumCurveRadius": null,
+      "carError": 1.4210854715202004e-14,
+      "bogieError": 1.4210854715202004e-14,
+      "wheelError": 0.0024999999999999467,
+      "bodyLateral": 1.45,
+      "riderError": 0,
+      "publicOffsetError": 2.2737368221949554e-13
+    },
+    {
+      "lineId": "U2",
+      "stops": 7,
+      "visits": 13,
+      "boards": 52,
+      "exits": 51,
+      "seconds": 564.5,
+      "minimumCurveRadius": null,
+      "carError": 7.105427357601002e-15,
+      "bogieError": 1.4210854715202004e-14,
+      "wheelError": 0.0024999999999977263,
+      "bodyLateral": 1.4499999999999993,
+      "riderError": 0,
+      "publicOffsetError": 5.68479994304305e-14
+    },
+    {
+      "lineId": "U3",
+      "stops": 7,
+      "visits": 13,
+      "boards": 52,
+      "exits": 51,
+      "seconds": 810.5,
+      "minimumCurveRadius": null,
+      "carError": 2.842170943040401e-14,
+      "bogieError": 5.684341886080802e-14,
+      "wheelError": 0.0024999999999999467,
+      "bodyLateral": 1.45,
+      "riderError": 0,
+      "publicOffsetError": 4.47545209131181e-16
+    },
+    {
+      "lineId": "U4",
+      "stops": 4,
+      "visits": 7,
+      "boards": 28,
+      "exits": 27,
+      "seconds": 359.75,
+      "minimumCurveRadius": null,
+      "carError": 1.4210854715202004e-14,
+      "bogieError": 5.684341886080802e-14,
+      "wheelError": 0.0024999999999977263,
+      "bodyLateral": 1.4499999999999993,
+      "riderError": 0,
+      "publicOffsetError": 7.15577281762161e-15
+    },
+    {
+      "lineId": "U5",
+      "stops": 10,
+      "visits": 19,
+      "boards": 76,
+      "exits": 75,
+      "seconds": 1456.75,
+      "minimumCurveRadius": 292.6582933029981,
+      "carError": 5.684785957944772e-13,
+      "bogieError": 5.684452907299083e-13,
+      "wheelError": 0.004283546751414696,
+      "bodyLateral": 1.5786444991691015,
+      "riderError": 5.684452907299083e-13,
+      "publicOffsetError": 0
+    },
+    {
+      "lineId": "U6",
+      "stops": 9,
+      "visits": 17,
+      "boards": 68,
+      "exits": 67,
+      "seconds": 1393.25,
+      "minimumCurveRadius": 292.65829330299806,
+      "carError": 5.684341886080801e-13,
+      "bogieError": 5.084726428439934e-13,
+      "wheelError": 0.00428355848301163,
+      "bodyLateral": 1.5786444983729069,
+      "riderError": 5.501661329904644e-13,
+      "publicOffsetError": 0
+    }
+  ],
+  "analyticCurve": {
+    "radius": 150,
+    "samples": 1301,
+    "riderError": 1.2506662372402388e-13,
+    "headingAndWalking": true
+  }
+}

@@ -51,7 +51,10 @@ export class WorldVisibility {
       if (station) show(group, station.visible);
     });
     for (const interchange of [...world.interchanges, ...world.pedestrianTransfers]) show(interchange,
-      interchange.platforms.some(platform => visibleLines.has(platform.lineId)) && near(this.transferBounds.get(interchange)));
+      // The new entrance is also a surface landmark. Keep it visible across
+      // the district without fighting this culler and invalidating cached shadows.
+      (interchange.isCityEntrance && player.surfaceExploring)
+      || (interchange.platforms.some(platform => visibleLines.has(platform.lineId)) && near(this.transferBounds.get(interchange))));
     if (changed) world.renderer.shadowMap.needsUpdate = true;
   }
 }

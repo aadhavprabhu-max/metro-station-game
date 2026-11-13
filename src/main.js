@@ -1,4 +1,5 @@
 import './style.css';
+import './surface.css';
 import { createScene } from './scene.js';
 import { PlayerController } from './player.js';
 import { UI, showError } from './ui.js';
@@ -15,6 +16,7 @@ try {
   const player = new PlayerController(world.camera, world.renderer.domElement, world.station);
   player.configureServices(world.services, world.stations);
   player.configureTransfers(world.pedestrianTransfers);
+  player.configureSurface(world.surfaceWorld);
   const initialLine = new URLSearchParams(location.search).get('line');
   if (initialLine && world.routes[initialLine]) player.startAt(initialLine, new URLSearchParams(location.search).get('station'));
   const ui = new UI(player, world.station.departures, world.service, world.stations, world.services);
@@ -33,19 +35,32 @@ try {
   let shadowAnchorY = 0;
   let shadowLine = 'U1';
   world.update = delta => {
-    for (const service of world.services) service.update(delta);
-    for (const lift of world.lifts) lift.update(delta);
-    world.u10Timetable?.update(delta);
-    for (const info of world.passengerInformation) info.update(delta);
+    player.syncSurfaceContext();
+    world.surfaceSimulation.synchronize(player);
+    // All transport clocks consume the same delta, including the frame that
+    // crosses a street/stair threshold. Surface time is never accumulated.
+    const transportDelta = world.surfaceSimulation.paused ? 0 : delta;
+    world.surfaceSimulation.advance(world, transportDelta);
     player.update(delta);
-    announcer.update(delta);
-    for (const displays of world.passengerDisplays) displays.update();
+    world.surfaceSimulation.synchronize(player);
+    if (!world.surfaceSimulation.paused) {
+      announcer.update(transportDelta);
+      for (const displays of world.passengerDisplays) displays.update();
+    }
     visibility.update(player);
+    ui.update(transportDelta);
+    if (world.surfaceWorld?.applyRendering(player, world)) {
+      // The upper stairs can see daylight before reaching public street floor.
+      // Keep railway reservations live there; suspend them with the services
+      // only once surface exploration actually starts.
+      if (!world.surfaceSimulation.paused) world.phase6World?.authority.update(world.services.find(service => service.lineId === 'U5'));
+      liftButton.hidden = true;
+      return;
+    }
     if (world.phase6World && player.service?.lineId === 'U10') {
       world.phase6World.visible = false;
       world.phase6World.authority.update(world.services.find(s => s.lineId === 'U5'));
     } else world.phase6World?.update(delta, player, world);
-    ui.update(delta);
     updateTimetable?.();
     activeLift = world.lifts.find(lift => lift.hint(player)) ?? null;
     const liftHint = activeLift?.hint(player);
@@ -89,7 +104,7 @@ try {
     const anchor = player.transferSurface ? player.camera.position.z : player.ridingCar ? active.train.position.z : matrix[14];
     const anchorX = player.transferSurface ? player.camera.position.x : player.ridingCar && active.route.hasCurves ? active.train.position.x : matrix[12];
     const anchorY = player.transferSurface?.floorY ?? (player.ridingCar && active.route.hasGrades ? active.train.position.y : matrix[13]);
-    if (Math.abs(anchor - shadowAnchor) > 0.75 || Math.abs(anchorX - shadowAnchorX) > 0.75 || Math.abs(anchorY - shadowAnchorY) > 0.3 || active.lineId !== shadowLine) {
+    if (world.surfaceWorld?.justReturned || Math.abs(anchor - shadowAnchor) > 0.75 || Math.abs(anchorX - shadowAnchorX) > 0.75 || Math.abs(anchorY - shadowAnchorY) > 0.3 || active.lineId !== shadowLine) {
       world.lighting.keyLight.position.set(anchorX - 5 * matrix[0] - (expressOutdoors ? 85 : 25) * matrix[8], anchorY + (expressOutdoors ? 160 : 4.8), anchor - 5 * matrix[2] - (expressOutdoors ? 85 : 25) * matrix[10]);
       world.lighting.keyLight.target.position.set(anchorX + matrix[0] - 12 * matrix[8], anchorY, anchor + matrix[2] - 12 * matrix[10]);
       shadowAnchor = anchor;
@@ -130,6 +145,7 @@ try {
         activeLineId: player.service?.lineId ?? 'U1',
         stationCount: world.network.nodes.size, trainCount: world.trains.length,
         riding: Boolean(player.ridingCar), currentStation: player.station.displayName,
+        surfaceExploring: player.surfaceExploring, trainsSuspended: world.surfaceSimulation.paused,
         departures: world.station.departures.departures.map(item => ({ ...item })),
         drawCalls: world.renderer.info.render.calls,
         triangles: world.renderer.info.render.triangles,

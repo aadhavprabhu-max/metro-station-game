@@ -1,0 +1,10 @@
+{
+  "flights": 8,
+  "rise": 22,
+  "pathSamples": 602,
+  "headroomProbes": 602,
+  "routeSamples": 2890,
+  "meshes": 2464,
+  "failures": [],
+  "failureCount": 0
+}

@@ -1,0 +1,28 @@
+
+> metro-station-game@1.0.0 test
+> playwright test tests/journey.spec.js tests/surface.spec.js -g keyboard boarding|Central U4 surface milestone --timeout=180000 --output=/tmp/aurealis-phase1-final-focused
+
+[WebServer] (node:15383) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:15404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+(node:15426) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 tests/journey.spec.js:109:1 › keyboard boarding and the action button work only at a stopped open door (34.6s)
+  ✓  2 tests/surface.spec.js:59:2 › Central U4 surface milestone › the existing network and glass HUD coexist with exactly one new U4 entrance (19ms)
+  ✓  3 tests/surface.spec.js:69:2 › Central U4 surface milestone › genuine keyboard and mouse input walk all eight flights from U4 into the city (19.0s)
+  ✓  4 tests/surface.spec.js:83:2 › Central U4 surface milestone › the district is a continuous walkable loop extending well beyond the U4 corridor (3.8s)
+  ✓  5 tests/surface.spec.js:101:2 › Central U4 surface milestone › the protected glass menu and map remain usable on the surface (2.4s)
+  ✓  6 tests/surface.spec.js:111:2 › Central U4 surface milestone › every service state, door progress, events, timetable and junction reservation freeze exactly (4.1s)
+  ✓  7 tests/surface.spec.js:158:2 › Central U4 surface milestone › walking back down restores Central platform movement and the underground environment (9.9s)
+  ✓  8 tests/surface.spec.js:171:2 › Central U4 surface milestone › touch movement, look, menu and map remain usable in the surface district (33.6s)
+
+  8 passed (2.3m)
+npm notice
+npm notice New major version of npm available! 11.9.0 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice

@@ -78,6 +78,7 @@ function stationOptions(stop, route, index) {
     options.walkableAreas.push({ minX: mirrored ? -13.2 : -13.4, maxX: mirrored ? -8.6 : -8.8,
       minZ: sign * 24 - 2, maxZ: sign * 24 + 2 });
     if (route.lineId === 'U1' || route.lineId === 'U3') openEnd(-44);
+    if (route.lineId === 'U4' && route.surfaceExitEnabled) openEnd(-44);
   }
   for (const transfer of [...NEW_TRANSFERS, ...PHASE6_TRANSFERS]) if (stop.id === transfer.id && route.network.lines.has(transfer.lowerLine)) {
     if (route.lineId === transfer.upperLine) openEnd(transfer.upperEnd);

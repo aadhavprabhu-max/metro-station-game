@@ -1,0 +1,71 @@
+{
+  "scope": "One Central U4 surface exit and compact connected district; other exits and full city excluded",
+  "network": {
+    "stations": 53,
+    "railwayPlatforms": 65,
+    "services": [
+      "U1",
+      "U2",
+      "U3",
+      "U4",
+      "U5",
+      "U6",
+      "U9",
+      "U10"
+    ]
+  },
+  "browser": {
+    "fullFrozenFeatureSuite": {
+      "passed": 84,
+      "failed": 1,
+      "minutes": 51,
+      "failure": "Existing journey.spec.js:109 interaction-button visibility wait (5 seconds)",
+      "finalSource": false
+    },
+    "unchangedFailureAndStrengthenedSurfaceRerun": {
+      "passed": 8,
+      "failed": 0,
+      "minutes": 2.3
+    },
+    "finalSurfaceSuite": {
+      "passed": 7,
+      "failed": 0,
+      "minutes": 1.8,
+      "touchViewport": [
+        390,
+        844
+      ]
+    },
+    "method": "Keyboard/mouse and CDP touch with deterministic ordinary production update steps; not normal-animation evidence"
+  },
+  "surfaceGeometry": {
+    "flights": 8,
+    "rise": 22,
+    "pathSamples": 602,
+    "headroomProbes": 602,
+    "routeSamples": 2890,
+    "meshes": 2464,
+    "failures": [],
+    "failureCount": 0
+  },
+  "syntax": {
+    "sourceModules": 59,
+    "newTestDrivers": 4,
+    "passed": 63
+  },
+  "normalAnimation": {
+    "status": "Partial; intentionally stopped for final handoff",
+    "report": "normal-walk-partial.json",
+    "fullPassClaimed": false
+  },
+  "performance": "See performance.json; static render timing is not gameplay FPS",
+  "protectedFiles": "See preservation.json",
+  "normalDriverCorrection": {
+    "nominalSplitMetres": 12,
+    "observedMetres": 12.000000000000009,
+    "correctedThresholdMetres": 12.001,
+    "sameBrowserAndTraceRetained": true,
+    "gameStateChanged": false,
+    "wallTimeIncludesDriverStall": true
+  }
+}

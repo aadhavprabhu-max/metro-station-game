@@ -19,6 +19,8 @@ import { MetropolitanCity } from './metropolitan-city.js';
 import { U10_SERVICE_OPTIONS, U10Timetable } from './u10-timetable.js';
 import { createPhase6Network, createScenicU5Route } from './phase6-network.js';
 import { Phase6World } from './phase6-world.js';
+import { SurfaceWorld } from './surface-world.js';
+import { SurfaceSimulation } from './surface-simulation.js';
 
 export function createScene(container) {
   if (!container) throw new Error('The 3D scene container is missing.');
@@ -78,6 +80,8 @@ export function createScene(container) {
   if (!originalNetwork && !phase5 && parameters.get('network') !== 'phase6') addU10ToNetwork(network);
   const routes = Object.fromEntries([...network.lines.keys()].map(lineId => [lineId, new MetroRoute(network, lineId)]));
   if (routes.U10) routes.U10.hasGrades = true;
+  // Historical network fixtures retain their exact station apertures.
+  routes.U4.surfaceExitEnabled = Boolean(routes.U10);
   const directU5 = routes.U5;
   if (network.phase6 && parameters.get('u5') === 'scenic') routes.U5 = createScenicU5Route(network);
   for (const route of Object.values(routes)) if (route.lineId !== 'U1') route.directionNames = { 1: 'Outbound', '-1': 'Inbound' };
@@ -131,7 +135,8 @@ export function createScene(container) {
   });
   const interchanges = [upperPassage, lowerPassage];
   const entrances = lineWorlds.U10?.entrances ?? [];
-  const pedestrianTransfers = [verticalInterchange, ...networkTransfers, ...entrances];
+  const surfaceWorld = routes.U4.surfaceExitEnabled ? new SurfaceWorld(materials, lineWorlds.U4.central) : null;
+  const pedestrianTransfers = [verticalInterchange, ...networkTransfers, ...entrances, ...(surfaceWorld ? [surfaceWorld.entrance] : [])];
   const passengerInformation = services.map(nextService => new PassengerInformation(nextService, network));
   const transferConnections = [...interchanges.map(passage => ({ type: 'passage', platformIds: passage.platformIds })),
     ...pedestrianTransfers.filter(stairs => !stairs.isStreetEntrance).map(stairs => ({ type: 'stairs', platformIds: stairs.platformIds }))];
@@ -162,19 +167,21 @@ export function createScene(container) {
       { position: [-4.2, -8.8, -287], color: '#e7edf1', intensity: 52, distance: 9 },
     ],
   });
-  for (const transfer of [...networkTransfers, ...entrances]) lighting.addStationFixtures(0, {
+  for (const transfer of [...networkTransfers, ...entrances, ...(surfaceWorld ? [surfaceWorld.entrance] : [])]) lighting.addStationFixtures(0, {
     platformId: transfer.name, fixtures: false, pointDefinitions: transfer.lightDefinitions,
   });
   scene.add(...trains, lighting, routeWorld, u2World, lowerWorld, verticalInterchange, ...networkTransfers,
     ...Object.entries(lineWorlds).filter(([id]) => !['U1', 'U2', 'U3', 'U4'].includes(id)).map(([, root]) => root));
   const city = routes.U10 ? new MetropolitanCity(routes.U10) : null;
   if (city) { city.visible = false; scene.add(city); }
+  if (surfaceWorld) scene.add(surfaceWorld, surfaceWorld.entrance);
   const expressService = services.find(s => s.lineId === 'U10');
   const u10Timetable = expressService ? new U10Timetable(expressService) : null;
   const world = {
     scene, renderer, camera, station, stations, train, route, network, routeWorld, service,
     routes, services, trains, passengerInformation, passengerDisplays, u2World, lowerWorld, verticalInterchange,
-    lineWorlds, interchanges, networkTransfers, pedestrianTransfers, city, u10Timetable,
+    lineWorlds, interchanges, networkTransfers, pedestrianTransfers, city, u10Timetable, surfaceWorld,
+    surfaceSimulation: new SurfaceSimulation(),
     lifts: pedestrianTransfers.flatMap(transfer => transfer.lifts ?? []),
     lighting, resize, environment, viewport, quality: { softwareGraphics, shadowSize: softwareGraphics ? 1024 : 2048 }, onResize: null,
     expressFog: new THREE.Fog('#6c7a6f', 62, 125), expressBackground: new THREE.Color('#64736b'),
