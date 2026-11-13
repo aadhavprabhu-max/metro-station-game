@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openMenu, closeMenu } from './hud.js';
 
 const lines = {
   U1: ['Nordplatz', 'Central', 'Rosenheimer Platz'],
@@ -295,7 +296,10 @@ test('sound is opt-in and unavailable speech remains honest while captions dedup
   expect(boarded.riding).toBe(true);
   expect(boarded.caption).toContain('Next station: Central');
   await expect(page.locator('#announcement-text')).toContainText('Next station: Central');
-  await page.locator('#sound-button').click();
+  await openMenu(page);
+  await page.locator('#gh-sound-button').click();
+  await expect(page.locator('#gh-sound-button')).toHaveAttribute('aria-pressed', 'true');
+  await closeMenu(page);
   await expect(page.locator('#sound-button')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#sound-status')).toContainText('voice unavailable', { ignoreCase: true });
   const historyBeforeLook = await page.evaluate(() => window.metro.world.announcer.getStatus().history.length);
@@ -337,6 +341,8 @@ test('sound is opt-in and unavailable speech remains honest while captions dedup
   const alighted = await page.evaluate(() => window.metro.world.announcer.getStatus());
   expect(alighted.activeLineId).toBe(null); expect(alighted.caption).toBe(''); expect(alighted.queued).toBe(0); expect(alighted.speaking).toBe(false);
   await expect(page.locator('#announcement-caption')).toBeHidden();
-  await page.locator('#sound-button').click();
+  await openMenu(page);
+  await page.locator('#gh-sound-button').click();
+  await expect(page.locator('#gh-sound-button')).toHaveAttribute('aria-pressed', 'false');
   await expect(page.locator('#sound-button')).toHaveAttribute('aria-pressed', 'false');
 });

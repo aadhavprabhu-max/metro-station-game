@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openMenu, closeMenu } from './hud.js';
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 
@@ -133,6 +134,7 @@ test.describe('Phase 7 Airport Express', () => {
       const station = lift.transfer.platforms[0]; player.startAt(station.lineId, station.stationId);
       player.camera.position.set(-5.3, lift.topY + 1.76, 12.5); lift.group.localToWorld(player.camera.position); lift.activate(player); lift.update(1);
     });
+    await openMenu(page);
     await page.getByRole('button', { name: 'Start U1', exact: true }).click();
     const reset = await page.evaluate(() => {
       const { world, player } = metro, before = player.camera.position.toArray(); for (const lift of world.lifts) lift.update(1);
@@ -143,6 +145,7 @@ test.describe('Phase 7 Airport Express', () => {
 
   test('journey panel displays measured segment times, separate dwell and both waiting directions', async () => {
     await page.evaluate(() => { metro.player.ridingCar = null; metro.player.startAt('U10'); metro.world.update(0.2); });
+    await openMenu(page);
     await page.getByRole('button', { name: 'U10 journey times', exact: true }).click();
     await expect(page.locator('#u10-timings')).toHaveAttribute('open', '');
     expect(await page.locator('.timing-segment').count()).toBe(18); expect(await page.locator('.timing-dwell').count()).toBe(16);
@@ -151,7 +154,7 @@ test.describe('Phase 7 Airport Express', () => {
     await page.evaluate(() => metro.world.update(0.2));
     await expect(page.locator('#u10-live-wait')).toContainText('Central:'); await expect(page.locator('#u10-live-wait')).toContainText('Aurealis International Airport:');
     await expect(page.locator('#network-map [data-line="U10"]')).toContainText('open elevated');
-    await page.locator('#close-help').click();
+    await closeMenu(page);
   });
 
   test('open platforms expose sky, the botanical collection is real 3D and the city survives switching back to Phase 6', async ({}, testInfo) => {

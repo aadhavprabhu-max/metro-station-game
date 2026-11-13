@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { startLine } from './hud.js';
 
 const browserErrors = new WeakMap();
 
@@ -71,9 +72,9 @@ test('U2 shares Central, adds three stations, and line start buttons leave both 
   expect(graph.station).toBe('u2-stadtzentrum');
   await expect(page.locator('#location-line')).toHaveText('U2');
   await expect(page.locator('#service-label')).toHaveText('U2 LIVE SERVICE');
-  await page.locator('#start-u1-button').click();
+  await startLine(page, 'U1');
   await expect(page.locator('#location-line')).toHaveText('U1');
-  await page.locator('#start-u2-button').click();
+  await startLine(page, 'U2');
   await expect(page.locator('#location-line')).toHaveText('U2');
   const after = await page.evaluate(() => ({
     snapshots: window.metro.world.services.map(service => service.snapshot()),

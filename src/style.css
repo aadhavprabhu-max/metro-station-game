@@ -37,5 +37,5 @@
 @media(max-width:420px){.line-starts{grid-template-columns:repeat(3,minmax(0,1fr))}.line-starts button{min-height:28px}.location-transfer{max-width:230px}}
 
 .phase6-routes { display: flex; flex-wrap: wrap; gap: .4rem; margin: .65rem 0; }
-.phase6-routes a { color: #f3df9b; border: 1px solid #697967; background: #24382f; border-radius: 5px; padding: .5rem .65rem; font-size: .75rem; text-decoration: none; }
+.phase6-routes a { pointer-events: auto; touch-action: manipulation; color: #f3df9b; border: 1px solid #697967; background: #24382f; border-radius: 5px; padding: .5rem .65rem; font-size: .75rem; text-decoration: none; }
 .phase6-routes a:hover, .phase6-routes a:focus-visible { background: #3c5143; outline: 2px solid #f7d348; outline-offset: 2px; }

@@ -1,3 +1,18 @@
+import { GlassHud, UI_MODE } from './glass-hud.js';
+
+/** Route journeys offered by the HUD. Each reloads the game with the chosen route. */
+export const RIDE_LINKS = Object.freeze([
+  { id: 'u9-central', label: 'U9 · Central', legacyLabel: 'Ride U9 · Central', query: '?line=U9' },
+  { id: 'u5-river-loop', label: 'U5 · River loop', legacyLabel: 'Ride U5 · River loop', query: '?line=U5&u5=scenic&tour=river&station=u5-altstadtbruecke' },
+  { id: 'u5-direct', label: 'U5 · Original direct route', legacyLabel: 'U5 · Original direct route', query: '?line=U5&u5=direct' },
+]);
+/** Keeps the ?ui=legacy comparison flag when following a ride link from the legacy HUD. */
+const rideHref = query => UI_MODE === 'legacy' ? `${query}&ui=legacy` : query;
+
+/** Shared live-service readings for the legacy card and the glass pill. */
+export const isDocked = service => Math.abs(service.distance - service.currentStop.distance) < 0.2 && service.speed < 0.01;
+export const arrivalCountdown = service => service.measuredTimetable?.arrivalCountdown() ?? service.arrivalSeconds;
+
 const STATE_LABELS = Object.freeze({ boarding: 'Boarding', closing: 'Doors closing', departing: 'Departing', travelling: 'Travelling', arriving: 'Arriving', stopped: 'Stopped' });
 export class UI {
   constructor(player, board, service = null, stations = [], services = []) {
@@ -75,11 +90,7 @@ export class UI {
     this.networkInfo = networkInfo;
     if (this.services.some(s => s.lineId === 'U9') && starts) {
       const routes = document.createElement('nav'); routes.className = 'phase6-routes'; routes.setAttribute('aria-label', 'Phase 6 journeys');
-      for (const [text, query] of [
-        ['Ride U9 · Central', '?line=U9'],
-        ['Ride U5 · River loop', '?line=U5&u5=scenic&tour=river&station=u5-altstadtbruecke'],
-        ['U5 · Original direct route', '?line=U5&u5=direct'],
-      ]) { const link = document.createElement('a'); link.href = query; link.textContent = text; routes.append(link); }
+      for (const ride of RIDE_LINKS) { const link = document.createElement('a'); link.href = rideHref(ride.query); link.textContent = ride.legacyLabel; routes.append(link); }
       starts.after(routes);
       const u5 = this.services.find(s => s.lineId === 'U5');
       this.setText(document.querySelector('#network-summary'), `Phase 6 · U9 connects Central, Nordklinikum and Waldtor. U5 ${u5.route.variant === 'scenic' ? 'takes the historic river loop before Ostbahnhof' : 'uses its preserved direct route; select River loop for the bridge journey'}. Approach an open door and press E to board.`);
@@ -89,7 +100,7 @@ export class UI {
     this.stationInformation = new Map();
     this.informationRevisions = new Map();
     this.refreshStationInformation();
-    document.querySelector('#reset-button').addEventListener('click', () => { this.showHelp(false); this.player.reset(); });
+    document.querySelector('#reset-button').addEventListener('click', () => this.resetView());
     document.querySelector('.identity').addEventListener('click', event => { event.preventDefault(); this.player.reset(); });
     this.helpButton.addEventListener('click', () => this.showHelp(this.helpPanel.hidden));
     document.querySelector('#close-help').addEventListener('click', () => this.showHelp(false));
@@ -97,25 +108,54 @@ export class UI {
     this.interactButton?.addEventListener('click', () => {
       if (this.player.enabled) this.player.interact?.();
     });
-    this.soundButton?.addEventListener('click', () => {
-      this.announcer?.toggle();
-      this.updateAnnouncements();
-    });
+    this.soundButton?.addEventListener('click', () => this.toggleSound());
     for (const button of this.startButtons) {
-      button.addEventListener('click', () => {
-        this.showHelp(false);
-        this.player.startAt?.(button.dataset.startLine, button.dataset.startStation);
-        this.lastRouteUpdate = -Infinity;
-        this.updateRoute();
-      });
+      button.addEventListener('click', () => this.startLine(button.dataset.startLine, button.dataset.startStation));
     }
     for (const button of document.querySelectorAll('[data-move]')) {
       button.addEventListener('pointerdown', event => { event.preventDefault(); if (!this.player.enabled) return; button.setPointerCapture(event.pointerId); this.player.keys.add(button.dataset.move); });
       for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, () => this.player.keys.delete(button.dataset.move));
     }
+    // The Liquid Glass HUD is the default; ?ui=legacy keeps only the original HUD.
+    this.glass = UI_MODE === 'glass' ? new GlassHud(this) : null;
+  }
+
+  /** Existing control actions, shared by the legacy HUD and the glass HUD. */
+  startLine(lineId, stationId) {
+    this.showHelp(false);
+    this.player.startAt?.(lineId, stationId);
+    this.lastRouteUpdate = -Infinity;
+    this.updateRoute();
+  }
+
+  toggleSound() {
+    this.announcer?.toggle();
+    this.updateAnnouncements();
+  }
+
+  resetView() {
+    this.showHelp(false);
+    this.player.reset();
+  }
+
+  rideLinks() {
+    return this.services.some(s => s.lineId === 'U9') ? RIDE_LINKS.map(ride => ({ ...ride, href: rideHref(ride.query) })) : [];
+  }
+
+  /** Current live values of the followed service, read from the existing service. */
+  liveService() {
+    const service = this.player.service ?? this.service;
+    if (!service) return null;
+    const lineId = service.lineId ?? 'U1';
+    return {
+      service, lineId, color: this.lineColors.get(lineId) ?? '#6094be', docked: isDocked(service),
+      current: service.currentStop, next: service.nextStop, destination: service.destinationStop,
+      arrivalCountdown: arrivalCountdown(service),
+    };
   }
 
   showHelp(open) {
+    if (this.glass) { this.glass.setMenuOpen(open, { focus: open }); return; }
     this.helpPanel.hidden = !open;
     this.helpButton.setAttribute('aria-expanded', String(open));
     this.player.setEnabled(!open);
@@ -130,7 +170,8 @@ export class UI {
   updateAnnouncements() {
     if (!this.announcer) return;
     const status = this.announcer.getStatus();
-    this.setText(this.soundButton, status.enabled ? status.available ? 'Sound on' : 'Captions only' : 'Sound off');
+    const soundLabel = status.enabled ? status.available ? 'Sound on' : 'Captions only' : 'Sound off';
+    this.setText(this.soundButton, soundLabel);
     this.soundButton?.setAttribute('aria-pressed', String(status.enabled));
     const availability = !status.enabled ? 'Captions on board'
       : !status.available ? 'Audio unavailable · captions only'
@@ -138,6 +179,7 @@ export class UI {
       : status.audioAvailable && status.enabled ? 'Chimes · voice unavailable' : 'Voice unavailable · captions on';
     this.setText(this.soundStatusElement, availability);
     if (this.soundButton) this.soundButton.title = status.enabled ? `Mute announcements. ${availability}` : `Enable announcements. ${availability}`;
+    this.glass?.syncAnnouncements(status, soundLabel);
     const ownLine = (this.player.service ?? this.service)?.lineId;
     const caption = this.player.ridingCar && status.captionLineId === ownLine ? status.caption : '';
     this.setText(this.captionTextElement, caption);
@@ -153,6 +195,7 @@ export class UI {
     if (clock !== this.lastClock) {
       this.clockElement.textContent = clock;
       for (const board of this.boards()) board.setClock(clock);
+      this.glass?.setClock(clock);
       this.lastClock = clock;
     }
     if (this.player.service ?? this.service) {
@@ -172,6 +215,7 @@ export class UI {
       }
       this.boardRevision = this.board.revision;
     }
+    this.glass?.update(delta);
   }
 
   boards() {
@@ -229,7 +273,7 @@ export class UI {
     const nextStop = service.nextStop;
     const destination = service.destinationStop;
     const direction = state.directionName ?? (service.direction > 0 ? 'Northbound' : 'Southbound');
-    const docked = Math.abs(service.distance - current.distance) < 0.2 && service.speed < 0.01;
+    const docked = isDocked(service);
     const riding = Boolean(this.player.ridingCar);
     const station = riding && docked
       ? this.stations.find(item => item.stationId === current.id && (item.lineId ?? 'U1') === lineId)
@@ -258,7 +302,7 @@ export class UI {
     this.setText(this.nextStopElement, `Next stop · ${nextStop.name}`);
     this.setText(this.platformElement, docked ? `Platform ${current.platform ?? '01'} →` : `${lineId} · In service`);
     const countdown = service.state === 'boarding' ? service.dwellRemaining
-      : ['travelling', 'arriving', 'departing'].includes(service.state) ? service.measuredTimetable?.arrivalCountdown() ?? state.arrivalSeconds : null;
+      : ['travelling', 'arriving', 'departing'].includes(service.state) ? arrivalCountdown(service) : null;
     this.setText(this.minutesElement, countdown === null || !Number.isFinite(countdown) ? '—' : String(Math.max(0, Math.ceil(countdown))));
     this.setText(this.countdownUnit, countdown === null || !Number.isFinite(countdown) ? '' : 'sec');
     this.setText(this.countdownLabel, service.state === 'boarding' ? 'DOORS CLOSE' : ['travelling', 'arriving', 'departing'].includes(service.state) ? 'NEXT STOP' : '');
@@ -271,6 +315,7 @@ export class UI {
       this.setText(this.interactButton.querySelector('span'), hint.action === 'alight' ? 'Leave train' : 'Board train');
     }
     for (const button of this.startButtons) button.setAttribute('aria-pressed', String(button.dataset.startLine === (this.player.startLineId ?? 'U1')));
+    this.glass?.syncStartLine(this.player.startLineId ?? 'U1');
 
     // A screen texture update costs much more than a HUD label. Each station's
     // departure row updates once per second, or immediately when state changes.
@@ -310,6 +355,7 @@ export class UI {
   ready() {
     const loading = document.querySelector('#loading');
     loading.classList.add('complete');
+    this.glass?.ready();
     window.setTimeout(() => loading.hidden = true, 450);
   }
 }
