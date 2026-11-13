@@ -2,7 +2,7 @@ name: Deploy metro game to GitHub Pages
 
 on:
   push:
-    branches: [main, codex/u4-surface-phase1]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

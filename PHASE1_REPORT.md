@@ -106,6 +106,8 @@ The approved implementation is ready for **functional manual playtesting**. The 
 
 Implementation, setup and validation were stopped within the three-hour authorization window, after approximately two hours and twenty-two minutes. All changes remain uncommitted on the authorized branch; nothing was pushed, merged or published. The existing development server at port 5175 remains available for manual testing.
 
-## Subsequent deployment authorization
+## Subsequent deployment authorization and release status
 
-After the implementation handoff, the user requested deployment to the existing GitHub repository and Pages URL. This authorizes a deployment commit and push on `codex/u4-surface-phase1`. The Pages workflow now also accepts pushes on this branch and checks the published surface milestone alongside the existing Phase 6/U10 journeys. `main` and the original `work` branch are preserved; no merge is required. The earlier no-commit/no-publication statements describe the implementation handoff before this later deployment request.
+After the implementation handoff, the user requested deployment to the existing GitHub repository and Pages URL. The implementation was committed and pushed on `codex/u4-surface-phase1`. GitHub Actions run 43513242535 built the production game successfully, but the `github-pages` environment rejected deployment because this branch is not allowed by its protection rules. The live website was not updated by that attempt.
+
+The workflow's original `main` push trigger has been restored. Deployment verification now includes the surface milestone alongside the existing Phase 6/U10 journeys. A pull request provides the normal release path through `main`, pending the user's explicit merge permission. No environment protection was changed or bypassed. The original `work` branch remains intact. Earlier no-commit/no-publication statements describe the implementation handoff before the later deployment request.
