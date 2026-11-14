@@ -264,3 +264,136 @@ export function palmBarkTexture() {
 }
 
 export const bump = texture => linear(texture.clone());
+
+/** Dark asphalt: fine aggregate, sealed repair patches and a few tar-filled cracks. */
+export function asphaltTexture(seed = 501) {
+  return repeat(canvasTexture(512, 512, (ctx, w, h) => {
+    const random = seededRandom(seed);
+    ctx.fillStyle = '#34363a'; ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 14; i++) {
+      const v = random() < 0.5 ? 40 : 58;
+      ctx.fillStyle = `rgba(${v},${v + 1},${v + 4},${0.25 + random() * 0.3})`;
+      ctx.fillRect(random() * w, random() * h, 40 + random() * 140, 30 + random() * 90);
+    }
+    for (let i = 0; i < 52000; i++) {
+      const light = random() < 0.42, v = light ? Math.round(110 + random() * 90) : Math.round(12 + random() * 22);
+      ctx.fillStyle = `rgba(${v},${v},${v + (light ? 0 : 3)},${0.18 + random() * 0.32})`;
+      ctx.fillRect(Math.floor(random() * w), Math.floor(random() * h), random() < 0.85 ? 1 : 2, random() < 0.85 ? 1 : 2);
+    }
+    ctx.strokeStyle = 'rgba(14,14,16,.75)'; ctx.lineWidth = 2;
+    for (let i = 0; i < 5; i++) {
+      let x = random() * w, y = random() * h; ctx.beginPath(); ctx.moveTo(x, y);
+      for (let k = 0; k < 9; k++) { x += (random() - 0.5) * 44; y += (random() - 0.2) * 30; ctx.lineTo(x, y); }
+      ctx.stroke();
+    }
+  }));
+}
+
+/** Square sidewalk slabs (8 per repeat) with thin red joint outlines. */
+export function sidewalkTexture(seed = 611) {
+  return repeat(canvasTexture(512, 512, (ctx, w, h) => {
+    const random = seededRandom(seed), n = 8, s = w / n;
+    ctx.fillStyle = '#b3262a'; ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const v = Math.round(206 + random() * 22);
+      ctx.fillStyle = `rgb(${v},${v - 4},${v - 12})`; ctx.fillRect(i * s + 2, j * s + 2, s - 4, s - 4);
+      ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fillRect(i * s + 3, j * s + 3, s - 6, 2);
+      for (let k = 0; k < 120; k++) { const g = random() < 0.5 ? 150 : 250; ctx.fillStyle = `rgba(${g},${g},${g},.12)`; ctx.fillRect(i * s + 2 + random() * (s - 5), j * s + 2 + random() * (s - 5), 1.5, 1.5); }
+    }
+  }));
+}
+
+/** Yellow tactile warning paving (truncated domes). */
+export function tactileTexture() {
+  return repeat(canvasTexture(128, 128, (ctx, w, h) => {
+    ctx.fillStyle = '#e0b52a'; ctx.fillRect(0, 0, w, h);
+    for (let x = 8; x < w; x += 16) for (let y = 8; y < h; y += 16) {
+      ctx.fillStyle = '#9c7a12'; ctx.beginPath(); ctx.arc(x + 1, y + 1.5, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f6d454'; ctx.beginPath(); ctx.arc(x, y, 4.6, 0, Math.PI * 2); ctx.fill();
+    }
+  }));
+}
+
+/** Ragged lawn patch with tufts and a few wildflowers (alpha-tested). */
+export function grassPatchTexture(seed = 71) {
+  return canvasTexture(256, 256, (ctx, w, h) => {
+    const random = seededRandom(seed);
+    ctx.clearRect?.(0, 0, w, h);
+    const blobs = Array.from({ length: 9 }, () => [w / 2 + (random() - 0.5) * w * 0.45, h / 2 + (random() - 0.5) * h * 0.45, 30 + random() * 45]);
+    for (const [x, y, r] of blobs) { ctx.fillStyle = '#5f8f37'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+    for (let i = 0; i < 2600; i++) {
+      const [bx, by, br] = blobs[Math.floor(random() * blobs.length)], a = random() * Math.PI * 2, r = Math.sqrt(random()) * (br + 12);
+      ctx.fillStyle = `rgb(${60 + random() * 50},${105 + random() * 55},${32 + random() * 28})`;
+      ctx.fillRect(bx + Math.cos(a) * r, by + Math.sin(a) * r, 2, 2 + random() * 4);
+    }
+    for (let i = 0; i < 46; i++) {
+      const [bx, by, br] = blobs[Math.floor(random() * blobs.length)], a = random() * Math.PI * 2, r = random() * br;
+      ctx.fillStyle = random() < 0.6 ? '#fbfbf2' : '#f5d33b'; ctx.beginPath(); ctx.arc(bx + Math.cos(a) * r, by + Math.sin(a) * r, 2.4, 0, Math.PI * 2); ctx.fill();
+    }
+  });
+}
+
+/** Festive canopy cloth: red, saffron and maroon panels with gold seams and motifs. */
+export function shamianaTexture() {
+  return repeat(canvasTexture(256, 64, (ctx, w, h) => {
+    const colors = ['#c8102e', '#f39a12', '#7d1838', '#f39a12'];
+    for (let i = 0; i < 8; i++) {
+      ctx.fillStyle = colors[i % 4]; ctx.fillRect(i * 32, 0, 32, h);
+      ctx.fillStyle = '#e8c04a'; ctx.fillRect(i * 32, 0, 2, h);
+      ctx.fillStyle = 'rgba(255,225,140,.55)';
+      for (let y = 10; y < h; y += 22) { ctx.beginPath(); ctx.moveTo(i * 32 + 16, y - 5); ctx.lineTo(i * 32 + 21, y); ctx.lineTo(i * 32 + 16, y + 5); ctx.lineTo(i * 32 + 11, y); ctx.closePath(); ctx.fill(); }
+    }
+  }));
+}
+
+/** Scalloped, tasselled valance border (alpha-tested). */
+export function valanceTexture() {
+  return repeat(canvasTexture(128, 64, (ctx, w, h) => {
+    ctx.clearRect?.(0, 0, w, h);
+    ctx.fillStyle = '#7d1838'; ctx.fillRect(0, 0, w, 30);
+    for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(i * 32 + 16, 30, 16, 0, Math.PI); ctx.fill(); }
+    ctx.fillStyle = '#e8c04a'; ctx.fillRect(0, 5, w, 3); ctx.fillRect(0, 22, w, 2);
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath(); ctx.arc(i * 32 + 16, 30, 14, 0, Math.PI); ctx.lineWidth = 2; ctx.strokeStyle = '#e8c04a'; ctx.stroke();
+      ctx.fillStyle = '#f2b51c'; ctx.fillRect(i * 32 + 15, 44, 3, 12); ctx.beginPath(); ctx.arc(i * 32 + 16.5, 58, 4, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#f39a12'; for (let x = 4; x < w; x += 12) { ctx.beginPath(); ctx.arc(x, 14, 3, 0, Math.PI * 2); ctx.fill(); }
+  }));
+}
+
+/** Patterned durrie carpet laid under the canopy. */
+export function durrieTexture() {
+  return canvasTexture(256, 256, (ctx, w, h) => {
+    ctx.fillStyle = '#a3172b'; ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#f0b429'; ctx.fillRect(10, 10, w - 20, h - 20);
+    ctx.fillStyle = '#7d1838'; ctx.fillRect(18, 18, w - 36, h - 36);
+    ctx.fillStyle = '#c8102e'; ctx.fillRect(30, 30, w - 60, h - 60);
+    for (let x = 46; x < w - 40; x += 32) for (let y = 46; y < h - 40; y += 32) {
+      ctx.fillStyle = (x + y) % 64 ? '#f39a12' : '#f6e3b0';
+      ctx.beginPath(); ctx.moveTo(x, y - 9); ctx.lineTo(x + 9, y); ctx.lineTo(x, y + 9); ctx.lineTo(x - 9, y); ctx.closePath(); ctx.fill();
+    }
+  });
+}
+
+/** Single-line text sign face (speed limit, crossing, parking, street names). */
+export function signTexture(kind) {
+  return canvasTexture(128, 128, (ctx, w, h) => {
+    ctx.clearRect?.(0, 0, w, h);
+    if (kind === 'limit' || kind === 'noparking') {
+      ctx.fillStyle = kind === 'limit' ? '#ffffff' : '#1d4fae'; ctx.beginPath(); ctx.arc(64, 64, 60, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = 14; ctx.strokeStyle = '#d0162a'; ctx.beginPath(); ctx.arc(64, 64, 53, 0, Math.PI * 2); ctx.stroke();
+      if (kind === 'limit') { ctx.fillStyle = '#111'; ctx.font = '700 58px Arial, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('30', 64, 68); }
+      else { ctx.beginPath(); ctx.moveTo(26, 26); ctx.lineTo(102, 102); ctx.stroke(); }
+    } else if (kind === 'crossing' || kind === 'parking' || kind === 'bus') {
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, w, h); ctx.fillStyle = '#1d4fae'; ctx.fillRect(6, 6, w - 12, h - 12);
+      if (kind === 'crossing') {
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(64, 16); ctx.lineTo(114, 108); ctx.lineTo(14, 108); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#111'; ctx.fillRect(28, 94, 72, 6); for (let x = 34; x < 96; x += 14) ctx.fillRect(x, 94, 7, 10);
+        ctx.beginPath(); ctx.arc(64, 46, 7, 0, Math.PI * 2); ctx.fill(); ctx.fillRect(60, 53, 8, 24); ctx.fillRect(52, 76, 7, 18); ctx.fillRect(69, 76, 7, 18);
+      } else { ctx.fillStyle = '#ffffff'; ctx.font = `700 ${kind === 'bus' ? 46 : 90}px Arial, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(kind === 'bus' ? 'BUS' : 'P', 64, 68); }
+    } else if (kind === 'yield') {
+      ctx.fillStyle = '#d0162a'; ctx.beginPath(); ctx.moveTo(4, 12); ctx.lineTo(124, 12); ctx.lineTo(64, 120); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(28, 26); ctx.lineTo(100, 26); ctx.lineTo(64, 92); ctx.closePath(); ctx.fill();
+    }
+  });
+}

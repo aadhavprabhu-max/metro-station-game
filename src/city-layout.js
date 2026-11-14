@@ -43,5 +43,24 @@ export const CITY_SQUARES = Object.freeze([
   { name: 'Lemon square', minX: -32.6, maxX: 2, minZ: -76.6, maxZ: -53 },
 ]);
 
+/**
+ * Asphalt roads (no traffic yet). axis 'x' runs east-west at z = c; axis 'z' runs north-south at x = c.
+ * width is the carriageway, walk is each sidewalk. Every walking route stays on a road centre line.
+ */
+export const CITY_ROADS = Object.freeze([
+  { name: 'VIA DEL CORSO', axis: 'x', c: -120, from: CITY_BOUNDS.minX, to: CITY_BOUNDS.maxX, width: 8, walk: 4 },
+  { name: 'VIA DEI LIMONI', axis: 'x', c: -86, from: CITY_BOUNDS.minX, to: CITY_BOUNDS.maxX, width: 7, walk: 3 },
+  { name: 'VICOLO DEL MERCATO', axis: 'z', c: -104, from: -120, to: -86, width: 7, walk: 3 },
+  { name: 'VIA GARIBALDI', axis: 'z', c: 84, from: -120, to: -86, width: 7, walk: 3 },
+]);
+/** Mid-block zebra crossings where pedestrian lanes meet a road: [road name, position along it]. */
+export const CITY_CROSSINGS = Object.freeze([['VIA DEL CORSO', -16.2], ['VIA DEI LIMONI', -16.2], ['VIA DEL CORSO', 30.5]]);
+/** Festive canopies (shamianas): centre, size along x and z. */
+export const CITY_SHAMIANAS = Object.freeze([
+  { name: 'Central square', x: -16.2, z: -247, w: 10.4, d: 6.6 },
+  { name: 'West market', x: -92, z: -247.5, w: 9.2, d: 6.2 },
+  { name: 'Lemon square', x: -16.2, z: -57.6, w: 9.6, d: 6.2 },
+]);
+
 export const rectContains = (r, x, z, margin = 0) => x >= r.minX - margin && x <= r.maxX + margin
   && z >= r.minZ - margin && z <= r.maxZ + margin;

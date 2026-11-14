@@ -74,8 +74,30 @@ export function createCityMaterials(base) {
     cafeWood: std('#86552f', { roughness: 0.8 }),
     tablecloth: std('#f2eee2', { roughness: 0.9 }),
   };
+  // Roadway, sidewalks, signage and festival finishes.
+  const asphaltMap = T.asphaltTexture(), walkMap = T.sidewalkTexture(), cloth = T.shamianaTexture(), valance = T.valanceTexture();
+  Object.assign(materials, {
+    asphalt: std('#ffffff', { map: asphaltMap, bumpMap: asphaltMap, bumpScale: 1.2, roughness: 0.96 }),
+    sidewalk: std('#e2ddd2', { map: walkMap, bumpMap: walkMap, bumpScale: 0.8, roughness: 0.9 }),
+    kerb: rough('#a7a49c', { bumpScale: 1.4 }),
+    tactile: std('#ffffff', { map: T.tactileTexture(), roughness: 0.8 }),
+    paint: std('#f1f1ea', { roughness: 0.65 }), paintYellow: std('#f2c230', { roughness: 0.65 }),
+    galvanised: std('#8f969b', { roughness: 0.45, metalness: 0.6 }),
+    signalRed: std('#ff2a1a', { emissive: '#ff2a1a', emissiveIntensity: 1.6 }), signalAmber: std('#4a3608'), signalGreen: std('#0d3d1a'),
+    signalGreenLit: std('#2dff6a', { emissive: '#2dff6a', emissiveIntensity: 1.6 }), signalRedDim: std('#3d0c08'),
+    shelterGlass: new THREE.MeshStandardMaterial({ color: '#cfe6ee', roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.32, depthWrite: false }),
+    hydrant: std('#c4161c', { roughness: 0.5 }), bin: std('#2f5d3a', { roughness: 0.6, metalness: 0.3 }),
+    grassPatch: std('#ffffff', { map: T.grassPatchTexture(71), alphaTest: 0.5, roughness: 1 }),
+    grassPatch2: std('#ffffff', { map: T.grassPatchTexture(93), alphaTest: 0.5, roughness: 1 }),
+    canopy: std('#ffffff', { map: cloth, side: THREE.DoubleSide, roughness: 0.85 }),
+    valance: std('#ffffff', { map: valance, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.85 }),
+    durrie: std('#ffffff', { map: T.durrieTexture(), roughness: 0.95 }),
+    marigold: std('#f28a0e', { flatShading: true, roughness: 0.8 }), marigoldYellow: std('#f6c31a', { flatShading: true, roughness: 0.8 }),
+    poleRed: std('#8e1b2c', { roughness: 0.6 }), gold: std('#d9a733', { roughness: 0.35, metalness: 0.7 }),
+    signs: Object.fromEntries(['limit', 'noparking', 'crossing', 'parking', 'bus', 'yield'].map(kind => [kind, std('#ffffff', { map: T.signTexture(kind), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.5 })])),
+  });
   // Tiny or flush details skip the shadow pass; they would add draw calls but no visible shadow.
-  for (const key of ['window', 'windowBarred', 'windowFrench', 'lanternGlass', 'line', 'gutter', 'grassEdge']) materials[key].userData.noCast = true;
+  for (const key of ['window', 'windowBarred', 'windowFrench', 'lanternGlass', 'line', 'gutter', 'grassEdge', 'paint', 'paintYellow', 'tactile', 'grassPatch', 'grassPatch2', 'signalRed', 'signalAmber', 'signalGreen', 'signalGreenLit', 'signalRedDim', 'durrie', 'shelterGlass']) materials[key].userData.noCast = true;
   return materials;
 }
 
@@ -105,7 +127,7 @@ export function uvMesh(parent, material, size, position, { tile = 3, offset, rot
 }
 
 /** Hip or gable roof shell from the eave line (y=0) up to the ridge; UVs in metres. */
-function roofGeometry(w, d, rise, overhang, type) {
+export function roofGeometry(w, d, rise, overhang, type) {
   const W = w / 2 + overhang, D = d / 2 + overhang, faces = [];
   const quad = (a, b, c, e, eave) => faces.push([a, b, c, eave], [a, c, e, eave]);
   if (type === 'gable') {

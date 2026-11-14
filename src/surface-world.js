@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { box, cylinder, label, seededRandom } from './geometry.js';
 import { batchStaticGeometry } from './optimize.js';
-import { STREET_Y, CITY_BOUNDS, CITY_PLOTS, CITY_ROUTES, CITY_SQUARES, rectContains } from './city-layout.js';
+import { STREET_Y, CITY_BOUNDS, CITY_PLOTS, CITY_ROUTES, CITY_SQUARES, CITY_SHAMIANAS, rectContains } from './city-layout.js';
+import { buildRoads, addShamiana, addGrassPatches } from './city-roads.js';
 import { createCityMaterials, buildHouse, buildClockTower, batchCityInstances, uvMesh } from './city-buildings.js';
 import { PropKit, addPalm, addCitrus, addCafe, addPlanter, addBunting, addWashing, addLamp, addBench, addPot } from './city-props.js';
 import { SurfaceEntrance } from './surface-entrance.js';
@@ -104,7 +105,7 @@ export class SurfaceWorld extends THREE.Group {
       else for (const [a,b] of [[-321.5,access.minZ],[hole.maxZ,-81.5]])
         worldUV(box(root,m.road,[9,.012,b-a],[x,STREET_Y+.006,(a+b)/2],{shadow:false}),9,b-a);
     }
-    for (const z of [-86, -120, -234, -320]) worldUV(box(root, m.road, [252, 0.014, 8], [-14, STREET_Y + 0.007, z], { shadow: false }),252,8);
+    for (const z of [-234, -320]) worldUV(box(root, m.road, [252, 0.014, 8], [-14, STREET_Y + 0.007, z], { shadow: false }),252,8);
     for(const x of [-21.0,-11.4])box(root,m.whiteStone,[.3,.016,62],[x,STREET_Y+.012,-286.5],{shadow:false});
     for (const s of CITY_SQUARES) {
       const w = s.maxX - s.minX, d = s.maxZ - s.minZ;
@@ -127,12 +128,12 @@ export class SurfaceWorld extends THREE.Group {
       else for (const [sx, sz, dx, dz] of [[2.2, 0.2, 0, -1], [2.2, 0.2, 0, 1], [0.2, 2.2, -1, 0], [0.2, 2.2, 1, 0]])
         box(root, m.whiteStone, [sx, 0.12, sz], [x + dx * 1.0, STREET_Y + 0.06, z + dz * 1.0]);
     }
-    for (const [x, z] of [[69,-188],[88,-188],[-119,-244],[-30,-222],[0,-222],[-28,-82],[-4,-82],[60,-90]]) {
+    for (const [x, z] of [[69,-188],[88,-188],[-119,-244],[-30,-222],[0,-222],[-31.4,-66],[-0.8,-66]]) {
       addBench(kit, m, x, z, y0);
       this.colliders.push({ minX:x-.4,maxX:x+.4,minZ:z-1.75,maxZ:z+1.75 });
     }
     // Café terraces on each square, clear of every walking route.
-    for (const [i, [x, z]] of [[-27,-247],[-5.5,-247],[-5.5,-228.5],[-94,-246],[-114,-224],[-94,-224],[-26,-62],[-6,-62],[-26,-72],[100,-170],[104,-186]].entries())
+    for (const [i, [x, z]] of [[-27,-247],[-5.5,-247],[-5.5,-228.5],[-114,-224],[-94,-224],[-26,-62],[-6,-62],[-26,-72],[100,-170],[104,-186]].entries())
       this.colliders.push(addCafe(kit, m, x, z, y0, i));
     // Low white stone planters with bougainvillea, some holding a palm.
     for (const [i, [x0, z0, x1, z1, palm]] of [[-32.4,-231.5,-30.2,-225.5,0],[-2.6,-231.5,-0.4,-225.5,0],[-31.6,-55.6,-27.6,-53.6,1],[-3,-55.6,1,-53.6,1],
@@ -145,10 +146,15 @@ export class SurfaceWorld extends THREE.Group {
     // A stone basin gives the western market a landmark at walking scale.
     this.addFountain(kit, -85, -237);
     const lamps = [];
-    for (const z of [-125,-241,-314,-90]) for (const x of [-110,-25,77]) lamps.push([x, z]);
+    for (const z of [-241,-314]) for (const x of [-110,-25,77]) lamps.push([x, z]);
+    for (const z of [-125.4,-90.4]) for (const x of [-119,-25,69]) lamps.push([x, z]);
     lamps.push([-27,-204],[-5,-204]);
     for (const [x, z] of lamps) { addLamp(kit, m, x, z, y0); this.colliders.push({minX:x-.14,maxX:x+.14,minZ:z-.14,maxZ:z+.14}); }
     this.addStringLines(kit);
+    // Asphalt roads with sidewalks, markings and street furniture; festive canopies; lawn patches.
+    const roadRects = buildRoads(root, kit, m, this.colliders);
+    for (const [i, spec] of CITY_SHAMIANAS.entries()) addShamiana(root, kit, m, spec, this.colliders, 700 + i);
+    this.addGrass(kit, roadRects);
     kit.flush(root);
     // Visible enclosure matches the finite playable district, with no invisible exits.
     for (const x of [b.minX-.3,b.maxX+.3]) box(root,m.whiteStone,[.6,2.1,b.maxZ-b.minZ+1.2],[x,STREET_Y+1.05,(b.minZ+b.maxZ)/2]);
@@ -173,6 +179,21 @@ export class SurfaceWorld extends THREE.Group {
     cylinder(root, m.water, 0.72, 0.03, [x, STREET_Y + 1.99, z], [0,0,0], 20);
     addPot(kit, m, x, z, STREET_Y + 1.98, 9, 0.8);
     this.colliders.push({minX:x-2.3,maxX:x+2.3,minZ:z-2.3,maxZ:z+2.3});
+  }
+
+  /** Ragged lawn patches at house corners, along the canal quays and in quiet corners of the squares. */
+  addGrass(kit, roadRects) {
+    const random = seededRandom(515), spots = [];
+    for (const p of CITY_PLOTS) for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      if (random() < 0.45) continue;
+      spots.push([p.x + sx * (p.width / 2 + 0.7), p.z + sz * (p.depth / 2 + 0.7), 1.6 + random() * 1.6]);
+    }
+    for (let x = this.bounds.minX + 4; x < this.bounds.maxX - 3; x += 7 + random() * 8)
+      for (const z of [-327.2, -339.8]) if (!this.bridges.some(b => x > b.minX - 2 && x < b.maxX + 2)) spots.push([x, z + (random() - 0.5) * 0.6, 1.4 + random() * 1.2]);
+    for (const [x, z] of [[-30.5,-252.5],[-1.5,-221],[-124,-253],[-84,-221.5],[56.5,-163.5],[112,-193.5],[-31,-55],[0.5,-55]]) spots.push([x, z, 2 + random()]);
+    const avoid = [...roadRects, ...CITY_SHAMIANAS.map(q => ({ minX: q.x - q.w / 2, maxX: q.x + q.w / 2, minZ: q.z - q.d / 2, maxZ: q.z + q.d / 2 })),
+      { minX: this.bounds.minX, maxX: this.bounds.maxX, minZ: -338.4, maxZ: -328.6 }, this.entrance.worldBounds];
+    addGrassPatches(kit, this.materials, spots, avoid);
   }
 
   /** Bunting over streets and squares, washing across the narrow lanes. Anchors sit on real facades. */
