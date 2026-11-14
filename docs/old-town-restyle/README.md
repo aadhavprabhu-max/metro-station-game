@@ -18,6 +18,21 @@ camera poses (`main` build vs. this branch's build); `09`–`16` show new areas 
 | Greenery and props | Palms, citrus trees (planted and potted), stone planters with bougainvillea, café tables under striped parasols, slatted benches, cast-iron lamp posts, fountains, bunting over streets and squares, washing lines across the narrow lanes. |
 | Extension | District bounds extended north from z = −92 to z = −50: a new upper lane, a new terrace of houses and **Lemon square** with fountain, cafés and a stair up to an "upper town" terrace. The walking loop now includes Upper lane → Lemon square. Non-walkable backdrop terraces ring the perimeter so streets end in more town, not void. |
 
+## Roads, grass and festive canopies (second pass)
+
+Images `17`–`25`.
+
+| Area | Change |
+| --- | --- |
+| Roads | Via del Corso (z = −120) and Via dei Limoni (z = −86) are dark asphalt roads, joined by two short connectors (x = −104, x = 84). There are no vehicles or people yet. |
+| Sidewalks | Square slabs with thin red joints, granite kerbs (7 cm), and kerbs dropped flush at every crossing with yellow tactile paving and bollards. |
+| Markings | Dashed centre lines, solid edge lines, zebra crossings beside every junction and at three mid-block points, stop lines on the approaching lane, parking bays, and a yellow zig-zag bus box. |
+| Furniture | Traffic signals with pedestrian buttons, blue street-name plates, and signs (30 limit, pedestrian crossing, parking, no parking, give way). Also a bus shelter with bench and timetable, drains, manholes, litter bins and fire hydrants. |
+| Grass | Ragged lawn patches with wildflowers at house corners, along both canal quays and in square corners. They are flat, walkable decals. |
+| Shamianas | Open-sided canopies in Central square, the West market and Lemon square: a striped red, saffron and maroon roof, scalloped gold-trimmed valance, carved poles, marigold garlands, durrie carpet and dining tables. |
+
+All furniture stands on sidewalks, clear of the walking routes. Poles, bollards, signals, signs, bins, hydrants, the shelter and the canopy tables have small colliders. To make room for the roads, two benches moved into Lemon square, one bench and one café table were removed (the West market café now sits under its shamiana), and four lamp posts shifted a few metres along their sidewalks.
+
 ## What did not change
 
 Stations, tunnels, trains, schedules, physics, the arch/stair hall (its materials are untouched),
