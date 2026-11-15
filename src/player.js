@@ -120,6 +120,29 @@ export class PlayerController {
     if (!this.ridingCar) this.service = this.services.find(service => service.lineId === (station.lineId ?? 'U1')) ?? this.service;
   }
 
+  /** One-click arrival in the Central old town; trains freeze as they do when walking up. */
+  teleportToSurface(spot = this.surfaceWorld?.arrival) {
+    const world = this.surfaceWorld;
+    if (!world || !spot) return false;
+    const streetY = world.streetY;
+    if (!world.findSurface(spot.x, spot.z, streetY, 0.06, this.radius)) return false;
+    const exit = world.exit, central = this.stations.find(station => station.stationId === exit.stationId && (station.lineId ?? 'U1') === exit.lineId);
+    this.releaseDrag();
+    this.keys.clear();
+    this.ridingCar = null;
+    this.previousRidingCar = null;
+    this.previousRideYaw = null;
+    this.previousRidePitch = null;
+    this.transferSurface = null;
+    if (central) this.useStation(central);
+    this.camera.position.set(spot.x, streetY + SPAWN.y, spot.z);
+    this.yaw = spot.yaw ?? 0;
+    this.pitch = spot.pitch ?? -0.02;
+    this.applyLook();
+    this.syncSurfaceContext();
+    return this.surfaceExploring;
+  }
+
   startAt(lineId, stationId = null) {
     const service = this.services.find(item => item.lineId === lineId);
     const id = stationId ?? service?.route.stops[0].id;
@@ -131,7 +154,7 @@ export class PlayerController {
   }
 
   interactionHint() {
-    if (this.surfaceExploring) return { text: 'Central old town · Return through the stone arch for U4', enabled: false, action: null };
+    if (this.surfaceExploring) return { text: 'Central old town · Press T or Back to U4, or walk through the stone arch', enabled: false, action: null };
     if (!this.service) return { text: '', enabled: false, action: null };
     const { service } = this;
     if (this.ridingCar) {

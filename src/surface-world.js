@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { box, cylinder, label, seededRandom } from './geometry.js';
 import { batchStaticGeometry } from './optimize.js';
-import { STREET_Y, CITY_BOUNDS, CITY_PLOTS, CITY_ROUTES, CITY_SQUARES, CITY_SHAMIANAS, rectContains } from './city-layout.js';
+import { STREET_Y, CITY_BOUNDS, CITY_PLOTS, CITY_ROUTES, CITY_SQUARES, CITY_SHAMIANAS, CITY_ARRIVAL, CENTRAL_EXIT, rectContains } from './city-layout.js';
 import { buildRoads, addShamiana, addGrassPatches } from './city-roads.js';
 import { createCityMaterials, buildHouse, buildClockTower, batchCityInstances, uvMesh } from './city-buildings.js';
 import { PropKit, addPalm, addCitrus, addCafe, addPlanter, addBunting, addWashing, addLamp, addBench, addPot } from './city-props.js';
@@ -39,6 +39,7 @@ export class SurfaceWorld extends THREE.Group {
   constructor(baseMaterials, station) {
     super(); this.name = 'CentralOldTownSurface'; this.streetY = STREET_Y;
     this.bounds = CITY_BOUNDS; this.routes = CITY_ROUTES; this.colliders = [];
+    this.arrival = CITY_ARRIVAL; this.exit = CENTRAL_EXIT;
     this.materials = createCityMaterials(baseMaterials);
     this.entrance = new SurfaceEntrance(this.materials, station);
     this.district = new THREE.Group(); this.district.name = 'CentralOldTownDistrict'; this.district.visible = false; this.add(this.district);

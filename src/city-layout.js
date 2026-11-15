@@ -2,6 +2,8 @@
 export const STREET_Y = 10;
 export const CITY_BOUNDS = Object.freeze({ minX: -148, maxX: 120, minZ: -352, maxZ: -50 });
 export const CENTRAL_EXIT = Object.freeze({ stationId: 'station-2', lineId: 'U4', end: -44 });
+/** One-click arrival: Central square just outside the station arch, facing into the square. */
+export const CITY_ARRIVAL = Object.freeze({ x: -16.2, z: -214, yaw: 0, pitch: -0.02 });
 export const CITY_ROUTES = Object.freeze([
   { name: 'Central square', x: -16.2, z: -234 },
   { name: 'West market', x: -104, z: -234 },

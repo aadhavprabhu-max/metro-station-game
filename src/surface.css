@@ -3,3 +3,11 @@
 .surface-status strong{display:block;font-size:18px;font-weight:600}.surface-status small{display:block;margin-top:4px;font-size:11px;opacity:.78}
 .surface-exploring #gh-service-pill,.surface-exploring .location-card,.surface-exploring .service-card{visibility:hidden}
 @media(max-width:560px){.surface-status{bottom:14px;padding:12px 18px;min-width:230px}.surface-status strong{font-size:16px}.surface-exploring:has(.gh-menu-open) .surface-status{visibility:hidden}}
+/* One-click old town / back to U4: a glass pill under the clock (legacy HUD: beside Reset view). */
+.gh .oldtown-button{position:absolute;z-index:1;top:76px;right:20px;height:44px;padding:0 18px 0 14px;border-radius:22px;display:flex;align-items:center;gap:8px;pointer-events:auto;color:var(--gh-ink);font-family:var(--gh-font);font-size:15px;font-weight:600;letter-spacing:.01em;white-space:nowrap;transition:opacity .25s ease,background .2s,transform var(--spring-d,.4s) var(--spring,ease)}
+.gh .oldtown-button span{font-size:18px;line-height:1}
+.gh .oldtown-button:hover{transform:translateY(-1px)}.gh .oldtown-button:active{transform:scale(.97)}
+.gh-menu-open .oldtown-button{opacity:0;pointer-events:none}
+.top-actions .oldtown-button span{margin-right:5px}
+@media(max-width:560px){.gh .oldtown-button{top:66px;right:14px;height:40px;font-size:14px;padding:0 14px 0 12px}}
+@media(max-height:520px){.gh .oldtown-button{top:64px}}

@@ -104,7 +104,11 @@ export class UI {
     document.querySelector('.identity').addEventListener('click', event => { event.preventDefault(); this.player.reset(); });
     this.helpButton.addEventListener('click', () => this.showHelp(this.helpPanel.hidden));
     document.querySelector('#close-help').addEventListener('click', () => this.showHelp(false));
-    window.addEventListener('keydown', event => { if (event.code === 'Escape') this.showHelp(false); });
+    window.addEventListener('keydown', event => {
+      if (event.code === 'Escape') this.showHelp(false);
+      // T toggles the old town, except while typing (e.g. the map search).
+      if (event.code === 'KeyT' && !event.repeat && !event.target.closest?.('input, textarea, [contenteditable]')) { event.preventDefault(); this.toggleOldTown(); }
+    });
     this.interactButton?.addEventListener('click', () => {
       if (this.player.enabled) this.player.interact?.();
     });
@@ -126,6 +130,35 @@ export class UI {
     this.player.startAt?.(lineId, stationId);
     this.lastRouteUpdate = -Infinity;
     this.updateRoute();
+  }
+
+  /** One click up to Central square, or back down to the Central U4 platform. */
+  toggleOldTown() {
+    if (!this.player.surfaceWorld || !this.player.enabled) return false;
+    this.showHelp(false);
+    if (this.player.surfaceExploring) { this.startLine('U4', this.player.surfaceWorld.exit.stationId); return true; }
+    const moved = this.player.teleportToSurface();
+    this.lastRouteUpdate = -Infinity;
+    return moved;
+  }
+
+  mountOldTownButton() {
+    const button = document.createElement('button');
+    button.type = 'button'; button.id = 'oldtown-button';
+    button.className = this.glass ? 'oldtown-button gh-glass' : 'oldtown-button reset-button';
+    button.title = 'Shortcut: T';
+    button.addEventListener('click', () => this.toggleOldTown());
+    (document.querySelector(this.glass ? '#glass-hud' : '.top-actions') ?? document.querySelector('#app')).append(button);
+    this.oldTownButton = button; this.oldTownState = null;
+  }
+
+  updateOldTownButton() {
+    const up = !this.player.surfaceExploring;
+    if (up === this.oldTownState) return;
+    this.oldTownState = up;
+    this.oldTownButton.innerHTML = up ? '<span aria-hidden="true">↑</span> Old town' : '<span aria-hidden="true">↓</span> Back to U4';
+    this.oldTownButton.setAttribute('aria-label', up ? 'Go to the old town' : 'Back to U4');
+    this.oldTownButton.classList.toggle('is-street', !up);
   }
 
   toggleSound() {
@@ -192,9 +225,11 @@ export class UI {
       if (!this.surfaceStatus) {
         this.surfaceStatus = document.createElement('aside');
         this.surfaceStatus.className = 'surface-status gh-glass';
-        this.surfaceStatus.innerHTML = '<strong>Central · Old town</strong><small>U4 · Return through the stone arch</small>';
+        this.surfaceStatus.innerHTML = '<strong>Central · Old town</strong><small>U4 · Back to U4 button or the stone arch</small>';
         document.querySelector('#app').append(this.surfaceStatus);
+        this.mountOldTownButton();
       }
+      this.updateOldTownButton();
       this.surfaceStatus.hidden = !this.player.surfaceExploring;
       document.querySelector('#app').classList.toggle('surface-exploring', this.player.surfaceExploring);
     }
