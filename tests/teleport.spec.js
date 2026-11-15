@@ -36,7 +36,7 @@ test.describe('one-click old town button', () => {
 
     await page.locator('#oldtown-button').click(); await step(page);
     const up = await state(page);
-    expect(up).toMatchObject({ position: ARRIVAL, surface: true, paused: true, active: true, far: 480, label: '↓ Back to U4' });
+    expect(up).toMatchObject({ position: ARRIVAL, surface: true, paused: true, active: true, far: 1100, label: '↓ Back to U4' });
     await expect(page.locator('.surface-status')).toBeVisible();
     await expect(page.locator('#oldtown-button')).toHaveAttribute('aria-label', 'Back to U4');
     // Every service is frozen while on the street.

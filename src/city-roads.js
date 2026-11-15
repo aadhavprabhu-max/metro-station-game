@@ -25,39 +25,53 @@ function subtract(a0, a1, cuts) {
 
 /**
  * Asphalt carriageways, kerbs, square-tiled sidewalks, markings, crossings and street furniture.
- * East-west roads run through junctions; north-south connectors end on them. Everything is flush
- * with street level except kerbs (7 cm) and furniture, which always stands on a sidewalk.
+ * Roads may run through a junction (crossroads) or end on another road (T-junction). Where both run
+ * through, the north-south carriageway is cut so the surfaces never overlap. Everything is flush with
+ * street level except kerbs (7 cm) and furniture, which always stands on a sidewalk.
  */
 export function buildRoads(root, kit, m, colliders) {
   const random = seededRandom(1201), rects = [], zebras = [];
-  const mains = CITY_ROADS.filter(r => r.axis === 'x'), links = CITY_ROADS.filter(r => r.axis === 'z');
-  // For each road: carriageway extent, and per side the intervals where its sidewalk is interrupted.
+  const roads = CITY_ROADS, mains = roads.filter(r => r.axis === 'x'), links = roads.filter(r => r.axis === 'z');
+  const crosses = (r, o) => o.axis !== r.axis && span(r, o.c) && span(o, r.c);
+  const endsOn = (r, o) => crosses(r, o) && (Math.abs(r.from - o.c) < 0.01 || Math.abs(r.to - o.c) < 0.01);
   const layout = new Map();
-  for (const road of CITY_ROADS) {
-    const w = road.width / 2;
-    if (road.axis === 'x') {
-      const cuts = { [-1]: [], [1]: [] };
-      for (const l of links) if (span(road, l.c)) for (const side of [-1, 1]) if (span(l, road.c + side * (w + 0.5))) cuts[side].push([l.c - l.width / 2, l.c + l.width / 2]);
-      layout.set(road, { car: [road.from, road.to], walk: { [-1]: [[road.from, road.to]], [1]: [[road.from, road.to]] }, cuts, ends: [] });
-    } else {
-      const ends = mains.filter(a => Math.abs(road.from - a.c) < 0.01 || Math.abs(road.to - a.c) < 0.01);
-      const lo = mains.find(a => Math.abs(road.from - a.c) < 0.01), hi = mains.find(a => Math.abs(road.to - a.c) < 0.01);
-      const car = [lo ? lo.c + lo.width / 2 : road.from, hi ? hi.c - hi.width / 2 : road.to];
-      const walkSpan = [lo ? lo.c + half(lo) : road.from, hi ? hi.c - half(hi) : road.to];
-      layout.set(road, { car, walk: { [-1]: [walkSpan], [1]: [walkSpan] }, cuts: { [-1]: [], [1]: [] }, ends });
+  for (const road of roads) {
+    const w = road.width / 2, others = roads.filter(o => crosses(road, o));
+    // Carriageway extents stop at the carriageway of any road this one ends on.
+    let c0 = road.from, c1 = road.to;
+    for (const o of others) if (endsOn(road, o)) {
+      if (Math.abs(road.from - o.c) < 0.01) c0 = o.c + o.width / 2; else c1 = o.c - o.width / 2;
     }
+    const carCuts = road.axis === 'z' ? others.filter(o => !endsOn(road, o) && !endsOn(o, road)).map(o => [o.c - o.width / 2, o.c + o.width / 2]) : [];
+    const walk = { [-1]: [], [1]: [] }, cuts = { [-1]: [], [1]: [] }, kerbCuts = { [-1]: [], [1]: [] };
+    for (const side of [-1, 1]) {
+      const line = road.c + side * (w + road.walk / 2), edge = road.c + side * (w + 0.5);
+      let a0 = road.from, a1 = road.to;
+      if (road.axis === 'x') for (const o of others) if (endsOn(road, o)) { if (Math.abs(road.from - o.c) < 0.01) a0 = o.c + o.width / 2; else a1 = o.c - o.width / 2; }
+      walk[side] = [[a0, a1]];
+      for (const o of others) {
+        if (road.axis === 'x' && span(o, line)) cuts[side].push([o.c - o.width / 2, o.c + o.width / 2]);
+        if (road.axis === 'z' && span(o, line)) cuts[side].push([o.c - half(o), o.c + half(o)]);
+        if (span(o, edge)) kerbCuts[side].push([o.c - o.width / 2, o.c + o.width / 2]);
+      }
+    }
+    layout.set(road, { car: [c0, c1], carCuts, walk, cuts, kerbCuts, others });
   }
   const hasWalk = (road, side, a) => { const L = layout.get(road); return L.walk[side].some(([a0, a1]) => a > a0 + 0.3 && a < a1 - 0.3) && !L.cuts[side].some(([c0, c1]) => a > c0 - 0.3 && a < c1 + 0.3); };
-  for (const road of CITY_ROADS) {
+  const onSidewalk = (x, z) => roads.some(r => { for (const side of [-1, 1]) {
+    const along = r.axis === 'x' ? x : z, across = (r.axis === 'x' ? z : x) - r.c, w = r.width / 2;
+    if (side * across > w + 0.25 && side * across < w + r.walk - 0.25 && hasWalk(r, side, along)) return true; } return false; });
+  for (const road of roads) {
     const f = frame(road), L = layout.get(road), w = road.width / 2;
     const [c0, c1] = L.car;
-    { const [x, z] = f.at((c0 + c1) / 2, 0), [sx, sz] = f.size(c1 - c0, road.width);
-      uvMesh(root, m.asphalt, [sx, 0.006, sz], [x, ASPHALT_TOP - 0.003, z], { tile: 6, shadow: false }).receiveShadow = true; }
+    for (const [p0, p1] of subtract(c0, c1, L.carCuts)) {
+      const [x, z] = f.at((p0 + p1) / 2, 0), [sx, sz] = f.size(p1 - p0, road.width);
+      uvMesh(root, m.asphalt, [sx, 0.006, sz], [x, ASPHALT_TOP - 0.003, z], { tile: 6, shadow: false }).receiveShadow = true;
+    }
     rects.push(road.axis === 'x' ? { minX: road.from, maxX: road.to, minZ: road.c - half(road), maxZ: road.c + half(road) }
       : { minX: road.c - half(road), maxX: road.c + half(road), minZ: road.from, maxZ: road.to });
     // Zebra crossings: beside each junction and at listed mid-block points.
-    const junctions = road.axis === 'x' ? links.filter(l => span(road, l.c)) : L.ends;
-    const crossings = [];
+    const junctions = L.others, crossings = [];
     for (const j of junctions) for (const s of [-1, 1]) {
       const a = j.c + s * (half(j) + 2.4);
       if (a > c0 + 1.5 && a < c1 - 1.5) crossings.push({ a, s });
@@ -71,7 +85,7 @@ export function buildRoads(root, kit, m, colliders) {
         const [x, z] = f.at((p0 + p1) / 2, b), [sx, sz] = f.size(p1 - p0, road.walk);
         uvMesh(root, m.sidewalk, [sx, 0.006, sz], [x, ASPHALT_TOP - 0.003, z], { tile: 4, shadow: false }).receiveShadow = true;
       }
-      for (const [k0, k1] of subtract(c0, c1, [...L.cuts[side], ...drops])) {
+      for (const [k0, k1] of subtract(c0, c1, [...L.kerbCuts[side], ...drops])) {
         const [kx, kz] = f.at((k0 + k1) / 2, side * (w + 0.11)), [ksx, ksz] = f.size(k1 - k0, 0.22);
         uvMesh(root, m.kerb, [ksx, 0.07, ksz], [kx, STREET_Y + 0.035, kz], { tile: 2 });
       }
@@ -90,19 +104,18 @@ export function buildRoads(root, kit, m, colliders) {
         }
       }
     }
-    // Markings: solid edge lines and a dashed centre line, stopping short of junctions and zebras.
+    // Markings: edge lines; a dashed centre line (2 lanes) or a double centre line with dashed lane lines (4 lanes).
+    const wide = road.width >= 11;
     const stops = [...junctions.map(j => [j.c - j.width / 2 - 0.8, j.c + j.width / 2 + 0.8]), ...crossings.map(c => [c.a - 2.9, c.a + 2.9])];
     for (const [p0, p1] of subtract(c0 + 0.8, c1 - 0.8, stops)) {
-      for (const side of [-1, 1]) {
-        const [x, z] = f.at((p0 + p1) / 2, side * (w - 0.35)), [sx, sz] = f.size(p1 - p0, 0.12);
-        kit.add(m.paint, { size: [sx, 0.003, sz], position: [x, PAINT_Y, z] });
-      }
-      for (let a = p0 + 0.5; a + 3 <= p1; a += 6) {
-        const [x, z] = f.at(a + 1.5, 0), [sx, sz] = f.size(3, 0.12);
-        kit.add(m.paint, { size: [sx, 0.003, sz], position: [x, PAINT_Y, z] });
-      }
+      const line = (b, length, at) => { const [x, z] = f.at(at, b), [sx, sz] = f.size(length, 0.12); kit.add(m.paint, { size: [sx, 0.003, sz], position: [x, PAINT_Y, z] }); };
+      for (const side of [-1, 1]) line(side * (w - 0.35), p1 - p0, (p0 + p1) / 2);
+      if (wide) {
+        for (const side of [-1, 1]) line(side * 0.14, p1 - p0, (p0 + p1) / 2);
+        for (let a = p0 + 0.5; a + 3 <= p1; a += 9) for (const side of [-1, 1]) line(side * w / 2, 3, a + 1.5);
+      } else for (let a = p0 + 0.5; a + 3 <= p1; a += 6) line(0, 3, a + 1.5);
     }
-    // Zebra bars run with the traffic; a stop line guards the approaching lane.
+    // Zebra bars run with the traffic; a stop line guards the approaching lane(s).
     for (const c of crossings) {
       for (let b = -w + 0.55; b + 0.5 <= w - 0.45; b += 1.0) {
         const [x, z] = f.at(c.a, b + 0.25), [sx, sz] = f.size(3, 0.5);
@@ -125,15 +138,16 @@ export function buildRoads(root, kit, m, colliders) {
       if (n % 2 === 0) { const [x, z] = f.at(a + 4, (random() < 0.5 ? -1 : 1) * w / 2); kit.add(m.iron, { size: [0.34, 0.004, 0.34], position: [x, ASPHALT_TOP + 0.002, z] }, PIPE); }
     }
   }
-  // Traffic signals on the kerb corners of each junction (only where a sidewalk exists), street names on one.
+  // Traffic signals on every kerb corner that has a sidewalk; one street-name post per junction.
   for (const A of mains) for (const B of links) {
-    if (!span(A, B.c) || !layout.get(B).ends.includes(A)) continue;
-    const toward = Math.abs(B.from - A.c) < 0.01 ? 1 : -1;
-    for (const sx of [-1, 1]) {
-      const px = B.c + sx * (B.width / 2 + 0.55), pz = A.c + toward * (A.width / 2 + 0.55);
-      addSignal(kit, m, px, pz, sx, toward);
+    if (!crosses(A, B)) continue;
+    let named = false;
+    for (const sz of [-1, 1]) for (const sx of [-1, 1]) {
+      const px = B.c + sx * (B.width / 2 + 0.55), pz = A.c + sz * (A.width / 2 + 0.55);
+      if (!onSidewalk(px, pz)) continue;
+      addSignal(kit, m, px, pz, sx, sz);
       colliders.push({ minX: px - 0.15, maxX: px + 0.15, minZ: pz - 0.15, maxZ: pz + 0.15 });
-      if (sx > 0) addStreetName(root, kit, m, px, pz, A.name, B.name);
+      if (!named && sx > 0) { addStreetName(root, kit, m, px, pz, A.name, B.name); named = true; }
     }
   }
   // Signs: speed limits at the ends of the through roads, crossing signs, parking, no parking, give way.
@@ -142,7 +156,7 @@ export function buildRoads(root, kit, m, colliders) {
     kit.add(m.signs[kind], { size: [0.62, 0.62, 1], position: [x, STREET_Y + height + 0.05, z], rotation: [0, yaw, 0] }, PLANE);
     colliders.push({ minX: x - 0.1, maxX: x + 0.1, minZ: z - 0.1, maxZ: z + 0.1 });
   };
-  for (const road of mains) {
+  for (const road of mains.filter(r => r.width >= 7 && r.to - r.from > 300)) {
     sign('limit', road.from + 9, road.c + road.width / 2 + 0.5, -Math.PI / 2);
     sign('limit', road.to - 9, road.c - road.width / 2 - 0.5, Math.PI / 2);
   }
@@ -164,7 +178,7 @@ export function buildRoads(root, kit, m, colliders) {
   }
   sign('noparking', -121, corso.c - corso.width / 2 - 0.55, Math.PI / 2);
   sign('noparking', 99, corso.c + corso.width / 2 + 0.55, -Math.PI / 2);
-  for (const road of links) sign('yield', road.c + road.width / 2 + 0.5, layout.get(road).car[0] + 7, 0);
+  for (const road of links) if (mains.some(a => endsOn(road, a) && Math.abs(road.from - a.c) < 0.01)) sign('yield', road.c + road.width / 2 + 0.5, layout.get(road).car[0] + 7, 0);
   addBusStop(root, kit, m, 18, corso, colliders, sign);
   for (const [x, z] of [[-60, -125.6], [10, -114.6], [-60, -80.8], [40, -91.4], [-99, -100], [89, -100]]) {
     kit.add(m.bin, { size: [0.28, 0.85, 0.28], position: [x, STREET_Y + 0.425, z] }, PIPE);

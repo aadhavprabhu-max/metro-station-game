@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { box, cylinder, label, seededRandom } from './geometry.js';
 import { batchStaticGeometry } from './optimize.js';
-import { STREET_Y, CITY_BOUNDS, CITY_PLOTS, CITY_ROUTES, CITY_SQUARES, CITY_SHAMIANAS, CITY_ARRIVAL, CENTRAL_EXIT, rectContains } from './city-layout.js';
+import { STREET_Y, CITY_BOUNDS, OLD_TOWN, CITY_PLOTS, CITY_ROUTES, CITY_SQUARES, CITY_SHAMIANAS, CITY_ARRIVAL, CENTRAL_EXIT, CITY_ROADS, ROAD_BRIDGES, TERRACE, WALL_RELICS, rectContains } from './city-layout.js';
 import { buildRoads, addShamiana, addGrassPatches } from './city-roads.js';
 import { createCityMaterials, buildHouse, buildClockTower, batchCityInstances, uvMesh } from './city-buildings.js';
 import { PropKit, addPalm, addCitrus, addCafe, addPlanter, addBunting, addWashing, addLamp, addBench, addPot } from './city-props.js';
@@ -28,7 +28,7 @@ function createSkyDome() {
       }`,
     side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false,
   });
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(440, 32, 16), material);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(1000, 32, 16), material);
   dome.name = 'OldTownSkyDome'; dome.renderOrder = -1; dome.frustumCulled = false; dome.raycast = () => {};
   dome.visible = false;
   return dome;
@@ -43,8 +43,8 @@ export class SurfaceWorld extends THREE.Group {
     this.materials = createCityMaterials(baseMaterials);
     this.entrance = new SurfaceEntrance(this.materials, station);
     this.district = new THREE.Group(); this.district.name = 'CentralOldTownDistrict'; this.district.visible = false; this.add(this.district);
-    this.built = false; this.active = false;
-    this.background = new THREE.Color(SKY.horizon); this.fog = new THREE.Fog(SKY.haze, 150, 470);
+    this.built = false; this.active = false; this.jobs = []; this.downtownReady = false; this.detailMeshes = [];
+    this.background = new THREE.Color(SKY.horizon); this.fog = new THREE.Fog(SKY.haze, 250, 1050);
     // Cool sky bounce from the side opposite the sun; the shadowed key light is the sun.
     this.sun = new THREE.DirectionalLight('#9cc4ff', 0.55); this.sun.position.set(80, 60, 120); this.sun.target.position.set(-16, 10, -200);
     this.sun.visible = false; this.add(this.sun, this.sun.target);
@@ -67,7 +67,8 @@ export class SurfaceWorld extends THREE.Group {
     // The terrain has an actual aperture over the stairs, never a clipping plane.
     const pave = (x0, x1, z0, z1) => {
       if (x1 <= x0 || z1 <= z0) return;
-      worldUV(box(root, m.paving, [x1 - x0, 0.2, z1 - z0], [(x0 + x1) / 2, STREET_Y - 0.1, (z0 + z1) / 2]),x1-x0,z1-z0);
+      // A thin slab (bottom ≥ 9.95 m) so it clears the U2 Stadtzentrum glass roof, which tops out at 9.9 m.
+      worldUV(box(root, m.paving, [x1 - x0, 0.05, z1 - z0], [(x0 + x1) / 2, STREET_Y - 0.025, (z0 + z1) / 2]),x1-x0,z1-z0);
     };
     // A canal crosses the southern edge, with three fully supported crossings.
     const canal = { minX: b.minX, maxX: b.maxX, minZ: -338, maxZ: -329 };
@@ -82,11 +83,14 @@ export class SurfaceWorld extends THREE.Group {
     pave(access.maxX, hole.maxX, access.minZ, access.maxZ);
     pave(hole.minX, hole.maxX, hole.maxZ, b.maxZ);
     box(root, m.water, [b.maxX - b.minX, 0.08, 9], [(b.minX + b.maxX) / 2, STREET_Y - 1.25, -333.5], { shadow: false });
-    this.bridges = [-104, -16.2, 84].map(x => ({ minX: x - 4, maxX: x + 4, minZ: -339, maxZ: -328 }));
+    // Old-town footbridges (8 m) plus road bridges carrying the outer avenues (full road width).
+    const roadHalf = x => { const r = CITY_ROADS.find(road => road.axis === 'z' && road.c === x); return r.width / 2 + r.walk; };
+    this.bridges = [...[-104, -16.2, 84].map(x => ({ minX: x - 4, maxX: x + 4 })), ...ROAD_BRIDGES.map(x => ({ minX: x - roadHalf(x), maxX: x + roadHalf(x) }))]
+      .map(b => ({ ...b, minZ: -339, maxZ: -328 })).sort((a, b) => a.minX - b.minX);
     for (const bridge of this.bridges) {
       // The deck meets the quay exactly. Logical approach bounds overlap land,
       // but another coplanar finish at either end would cause floor shimmer.
-      box(root, m.stone, [8, 0.42, 9], [(bridge.minX + bridge.maxX) / 2, STREET_Y - 0.21, -333.5]);
+      box(root, m.stone, [bridge.maxX - bridge.minX, 0.42, 9], [(bridge.minX + bridge.maxX) / 2, STREET_Y - 0.21, -333.5]);
       for (const x of [bridge.minX - 0.12, bridge.maxX + 0.12]) {
         box(root, m.pale, [0.25, 0.95, 10.6], [x, STREET_Y + 0.475, -333.5]);
         this.colliders.push({ minX: x - 0.13, maxX: x + 0.13, minZ: -338.8, maxZ: -328.2 });
@@ -117,7 +121,6 @@ export class SurfaceWorld extends THREE.Group {
     }
     const extra = [];
     for (const plot of CITY_PLOTS) this.colliders.push(buildHouse(root, m, plot, extra));
-    this.addBackdrop();
     this.colliders.push(...extra);
     this.colliders.push(buildClockTower(root, m, -135, -128));
     const kit = new PropKit(), y0 = STREET_Y;
@@ -157,9 +160,11 @@ export class SurfaceWorld extends THREE.Group {
     for (const [i, spec] of CITY_SHAMIANAS.entries()) addShamiana(root, kit, m, spec, this.colliders, 700 + i);
     this.addGrass(kit, roadRects);
     kit.flush(root);
-    // Visible enclosure matches the finite playable district, with no invisible exits.
-    for (const x of [b.minX-.3,b.maxX+.3]) box(root,m.whiteStone,[.6,2.1,b.maxZ-b.minZ+1.2],[x,STREET_Y+1.05,(b.minZ+b.maxZ)/2]);
-    for (const z of [b.minZ-.3,b.maxZ+.3]) box(root,m.whiteStone,[b.maxX-b.minX+.6,2.1,.6],[(b.minX+b.maxX)/2,STREET_Y+1.05,z]);
+    // The old-town perimeter walls are gone; the whole district has a low edge wall instead.
+    for (const x of [b.minX-.3,b.maxX+.3]) box(root,m.concrete,[.6,1.2,b.maxZ-b.minZ+1.2],[x,STREET_Y+.6,(b.minZ+b.maxZ)/2]);
+    for (const z of [b.minZ-.3,b.maxZ+.3]) box(root,m.concrete,[b.maxX-b.minX+.6,1.2,.6],[(b.minX+b.maxX)/2,STREET_Y+.6,z]);
+    this.addTerrace(root);
+    this.addWallRelics(root);
     label(root,'CENTRAL  ·  ALTSTADT',6.5,.38,[-16.2,STREET_Y+.026,-215],{rotation:[-Math.PI/2,0,0],background:'#e9e1cc',color:'#6b4a2e',fontSize:100});
     this.colliders.push(...this.entrance.facadeColliders);
     // Outer access walls are physical obstacles on street level as well.
@@ -167,8 +172,166 @@ export class SurfaceWorld extends THREE.Group {
     for(const side of [-1,1]) this.colliders.push({minX:tower.position.x+side*3.15-.12,maxX:tower.position.x+side*3.15+.12,minZ:tower.position.z+4.1,maxZ:tower.position.z+23.8});
     batchStaticGeometry(root);
     this.userData.combinedInstanceGroups=batchCityInstances(root);
+    this.collectDetail(root);
+    this.indexColliders();
     this.built=true;
+    // Downtown content is queued and built in small slices over the following frames (see runJobs).
+    this.downtownReady = this.jobs.length === 0;
   }
+
+  /** Build queued downtown work for at most `budget` ms; walking outside the old town waits until it's done. */
+  runJobs(budget = 8) {
+    if (!this.built || this.downtownReady) return;
+    const start = performance.now();
+    while (this.jobs.length && performance.now() - start < budget) {
+      const group = this.jobs.shift()();
+      if (group) { batchStaticGeometry(group); batchCityInstances(group); this.collectDetail(group); }
+    }
+    if (!this.jobs.length) { this.indexColliders(); this.downtownReady = true; }
+  }
+
+  /** Finish everything now (tests and tools). */
+  finishBuild() { this.ensureBuilt(); while (!this.downtownReady) this.runJobs(1e9); }
+
+  /** Small instanced details (markings, bollards, flowers...) are hidden beyond ~170 m. */
+  collectDetail(root) {
+    root.traverse(mesh => { if (mesh.isInstancedMesh && mesh.material.userData.detail && !this.detailMeshes.includes(mesh)) {
+      mesh.computeBoundingSphere(); this.detailMeshes.push(mesh); } });
+  }
+
+  updateDetail(camera, world) {
+    if (this.detailAt && this.detailAt.distanceToSquared(camera) < 25) return;
+    (this.detailAt ??= new THREE.Vector3()).copy(camera);
+    let changed = false;
+    for (const mesh of this.detailMeshes) {
+      const s = mesh.boundingSphere, visible = Math.hypot(s.center.x - camera.x, s.center.z - camera.z) - s.radius < 170;
+      if (mesh.visible !== visible) { mesh.visible = visible; changed = true; }
+    }
+    if (changed) world.renderer.shadowMap.needsUpdate = true;
+  }
+
+  /** 16 m grid over colliders, so lookups stay fast with thousands of obstacles. */
+  indexColliders() {
+    const grid = new Map(), cell = 16;
+    for (const r of this.colliders) for (let i = Math.floor(r.minX / cell); i <= Math.floor(r.maxX / cell); i++)
+      for (let j = Math.floor(r.minZ / cell); j <= Math.floor(r.maxZ / cell); j++) {
+        const key = i * 4096 + j; if (!grid.has(key)) grid.set(key, []); grid.get(key).push(r);
+      }
+    this.colliderGrid = grid; this.indexedCount = this.colliders.length;
+  }
+
+  /** Floor height: street level, the upper-town terrace, or a step of one of its stairs. */
+  floorAt(x, z) {
+    const t = TERRACE, inX = r => x >= r.minX && x <= r.maxX;
+    if (inX(t.stairSouth) && z >= t.stairSouth.minZ && z < t.stairSouth.minZ + 7 * 0.45) return STREET_Y + 0.3 * (Math.floor((z - t.stairSouth.minZ) / 0.45) + 1);
+    if (inX(t.stairNorth) && z >= t.stairNorth.minZ && z < t.stairNorth.minZ + 7 * 0.45) return STREET_Y + t.height - 0.3 * (Math.floor((z - t.stairNorth.minZ) / 0.45) + 1);
+    if (x >= t.minX && x <= t.maxX && z >= t.minZ && z <= t.maxZ) return STREET_Y + t.height;
+    return STREET_Y;
+  }
+
+  districtAt(x, z) {
+    const t = TERRACE;
+    return rectContains(OLD_TOWN, x, z) || (x >= t.minX && x <= t.maxX && z >= t.minZ && z <= t.maxZ + 4) ? 'Old town' : 'Downtown';
+  }
+
+  /** The upper-town terrace: retaining wall, stairs at both ends of its centre passage, parapets and a row of houses. */
+  addTerrace(root) {
+    const m = this.materials, t = TERRACE, h = t.height, y = STREET_Y, south = t.stairSouth, north = t.stairNorth, run = 0.45;
+    const block = (x0, x1, z0, z1, mat = m.whiteStone) => {
+      uvMesh(root, mat, [x1 - x0, h, z1 - z0], [(x0 + x1) / 2, y + h / 2, (z0 + z1) / 2], { tile: 2.5 });
+      this.colliders.push({ minX: x0, maxX: x1, minZ: z0, maxZ: z1, level: y });
+    };
+    const landing = south.minZ + 7 * run;
+    block(t.minX, south.minX, t.minZ, t.maxZ); block(south.maxX, t.maxX, t.minZ, t.maxZ); block(south.minX, south.maxX, landing, t.maxZ);
+    for (let i = 0; i < 7; i++) {
+      const top = 0.3 * (i + 1);
+      uvMesh(root, m.whiteStone, [south.maxX - south.minX, top, run], [(south.minX + south.maxX) / 2, y + top / 2, south.minZ + run * (i + 0.5)], { tile: 2 });
+      const down = h - 0.3 * (i + 1);
+      uvMesh(root, m.whiteStone, [north.maxX - north.minX, down, run], [(north.minX + north.maxX) / 2, y + down / 2, north.minZ + run * (i + 0.5)], { tile: 2 });
+    }
+    // Flagstone lane on top and a cap along the retaining wall.
+    uvMesh(root, m.paving, [t.maxX - t.minX, 0.02, t.maxZ - t.minZ], [(t.minX + t.maxX) / 2, y + h + 0.01, (t.minZ + t.maxZ) / 2], { tile: 8, shadow: false }).receiveShadow = true;
+    // Parapets: south (overlooking Lemon square), ends and north, open at both stairs.
+    const top = y + h, parapet = (x0, x1, z0, z1) => {
+      uvMesh(root, m.whiteStone, [x1 - x0, 0.95, z1 - z0], [(x0 + x1) / 2, top + 0.475, (z0 + z1) / 2], { tile: 2 });
+      uvMesh(root, m.trim, [x1 - x0 + 0.12, 0.12, z1 - z0 + 0.12], [(x0 + x1) / 2, top + 1.0, (z0 + z1) / 2], { tile: 2 });
+      this.colliders.push({ minX: x0, maxX: x1, minZ: z0, maxZ: z1, level: top });
+    };
+    parapet(t.minX, south.minX, t.minZ, t.minZ + 0.35); parapet(south.maxX, t.maxX, t.minZ, t.minZ + 0.35);
+    parapet(t.minX, north.minX, t.maxZ - 0.35, t.maxZ); parapet(north.maxX, t.maxX, t.maxZ - 0.35, t.maxZ);
+    parapet(t.minX, t.minX + 0.35, t.minZ, t.maxZ); parapet(t.maxX - 0.35, t.maxX, t.minZ, t.maxZ);
+    for (const s of [south, north]) for (const x of [s.minX - 0.15, s.maxX + 0.15]) {
+      const z0 = s === south ? s.minZ : s.minZ, z1 = s === south ? landing : s.minZ + 7 * run;
+      uvMesh(root, m.whiteStone, [0.3, s === south ? h + 0.95 : h + 0.95, z1 - z0], [x, y + (h + 0.95) / 2, (z0 + z1) / 2], { tile: 2 });
+    }
+    // Upper-town houses behind the lane, leaving the centre passage clear.
+    const random = seededRandom(1207), plots = [];
+    for (const [from, to] of [[t.minX + 1, south.minX - 2], [south.maxX + 2, t.maxX - 1]]) {
+      for (let x = from; to - x >= 9;) {
+        let width = 10.5 + Math.round(random() * 6) / 2; const gap = 1.6 + random() * 1.4;
+        if (to - x - width - gap < 10.5) width = Math.min(15, to - x);
+        plots.push({ x: x + width / 2, z: -34, width, depth: 14, y0: h, row: 'terrace', seed: 1200 + plots.length });
+        x += width + gap;
+      }
+    }
+    for (const plot of plots) this.colliders.push({ ...buildHouse(root, m, plot), level: top });
+  }
+
+  /** Weathered stretches of the old town wall with towers, one gateway and a plaque each. */
+  addWallRelics(root) {
+    const m = this.materials, y = STREET_Y, random = seededRandom(1414);
+    for (const relic of WALL_RELICS) {
+      for (let i = 0; i < relic.points.length - 1; i++) {
+        const [x0, z0] = relic.points[i], [x1, z1] = relic.points[i + 1], alongX = Math.abs(z1 - z0) < 0.01;
+        const a0 = alongX ? Math.min(x0, x1) : Math.min(z0, z1), a1 = alongX ? Math.max(x0, x1) : Math.max(z0, z1), c = alongX ? z0 : x0;
+        const gate = relic.gate && !alongX ? relic.gate : null;
+        const pieces = gate ? [[a0, gate.z - gate.width / 2 - 1.2], [gate.z + gate.width / 2 + 1.2, a1]] : [[a0, a1]];
+        for (const [p0, p1] of pieces) {
+          if (p1 - p0 < 0.5) continue;
+          for (let a = p0; a < p1 - 0.01;) {
+            const len = Math.min(p1 - a, 3 + random() * 3), hgt = 3.8 + random() * 1.2, mid = a + len / 2;
+            const pos = alongX ? [mid, y + hgt / 2, c] : [c, y + hgt / 2, mid], size = alongX ? [len, hgt, 1.4] : [1.4, hgt, len];
+            uvMesh(root, random() < 0.25 ? m.oldWallDark : m.oldWall, size, pos, { tile: 2.2 });
+            for (let k = a + 0.4; k < a + len - 0.5; k += 1.6) if (random() < 0.8) {
+              const mp = alongX ? [k + 0.4, y + hgt + 0.45, c] : [c, y + hgt + 0.45, k + 0.4];
+              uvMesh(root, m.oldWall, alongX ? [0.8, 0.9, 1.4] : [1.4, 0.9, 0.8], mp, { tile: 2.2 });
+            }
+            a += len;
+          }
+          this.colliders.push(alongX ? { minX: p0, maxX: p1, minZ: c - 0.7, maxZ: c + 0.7 } : { minX: c - 0.7, maxX: c + 0.7, minZ: p0, maxZ: p1 });
+        }
+        if (gate) {
+          // Gateway: one solid stone face with a round-arched opening over the old lane, crenellated on top.
+          const g = new THREE.Group(); g.position.set(c, y, gate.z); g.rotation.y = Math.PI / 2; root.add(g);
+          const W = gate.width / 2 + 1.6, H = 9.4, spring = 4.4, r = gate.width / 2, shape = new THREE.Shape();
+          shape.moveTo(-W, 0); shape.lineTo(W, 0); shape.lineTo(W, H); shape.lineTo(-W, H); shape.closePath();
+          const hole = new THREE.Path(); hole.moveTo(-r, 0); hole.lineTo(r, 0); hole.lineTo(r, spring);
+          hole.absarc(0, spring, r, 0, Math.PI, false); hole.lineTo(-r, 0); shape.holes.push(hole);
+          const face = new THREE.ExtrudeGeometry(shape, { depth: 1.8, bevelEnabled: false, curveSegments: 18 }).translate(0, 0, -0.9);
+          const uv = face.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 2.2, uv.getY(i) / 2.2);
+          const gateMesh = new THREE.Mesh(face, m.oldWall); gateMesh.castShadow = gateMesh.receiveShadow = true; gateMesh.name = 'OldTownGate'; g.add(gateMesh);
+          uvMesh(g, m.oldWallDark, [2 * W + 0.4, 0.5, 2.1], [0, H - 0.6, 0], { tile: 2.2 });
+          for (let k = -W + 0.4; k <= W - 0.4; k += 1.6) uvMesh(g, m.oldWall, [0.8, 0.9, 1.8], [k, H + 0.45, 0], { tile: 2.2 });
+          for (const s of [-1, 1]) this.colliders.push({ minX: c - 0.8, maxX: c + 0.8, minZ: gate.z + s * (gate.width / 2 + 0.8) - 0.8, maxZ: gate.z + s * (gate.width / 2 + 0.8) + 0.8 });
+        }
+      }
+      // A square tower with slit windows.
+      const [tx, tz] = relic.tower;
+      uvMesh(root, m.oldWall, [5.6, 10, 5.6], [tx, y + 5, tz], { tile: 2.2 });
+      for (let k = -2.4; k <= 2.4; k += 1.6) for (const [dx, dz, sx, sz] of [[k, -2.6, 0.8, 0.6], [k, 2.6, 0.8, 0.6], [-2.6, k, 0.6, 0.8], [2.6, k, 0.6, 0.8]])
+        uvMesh(root, m.oldWall, [sx, 1.0, sz], [tx + dx, y + 10.5, tz + dz], { tile: 2.2 });
+      for (const [dx, dz, ry] of [[0, 2.81, 0], [0, -2.81, Math.PI], [2.81, 0, Math.PI / 2], [-2.81, 0, -Math.PI / 2]])
+        box(root, m.dark, [0.22, 1.2, 0.04], [tx + dx, y + 6.5, tz + dz], { rotation: [0, ry, 0] });
+      this.colliders.push({ minX: tx - 2.8, maxX: tx + 2.8, minZ: tz - 2.8, maxZ: tz + 2.8 });
+      // Plaque on the town-facing side of the first stretch.
+      const [px, pz] = relic.points[0], [qx, qz] = relic.points[1], alongX = Math.abs(qz - pz) < 0.01;
+      const mid = alongX ? [(px + qx) / 2, pz] : [px, (pz + qz) / 2], inward = alongX ? (pz > -200 ? -1 : 1) : (px < 0 ? 1 : -1);
+      const pos = alongX ? [mid[0], y + 2.2, mid[1] + inward * 0.72] : [mid[0] + inward * 0.72, y + 2.2, mid[1]];
+      const ry = alongX ? (inward > 0 ? 0 : Math.PI) : (inward > 0 ? Math.PI / 2 : -Math.PI / 2);
+      label(root, 'THE OLD TOWN WALL', 1.9, 0.42, pos, { background: '#6f5a2e', color: '#f3e6c2', fontSize: 92, border: true, rotation: [0, ry, 0] });
+    }
+  }
+
 
   addFountain(kit, x, z) {
     const m = this.materials, root = this.district;
@@ -221,59 +384,29 @@ export class SurfaceWorld extends THREE.Group {
     for (const [i, x] of [-124, -118, -91, -85].entries()) addBunting(kit, m, [x, STREET_Y + 6.9, -256], [x + 4, STREET_Y + 6.9, -218], 660 + i, 1.8);
   }
 
-  /** Non-walkable terraces beyond the perimeter, so every street ends in more town, not void. */
-  addBackdrop() {
-    const m = this.materials, root = this.district, b = this.bounds, random = seededRandom(909);
-    const rows = [];
-    const along = (from, to, make) => {
-      for (let t = from; to - t >= 9;) {
-        let width = 10.5 + Math.round(random() * 7) / 2; const gap = 1.5 + random() * 2;
-        if (to - t - width - gap < 10.5) width = Math.min(16, to - t);
-        make(t + width / 2, width); t += width + gap;
-      }
-    };
-    // North: an upper town on a retaining wall, with a stair rising out of Lemon square.
-    const north = { z0: b.maxZ + 0.6, z1: -44.6, y: 2.4 }, stair = { minX: -19.2, maxX: -13.2 };
-    for (const [x0, x1] of [[b.minX - 16, stair.minX], [stair.maxX, b.maxX + 16]]) {
-      const w = x1 - x0, cx = (x0 + x1) / 2, cz = (north.z0 + north.z1) / 2, d = north.z1 - north.z0;
-      uvMesh(root, m.whiteStone, [w, north.y, d], [cx, STREET_Y + north.y / 2, cz], { tile: 2.5 });
-      uvMesh(root, m.trim, [w, 0.16, 0.5], [cx, STREET_Y + north.y + 0.08, north.z0 + 0.2], { tile: 2 });
-    }
-    for (let i = 0; i < 8; i++) {
-      const rise = north.y / 8, run = (north.z1 - north.z0 - 1.2) / 8;
-      uvMesh(root, m.whiteStone, [stair.maxX - stair.minX, rise * (i + 1), run], [(stair.minX + stair.maxX) / 2, STREET_Y + rise * (i + 1) / 2, north.z0 + run * (i + 0.5)], { tile: 2 });
-    }
-    uvMesh(root, m.whiteStone, [stair.maxX - stair.minX, north.y, 1.2], [(stair.minX + stair.maxX) / 2, STREET_Y + north.y / 2, north.z1 - 0.6], { tile: 2 });
-    const northHouse = (x, width) => rows.push({ x, z: (north.z0 + north.z1) / 2, width, depth: north.z1 - north.z0 - 0.2, y0: north.y, backdrop: 'nz', row: 'north', seed: 900 + rows.length });
-    along(b.minX - 14, stair.minX - 0.6, northHouse);
-    along(stair.maxX + 0.6, b.maxX + 14, northHouse);
-    // South beyond the canal quay, west and east beyond the side walls (rotated so their fronts face the town).
-    along(b.minX - 14, b.maxX + 14, (x, width) => rows.push({ x, z: b.minZ - 4.4, width, depth: 7, backdrop: 'pz', row: 'south', seed: 900 + rows.length }));
-    along(-b.maxZ + 6, -b.minZ - 4, (t, width) => {
-      rows.push({ x: b.minX - 4.4, z: -t, width, depth: 7, rotation: Math.PI / 2, backdrop: 'pz', row: 'west', seed: 900 + rows.length });
-      rows.push({ x: b.maxX + 4.4, z: -t, width, depth: 7, rotation: Math.PI / 2, backdrop: 'nz', row: 'east', seed: 1900 + rows.length });
-    });
-    for (const plot of rows) buildHouse(root, m, plot);
-    // Ground under the outer rows so alleys between them show paving, not sky.
-    for (const [sx, sz, px, pz] of [[b.maxX - b.minX + 40, 12, (b.minX + b.maxX) / 2, b.minZ - 6.6], [12, b.maxZ - b.minZ + 20, b.minX - 6.6, (b.minZ + b.maxZ) / 2], [12, b.maxZ - b.minZ + 20, b.maxX + 6.6, (b.minZ + b.maxZ) / 2]])
-      box(root, m.paving, [sx, 0.2, sz], [px, STREET_Y - 0.1, pz], { shadow: false });
-  }
-
   addCanalWall(x0,x1,z) {
     box(this.district,this.materials.stone,[x1-x0,1.0,.38],[(x0+x1)/2,STREET_Y+.5,z]);
     this.colliders.push({minX:x0,maxX:x1,minZ:z-.19,maxZ:z+.19});
   }
 
   findSurface(x,z,feetY,maxStep=.45,radius=.24) {
-    if(Math.abs(feetY-STREET_Y)>maxStep || !rectContains(this.bounds,x,z,-radius)) return null;
+    if(feetY<STREET_Y-maxStep || feetY>STREET_Y+TERRACE.height+maxStep || !rectContains(this.bounds,x,z,-radius)) return null;
+    const floorY=this.floorAt(x,z);
+    if(Math.abs(feetY-floorY)>maxStep) return null;
     this.ensureBuilt();
+    if(!this.downtownReady && !rectContains(OLD_TOWN,x,z,-radius)) return null;
     if(rectContains(this.entrance.shaftBounds,x,z,radius)) return null;
     if(rectContains(this.canal,x,z,radius) && !this.bridges.some(b=>rectContains(b,x,z,-radius))) return null;
-    if(this.colliders.some(r=>{
+    if(this.indexedCount!==this.colliders.length) this.indexColliders();
+    const cell=16,hit=r=>{
+      if(r.level!==undefined && Math.abs(r.level-floorY)>0.2) return false;
       const xx=THREE.MathUtils.clamp(x,r.minX,r.maxX),zz=THREE.MathUtils.clamp(z,r.minZ,r.maxZ);
       return (xx-x)**2+(zz-z)**2<radius**2;
-    })) return null;
-    return {floorY:STREET_Y,kind:'city',difference:Math.abs(feetY-STREET_Y)};
+    };
+    for(let i=Math.floor((x-radius)/cell);i<=Math.floor((x+radius)/cell);i++)
+      for(let j=Math.floor((z-radius)/cell);j<=Math.floor((z+radius)/cell);j++)
+        if(this.colliderGrid.get(i*4096+j)?.some(hit)) return null;
+    return {floorY,kind:'city',difference:Math.abs(feetY-floorY)};
   }
 
   /** Daylight grade for the street: the shared key light becomes the sun while outdoors. */
@@ -303,7 +436,9 @@ export class SurfaceWorld extends THREE.Group {
       this.ensureBuilt();
       world.scene.fog=this.fog;world.scene.background=this.background;
       this.sky.position.copy(player.camera.position);
-      if(world.camera.far!==480){world.camera.far=480;world.camera.updateProjectionMatrix();}
+      if(world.camera.far!==1100){world.camera.far=1100;world.camera.updateProjectionMatrix();}
+      this.runJobs();
+      this.updateDetail(player.camera.position,world);
       if(world.city)world.city.visible=false;
       if(world.phase6World){world.phase6World.visible=false;world.phase6World.sun.visible=false;}
       const key=world.lighting.keyLight;

@@ -231,6 +231,10 @@ export class UI {
       }
       this.updateOldTownButton();
       this.surfaceStatus.hidden = !this.player.surfaceExploring;
+      if (this.player.surfaceExploring) {
+        const position = this.player.camera.position, district = this.player.surfaceWorld.districtAt?.(position.x, position.z) ?? 'Old town';
+        if (district !== this.surfaceDistrict) { this.surfaceDistrict = district; this.surfaceStatus.querySelector('strong').textContent = `Central · ${district}`; }
+      }
       document.querySelector('#app').classList.toggle('surface-exploring', this.player.surfaceExploring);
     }
     this.elapsed += delta;

@@ -10,14 +10,14 @@ const {addU10ToNetwork}=await import('../src/u10-network.js');
 const {MetroRoute}=await import('../src/route.js');
 const {NetworkLineWorld}=await import('../src/network-world.js');
 const {SurfaceWorld}=await import('../src/surface-world.js');
-const {CITY_ROUTES,STREET_Y}=await import('../src/city-layout.js');
+const {CITY_ROUTES,STREET_Y,CITY_BOUNDS,ROAD_BRIDGES,TERRACE}=await import('../src/city-layout.js');
 const network=createPhase6Network();addU10ToNetwork(network);
 const materials=createMaterials(),scene=new THREE.Group();
 const worlds=['U1','U2','U3','U4'].map(id=>{
  const route=new MetroRoute(network,id);if(id==='U4')route.surfaceExitEnabled=true;
  return new NetworkLineWorld(materials,route);
 });scene.add(...worlds);scene.updateMatrixWorld(true);
-const surface=new SurfaceWorld(materials,worlds[3].central);surface.ensureBuilt();scene.add(surface,surface.entrance);scene.updateMatrixWorld(true);
+const surface=new SurfaceWorld(materials,worlds[3].central);surface.finishBuild();scene.add(surface,surface.entrance);scene.updateMatrixWorld(true);
 const e=surface.entrance,records=[];
 scene.traverse(mesh=>{if(mesh.isMesh && !mesh.material?.isMeshBasicMaterial)records.push({mesh,bounds:new THREE.Box3().setFromObject(mesh)});});
 function hits(a,b){const box=new THREE.Box3().setFromPoints([a,b]).expandByScalar(.002),v=b.clone().sub(a);return new THREE.Raycaster(a,v.clone().normalize(),.002,v.length()-.002).intersectObjects(records.filter(r=>r.bounds.intersectsBox(box)).map(r=>r.mesh),false);}
@@ -56,7 +56,25 @@ for(const x of [-104,-16.2,84])for(const z of [-338.5,-328.5]){
 }
 assert.equal(surface.findSurface(0,-333,STREET_Y),null,'canal must not be walkable away from bridges');
 assert.equal(surface.findSurface(-77,-267,STREET_Y),null,'building interiors must collide');
-assert.equal(surface.findSurface(-160,-240,STREET_Y),null,'visible perimeter must bound movement');
+assert.equal(surface.findSurface(CITY_BOUNDS.minX-2,-240,STREET_Y),null,'visible perimeter must bound movement');
+assert.equal(surface.findSurface(CITY_BOUNDS.maxX+2,-100,STREET_Y),null,'visible perimeter must bound movement');
+assert.ok(surface.findSurface(-160,-240,STREET_Y),'the opened old-town edge is walkable into downtown');
+// Road bridges carry the outer avenues over the canal.
+for(const x of ROAD_BRIDGES)for(let z=-345;z<=-322;z+=.25)if(!surface.findSurface(x,z,STREET_Y,.06,.24))failures.push({kind:'road-bridge',x,z});
+// Upper-town terrace: up the south stair, along the lane, down the north stair, never at a jump above 0.45 m.
+{
+ let feet=STREET_Y,x=-16.2;
+ const walkTo=(tx,tz,from)=>{const n=Math.ceil(Math.hypot(tx-from[0],tz-from[1])/.1);
+  for(let i=1;i<=n;i++){const px=from[0]+(tx-from[0])*i/n,pz=from[1]+(tz-from[1])*i/n,s=surface.findSurface(px,pz,feet,.45,.24);
+   if(!s){failures.push({kind:'terrace-walk',x:px,z:pz,feet});return false;}feet=s.floorY;}return true;};
+ walkTo(-16.2,-48,[-16.2,-52]);walkTo(-16.2,-44,[-16.2,-48]);
+ assert.ok(Math.abs(feet-(STREET_Y+TERRACE.height))<1e-6,'the south stair reaches the terrace');
+ walkTo(-40,-45,[-16.2,-44]);walkTo(-16.2,-44,[-40,-45]);walkTo(-16.2,-26,[-16.2,-44]);walkTo(-16.2,-18,[-16.2,-26]);
+ assert.ok(Math.abs(feet-STREET_Y)<1e-6,'the north stair returns to street level');
+ assert.equal(surface.findSurface(-40,-48,STREET_Y),null,'the retaining wall blocks the street level');
+ assert.equal(surface.findSurface(-40,-49.3,STREET_Y+TERRACE.height),null,'the parapet stops a fall from the terrace');
+}
+assert.equal(surface.findSurface(-148.3,-100,STREET_Y),null,'old town wall relics are solid');
 const hole=e.shaftBounds;
 const finishProbe=new THREE.Vector3(e.streetPortal.x-.67,STREET_Y+.2,e.streetPortal.z+8.71);
 const finishes=hits(finishProbe,finishProbe.clone().add(new THREE.Vector3(0,-.4,0)))

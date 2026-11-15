@@ -22,6 +22,8 @@ export class WorldVisibility {
 
   update(player) {
     const { world } = this, camera = player.camera.position, feetY = camera.y - 1.76;
+    // On the street nothing underground can be seen: skip it entirely (the stair hall stays).
+    const street = Boolean(player.surfaceExploring);
     const visibleLines = new Set([player.service?.lineId ?? 'U1']);
     const transfer = player.transferSurface?.transfer;
     if (transfer) for (const platform of transfer.platforms) visibleLines.add(platform.lineId);
@@ -41,10 +43,10 @@ export class WorldVisibility {
       bounds.clampPoint(camera, this.nearest);
       return this.nearest.distanceToSquared(camera) < range * range;
     };
-    for (const station of world.stations) show(station,
+    for (const station of world.stations) show(station, !street &&
       visibleLines.has(station.lineId) && this.stationCenters.get(station).distanceToSquared(camera) < (station.lineId === 'U10' && feetY > 4 ? 1300 : this.range + 55) ** 2);
-    for (const { lineId, group, bounds } of this.sections) show(group, visibleLines.has(lineId) && near(bounds, lineId === 'U10' && feetY > 4 ? 900 : this.range));
-    for (const train of world.trains) show(train,
+    for (const { lineId, group, bounds } of this.sections) show(group, !street && visibleLines.has(lineId) && near(bounds, lineId === 'U10' && feetY > 4 ? 900 : this.range));
+    for (const train of world.trains) show(train, !street &&
       visibleLines.has(train.lineId) && train.position.distanceToSquared(camera) < (train.lineId === 'U10' ? 600 : this.range + 30) ** 2);
     world.lighting.children.forEach(group => {
       const station = world.stations.find(item => item.platformId === group.userData.platformId);
@@ -54,7 +56,7 @@ export class WorldVisibility {
       // The new entrance is also a surface landmark. Keep it visible across
       // the district without fighting this culler and invalidating cached shadows.
       (interchange.isCityEntrance && player.surfaceExploring)
-      || (interchange.platforms.some(platform => visibleLines.has(platform.lineId)) && near(this.transferBounds.get(interchange))));
+      || (!street && interchange.platforms.some(platform => visibleLines.has(platform.lineId)) && near(this.transferBounds.get(interchange))));
     if (changed) world.renderer.shadowMap.needsUpdate = true;
   }
 }

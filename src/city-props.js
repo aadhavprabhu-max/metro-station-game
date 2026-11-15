@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { instances, seededRandom } from './geometry.js';
-import { POT, CLUMP, PETALS, LEAVES, uvMesh } from './city-buildings.js';
+import { POT, CLUMP, PETALS, LEAVES, uvMesh, CELL } from './city-buildings.js';
 
 /** Instance collector: one InstancedMesh per material/geometry pair. */
 export class PropKit {
   constructor() { this.sets = new Map(); }
   add(material, entry, geometry) {
-    const key = material.uuid + (geometry?.uuid ?? '') + (entry.color ? '/c' : '');
+    // One batch per material/geometry and per ~140 m area, so whole areas can be culled.
+    const cell = `${Math.floor(entry.position[0] / CELL)},${Math.floor(entry.position[2] / CELL)}`;
+    const key = material.uuid + (geometry?.uuid ?? '') + (entry.color ? '/c' : '') + '@' + cell;
     if (!this.sets.has(key)) this.sets.set(key, { material, geometry, entries: [] });
     this.sets.get(key).entries.push(entry);
   }

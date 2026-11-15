@@ -46,6 +46,8 @@ export function createCityMaterials(base) {
     water: std('#547d7c', { roughness: 0.25, metalness: 0.25 }),
     plaster: STUCCO.map(color => rough(color)),
     trim: rough('#f4efe3', { bumpScale: 0.8, roughness: 0.82 }),
+    oldWall: rough('#b3a487', { bumpScale: 3.2, roughness: 0.97 }), oldWallDark: rough('#8d7f66', { bumpScale: 3.2, roughness: 0.97 }),
+    concrete: rough('#b9b6ae', { bumpScale: 1.2, roughness: 0.9 }),
     whiteStone: rough('#ebe4d2', { bumpScale: 1.2 }),
     baseStone: rough('#a9a596', { bumpScale: 2.4 }),
     // One material each; the paint colour is per instance.
@@ -96,6 +98,10 @@ export function createCityMaterials(base) {
     poleRed: std('#8e1b2c', { roughness: 0.6 }), gold: std('#d9a733', { roughness: 0.35, metalness: 0.7 }),
     signs: Object.fromEntries(['limit', 'noparking', 'crossing', 'parking', 'bus', 'yield'].map(kind => [kind, std('#ffffff', { map: T.signTexture(kind), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.5 })])),
   });
+  // Small street details are hidden beyond ~170 m (see SurfaceWorld.updateDetail).
+  for (const key of ['paint', 'paintYellow', 'tactile', 'iron', 'gold', 'galvanised', 'bin', 'hydrant', 'signalRed', 'signalAmber', 'signalGreen', 'signalGreenLit', 'signalRedDim', 'grassPatch', 'grassPatch2'])
+    materials[key].userData.detail = true;
+  for (const sign of Object.values(materials.signs)) sign.userData.detail = true;
   // Tiny or flush details skip the shadow pass; they would add draw calls but no visible shadow.
   for (const key of ['window', 'windowBarred', 'windowFrench', 'lanternGlass', 'line', 'gutter', 'grassEdge', 'paint', 'paintYellow', 'tactile', 'grassPatch', 'grassPatch2', 'signalRed', 'signalAmber', 'signalGreen', 'signalGreenLit', 'signalRedDim', 'durrie', 'shelterGlass']) materials[key].userData.noCast = true;
   return materials;
@@ -450,14 +456,15 @@ export function buildClockTower(parent, m, x, z) {
 
 /** Combine identical static window/frame instance buffers across the small district.
  * World transforms, per-instance colours and both shadow flags are retained. */
+export const CELL = 140;
 export function batchCityInstances(root) {
   root.updateWorldMatrix(true,true);
   const inverse=root.matrixWorld.clone().invert(),groups=new Map();
   root.traverse(mesh=>{
     if(!mesh.isInstancedMesh || Array.isArray(mesh.material))return;
     const centre=mesh.boundingSphere.center.clone().applyMatrix4(mesh.matrixWorld);
-    // Keep the north and south halves independently cullable instead of one region-wide bound.
-    const key=[Math.floor(centre.z/160),mesh.geometry.uuid,mesh.material.uuid,mesh.castShadow,mesh.receiveShadow,Boolean(mesh.instanceColor)].join('/');
+    // Keep each ~140 m area independently cullable instead of one district-wide bound.
+    const key=[Math.floor(centre.x/CELL),Math.floor(centre.z/CELL),mesh.geometry.uuid,mesh.material.uuid,mesh.castShadow,mesh.receiveShadow,Boolean(mesh.instanceColor)].join('/');
     if(!groups.has(key))groups.set(key,[]);
     groups.get(key).push(mesh);
   });
