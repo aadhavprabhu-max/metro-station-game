@@ -198,23 +198,33 @@ function addSignal(kit, m, x, z, sx, sz) {
   kit.add(m.galvanised, { size: [0.07, 3.4, 0.07], position: [x, STREET_Y + 1.7, z] }, PIPE);
   kit.add(m.galvanised, { size: [0.16, 0.18, 0.16], position: [x, STREET_Y + 0.09, z] }, PIPE);
   // Push-button box for pedestrians.
-  kit.add(m.paintYellow, { size: [0.14, 0.22, 0.1], position: [x, STREET_Y + 1.1, z - sz * 0.08] });
+  kit.add(m.paintTint, { size: [0.14, 0.22, 0.1], position: [x, STREET_Y + 1.1, z - sz * 0.08] , color: '#f2c230' });
   // Two vehicle heads: one facing traffic along x, one along z. Main road shows green, side road red.
   for (const [yaw, green, ox, oz] of [[sx > 0 ? -Math.PI / 2 : Math.PI / 2, true, 0, 0], [sz > 0 ? 0 : Math.PI, false, 0, 0]]) {
     const dx = Math.sin(yaw) * 0.16, dz = Math.cos(yaw) * 0.16, y = STREET_Y + 3.05;
     kit.add(m.iron, { size: [0.3, 0.9, 0.22], position: [x + dx + ox, y, z + dz + oz], rotation: [0, yaw, 0] });
-    for (const [k, mat] of [[1, green ? m.signalRedDim : m.signalRed], [0, m.signalAmber], [-1, green ? m.signalGreenLit : m.signalGreen]])
-      kit.add(mat, { size: [0.17, 0.17, 0.03], position: [x + dx * 1.75, y + k * 0.27, z + dz * 1.75], rotation: [0, yaw, 0] });
+    for (const [k, color] of [[1, green ? '#3d0c08' : '#ff2a1a'], [0, '#4a3608'], [-1, green ? '#2dff6a' : '#0d3d1a']])
+      kit.add(m.lens, { size: [0.17, 0.17, 0.03], position: [x + dx * 1.75, y + k * 0.27, z + dz * 1.75], rotation: [0, yaw, 0], color });
     for (const k of [1, 0, -1]) kit.add(m.iron, { size: [0.24, 0.04, 0.12], position: [x + dx * 2.1, y + k * 0.27 + 0.11, z + dz * 2.1], rotation: [0, yaw, 0] });
   }
 }
 
+/** One shared material per street name, so repeated plates merge into a single draw call each. */
+const NAME_PLATES = new Map();
+function namePlate(root, text, position, rotationY) {
+  if (!NAME_PLATES.has(text)) {
+    const probe = label(new THREE.Group(), text, 1.9, 0.26, [0, 0, 0], { background: '#1d3f8f', color: '#ffffff', fontSize: 92, border: true });
+    NAME_PLATES.set(text, probe.material);
+  }
+  const mesh = new THREE.Mesh(PLANE, NAME_PLATES.get(text));
+  mesh.scale.set(1.9, 0.26, 1); mesh.position.set(...position); mesh.rotation.y = rotationY; root.add(mesh);
+}
 function addStreetName(root, kit, m, x, z, a, b) {
   kit.add(m.galvanised, { size: [0.045, 0.7, 0.045], position: [x, STREET_Y + 3.75, z] }, PIPE);
-  label(root, a, 1.9, 0.26, [x, STREET_Y + 3.9, z + 0.03], { background: '#1d3f8f', color: '#ffffff', fontSize: 92, border: true });
-  label(root, a, 1.9, 0.26, [x, STREET_Y + 3.9, z - 0.03], { background: '#1d3f8f', color: '#ffffff', fontSize: 92, border: true, rotation: [0, Math.PI, 0] });
-  label(root, b, 1.9, 0.26, [x + 0.03, STREET_Y + 3.6, z], { background: '#1d3f8f', color: '#ffffff', fontSize: 92, border: true, rotation: [0, Math.PI / 2, 0] });
-  label(root, b, 1.9, 0.26, [x - 0.03, STREET_Y + 3.6, z], { background: '#1d3f8f', color: '#ffffff', fontSize: 92, border: true, rotation: [0, -Math.PI / 2, 0] });
+  namePlate(root, a, [x, STREET_Y + 3.9, z + 0.03], 0);
+  namePlate(root, a, [x, STREET_Y + 3.9, z - 0.03], Math.PI);
+  namePlate(root, b, [x + 0.03, STREET_Y + 3.6, z], Math.PI / 2);
+  namePlate(root, b, [x - 0.03, STREET_Y + 3.6, z], -Math.PI / 2);
 }
 
 function addBusStop(root, kit, m, x, road, colliders, sign) {
@@ -222,7 +232,7 @@ function addBusStop(root, kit, m, x, road, colliders, sign) {
   // Shelter: frame, glass back and ends, cantilevered roof, bench.
   for (const dx of [-len / 2, len / 2]) for (const dz of [0, 1.25]) kit.add(m.galvanised, { size: [0.08, 2.45, 0.08], position: [x + dx, STREET_Y + 1.225, zBack + dz] });
   kit.add(m.galvanised, { size: [len + 0.3, 0.12, 1.7], position: [x, STREET_Y + 2.5, zBack + 0.65] });
-  kit.add(m.paintYellow, { size: [len + 0.32, 0.06, 1.72], position: [x, STREET_Y + 2.43, zBack + 0.65] });
+  kit.add(m.paintTint, { size: [len + 0.32, 0.06, 1.72], position: [x, STREET_Y + 2.43, zBack + 0.65] , color: '#f2c230' });
   box(root, m.shelterGlass, [len, 2.0, 0.03], [x, STREET_Y + 1.3, zBack], { shadow: false });
   for (const dx of [-len / 2, len / 2]) box(root, m.shelterGlass, [0.03, 2.0, 1.2], [x + dx, STREET_Y + 1.3, zBack + 0.62], { shadow: false });
   kit.add(m.cafeWood, { size: [len - 0.6, 0.06, 0.42], position: [x, STREET_Y + 0.48, zBack + 0.32] });
@@ -234,10 +244,10 @@ function addBusStop(root, kit, m, x, road, colliders, sign) {
   const z0 = kerb + 0.35, z1 = kerb + 1.1;
   for (let a = -9; a < 9; a += 1.2) {
     const xa = x + a, xb = x + a + 0.6;
-    kit.add(m.paintYellow, { size: [Math.hypot(0.6, z1 - z0), 0.003, 0.1], position: [(xa + xb) / 2 + 0.3, PAINT_Y, (z0 + z1) / 2], rotation: [0, Math.atan2(z1 - z0, 0.6), 0] });
-    kit.add(m.paintYellow, { size: [Math.hypot(0.6, z1 - z0), 0.003, 0.1], position: [(xa + xb) / 2 - 0.3, PAINT_Y, (z0 + z1) / 2], rotation: [0, -Math.atan2(z1 - z0, 0.6), 0] });
+    kit.add(m.paintTint, { size: [Math.hypot(0.6, z1 - z0), 0.003, 0.1], position: [(xa + xb) / 2 + 0.3, PAINT_Y, (z0 + z1) / 2], rotation: [0, Math.atan2(z1 - z0, 0.6), 0] , color: '#f2c230' });
+    kit.add(m.paintTint, { size: [Math.hypot(0.6, z1 - z0), 0.003, 0.1], position: [(xa + xb) / 2 - 0.3, PAINT_Y, (z0 + z1) / 2], rotation: [0, -Math.atan2(z1 - z0, 0.6), 0] , color: '#f2c230' });
   }
-  kit.add(m.paintYellow, { size: [18, 0.003, 0.1], position: [x, PAINT_Y, kerb + 1.7] });
+  kit.add(m.paintTint, { size: [18, 0.003, 0.1], position: [x, PAINT_Y, kerb + 1.7] , color: '#f2c230' });
 }
 
 /** Festive open-sided canopy: striped cloth roof, scalloped valance, carved poles, marigold garlands, carpet and tables. */

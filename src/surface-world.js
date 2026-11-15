@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { box, cylinder, label, seededRandom } from './geometry.js';
 import { batchStaticGeometry } from './optimize.js';
-import { STREET_Y, CITY_BOUNDS, OLD_TOWN, CITY_PLOTS, CITY_ROUTES, CITY_SQUARES, CITY_SHAMIANAS, CITY_ARRIVAL, CENTRAL_EXIT, CITY_ROADS, ROAD_BRIDGES, TERRACE, WALL_RELICS, rectContains } from './city-layout.js';
+import { STREET_Y, CITY_BOUNDS, OLD_TOWN, SQUARE_SITE, CITY_PLOTS, CITY_ROUTES, CITY_SQUARES, CITY_SHAMIANAS, CITY_ARRIVAL, CENTRAL_EXIT, CITY_ROADS, ROAD_BRIDGES, TERRACE, WALL_RELICS, rectContains } from './city-layout.js';
 import { buildRoads, addShamiana, addGrassPatches } from './city-roads.js';
 import { createCityMaterials, buildHouse, buildClockTower, batchCityInstances, uvMesh } from './city-buildings.js';
 import { PropKit, addPalm, addCitrus, addCafe, addPlanter, addBunting, addWashing, addLamp, addBench, addPot } from './city-props.js';
 import { SurfaceEntrance } from './surface-entrance.js';
+import { downtownMaterials, queueDowntown } from './downtown-buildings.js';
+import { buildAurealisSquare } from './downtown-square.js';
 
 // Mediterranean daylight: deep blue zenith, pale haze at the horizon, warm hard sun.
 const SKY = Object.freeze({ zenith: '#0f3fb8', mid: '#2f7fe0', horizon: '#a9d8f0', haze: '#bfe0f0' });
@@ -43,7 +45,7 @@ export class SurfaceWorld extends THREE.Group {
     this.materials = createCityMaterials(baseMaterials);
     this.entrance = new SurfaceEntrance(this.materials, station);
     this.district = new THREE.Group(); this.district.name = 'CentralOldTownDistrict'; this.district.visible = false; this.add(this.district);
-    this.built = false; this.active = false; this.jobs = []; this.downtownReady = false; this.detailMeshes = [];
+    this.built = false; this.active = false; this.jobs = []; this.downtownReady = false; this.detailMeshes = []; this.towers = [];
     this.background = new THREE.Color(SKY.horizon); this.fog = new THREE.Fog(SKY.haze, 250, 1050);
     // Cool sky bounce from the side opposite the sun; the shadowed key light is the sun.
     this.sun = new THREE.DirectionalLight('#9cc4ff', 0.55); this.sun.position.set(80, 60, 120); this.sun.target.position.set(-16, 10, -200);
@@ -171,10 +173,14 @@ export class SurfaceWorld extends THREE.Group {
     const tower=this.entrance.towers[0].group;
     for(const side of [-1,1]) this.colliders.push({minX:tower.position.x+side*3.15-.12,maxX:tower.position.x+side*3.15+.12,minZ:tower.position.z+4.1,maxZ:tower.position.z+23.8});
     batchStaticGeometry(root);
-    this.userData.combinedInstanceGroups=batchCityInstances(root);
+    // The old town keeps coarse instance groups (as before downtown); downtown areas use ~140 m cells.
+    this.userData.combinedInstanceGroups=batchCityInstances(root, 400);
     this.collectDetail(root);
     this.indexColliders();
     this.built=true;
+    this.downtown = downtownMaterials(m);
+    queueDowntown(this, this.downtown);
+    this.jobs.push(() => buildAurealisSquare(this));
     // Downtown content is queued and built in small slices over the following frames (see runJobs).
     this.downtownReady = this.jobs.length === 0;
   }
@@ -187,7 +193,11 @@ export class SurfaceWorld extends THREE.Group {
       const group = this.jobs.shift()();
       if (group) { batchStaticGeometry(group); batchCityInstances(group); this.collectDetail(group); }
     }
-    if (!this.jobs.length) { this.indexColliders(); this.downtownReady = true; }
+    if (!this.jobs.length) {
+      // One final merge of all static geometry by material: far fewer draw calls for a city this size.
+      batchStaticGeometry(this.district);
+      this.indexColliders(); this.downtownReady = true;
+    }
   }
 
   /** Finish everything now (tests and tools). */
@@ -204,7 +214,8 @@ export class SurfaceWorld extends THREE.Group {
     (this.detailAt ??= new THREE.Vector3()).copy(camera);
     let changed = false;
     for (const mesh of this.detailMeshes) {
-      const s = mesh.boundingSphere, visible = Math.hypot(s.center.x - camera.x, s.center.z - camera.z) - s.radius < 170;
+      const s = mesh.boundingSphere, range = typeof mesh.material.userData.detail === 'number' ? mesh.material.userData.detail : 170;
+      const visible = Math.hypot(s.center.x - camera.x, s.center.z - camera.z) - s.radius < range;
       if (mesh.visible !== visible) { mesh.visible = visible; changed = true; }
     }
     if (changed) world.renderer.shadowMap.needsUpdate = true;
@@ -231,6 +242,7 @@ export class SurfaceWorld extends THREE.Group {
 
   districtAt(x, z) {
     const t = TERRACE;
+    if (rectContains(SQUARE_SITE, x, z, 1)) return 'Aurealis Square';
     return rectContains(OLD_TOWN, x, z) || (x >= t.minX && x <= t.maxX && z >= t.minZ && z <= t.maxZ + 4) ? 'Old town' : 'Downtown';
   }
 
@@ -438,16 +450,18 @@ export class SurfaceWorld extends THREE.Group {
       this.sky.position.copy(player.camera.position);
       if(world.camera.far!==1100){world.camera.far=1100;world.camera.updateProjectionMatrix();}
       this.runJobs();
+      if(this.tickers) { const t=performance.now()*0.00003; this.tickers.forEach((tk,i)=>{ tk.offset.x=(t*(1+i%3*0.3))%1; }); }
       this.updateDetail(player.camera.position,world);
       if(world.city)world.city.visible=false;
       if(world.phase6World){world.phase6World.visible=false;world.phase6World.sun.visible=false;}
       const key=world.lighting.keyLight;
       if(!this.active) {
-        Object.assign(key.shadow.camera,{left:-55,right:55,top:55,bottom:-55,far:220});
+        Object.assign(key.shadow.camera,{left:-90,right:90,top:90,bottom:-90,far:760});
         key.shadow.camera.updateProjectionMatrix();world.renderer.shadowMap.needsUpdate=true;
         this.enterDaylight(world);
       }
-      key.position.set(player.camera.position.x+SUN.offset[0],STREET_Y+SUN.offset[1],player.camera.position.z+SUN.offset[2]);
+      // Three times the old distance, same direction: tall towers stay inside the shadow camera.
+      key.position.set(player.camera.position.x+SUN.offset[0]*3,STREET_Y+SUN.offset[1]*3,player.camera.position.z+SUN.offset[2]*3);
       key.target.position.set(player.camera.position.x,STREET_Y,player.camera.position.z);
       if(!this.shadowPosition || this.shadowPosition.distanceToSquared(player.camera.position)>4){
         this.shadowPosition??=new THREE.Vector3();this.shadowPosition.copy(player.camera.position);world.renderer.shadowMap.needsUpdate=true;

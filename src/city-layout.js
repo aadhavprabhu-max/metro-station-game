@@ -18,6 +18,11 @@ export const CITY_ROUTES = Object.freeze([
   { name: 'Linden walk', x: 84, z: -234 },
   { name: 'Canal bridge east', x: 84, z: -320 },
   { name: 'Canal promenade', x: -16.2, z: -320 },
+  // Downtown loop: over the Central footbridge, down Central Avenue into Aurealis Square and back by Broadway.
+  { name: 'Central Avenue', x: -16.2, z: -420 },
+  { name: 'Aurealis Square', x: -16.2, z: -480 },
+  { name: 'Broadway North', x: -16.2, z: -430 },
+  { name: 'Broadway west', x: -104, z: -430 },
   { name: 'Canal bridge west', x: -104, z: -320 },
   { name: 'West market', x: -104, z: -234 },
 ]);
@@ -68,7 +73,9 @@ export const CITY_ROADS = Object.freeze([
   { name: 'CANAL QUAY WEST', axis: 'x', c: -346, from: CITY_BOUNDS.minX, to: OLD_TOWN.minX, width: 7, walk: 3 },
   { name: 'CANAL QUAY EAST', axis: 'x', c: -346, from: OLD_TOWN.maxX, to: CITY_BOUNDS.maxX, width: 7, walk: 3 },
   { name: 'CENTRAL AVENUE', axis: 'z', c: -16.2, from: -430, to: -352, width: 12, walk: 4 },
-  { name: 'CENTRAL AVENUE SOUTH', axis: 'z', c: -16.2, from: CITY_BOUNDS.minZ, to: -570, width: 12, walk: 4 },
+  // Aurealis Square: two one-way roads with wide outer sidewalks either side of a pedestrian island.
+  { name: 'AUREALIS SQ WEST', axis: 'z', c: -29.2, from: -570, to: -430, width: 8, walk: 6 },
+  { name: 'AUREALIS SQ EAST', axis: 'z', c: -3.2, from: -570, to: -430, width: 8, walk: 6 },
   { name: 'MERCATO AVENUE', axis: 'z', c: -104, from: CITY_BOUNDS.minZ, to: -352, width: 12, walk: 4 },
   { name: 'GARIBALDI AVENUE', axis: 'z', c: 84, from: CITY_BOUNDS.minZ, to: -352, width: 12, walk: 4 },
   { name: 'BROADWAY NORTH', axis: 'x', c: -430, from: CITY_BOUNDS.minX, to: CITY_BOUNDS.maxX, width: 12, walk: 4 },
@@ -77,8 +84,10 @@ export const CITY_ROADS = Object.freeze([
 ]);
 /** Road bridges carrying the two outer avenues over the canal (old-town footbridges stay as they are). */
 export const ROAD_BRIDGES = Object.freeze([-230, 200]);
-/** Reserved for Aurealis Square (Milestone 3): plain paving until then. */
+/** Aurealis Square: the plaza between Broadway North and Broadway South on the Central axis. */
 export const SQUARE_SITE = Object.freeze({ minX: -40, maxX: 7.6, minZ: -570, maxZ: -430 });
+/** The pedestrian island down the middle of the square (x) and its landmark spots. */
+export const SQUARE_ISLAND = Object.freeze({ minX: -25.2, maxX: -7.2, statue: [-16.2, -535], clockTower: [24, -530], spireTower: [-56, -545] });
 /** Walkable upper-town terrace north of Lemon square, with a stair at each end of its centre passage. */
 export const TERRACE = Object.freeze({ minX: -95, maxX: 75, minZ: -49.4, maxZ: -25, height: 2.4,
   stairSouth: { minX: -19.2, maxX: -13.2, minZ: -49.4, maxZ: -45.8 }, stairNorth: { minX: -19.2, maxX: -13.2, minZ: -25, maxZ: -21.4 } });

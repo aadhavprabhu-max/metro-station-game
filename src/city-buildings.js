@@ -83,7 +83,8 @@ export function createCityMaterials(base) {
     sidewalk: std('#e2ddd2', { map: walkMap, bumpMap: walkMap, bumpScale: 0.8, roughness: 0.9 }),
     kerb: rough('#a7a49c', { bumpScale: 1.4 }),
     tactile: std('#ffffff', { map: T.tactileTexture(), roughness: 0.8 }),
-    paint: std('#f1f1ea', { roughness: 0.65 }), paintYellow: std('#f2c230', { roughness: 0.65 }),
+    paint: std('#f1f1ea', { roughness: 0.65 }), paintYellow: std('#f2c230', { roughness: 0.65 }), paintTint: std('#ffffff', { roughness: 0.65 }),
+    lens: new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }),
     galvanised: std('#8f969b', { roughness: 0.45, metalness: 0.6 }),
     signalRed: std('#ff2a1a', { emissive: '#ff2a1a', emissiveIntensity: 1.6 }), signalAmber: std('#4a3608'), signalGreen: std('#0d3d1a'),
     signalGreenLit: std('#2dff6a', { emissive: '#2dff6a', emissiveIntensity: 1.6 }), signalRedDim: std('#3d0c08'),
@@ -99,11 +100,11 @@ export function createCityMaterials(base) {
     signs: Object.fromEntries(['limit', 'noparking', 'crossing', 'parking', 'bus', 'yield'].map(kind => [kind, std('#ffffff', { map: T.signTexture(kind), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.5 })])),
   });
   // Small street details are hidden beyond ~170 m (see SurfaceWorld.updateDetail).
-  for (const key of ['paint', 'paintYellow', 'tactile', 'iron', 'gold', 'galvanised', 'bin', 'hydrant', 'signalRed', 'signalAmber', 'signalGreen', 'signalGreenLit', 'signalRedDim', 'grassPatch', 'grassPatch2'])
+  for (const key of ['paint', 'paintYellow', 'paintTint', 'lens', 'tactile', 'iron', 'gold', 'galvanised', 'bin', 'hydrant', 'grassPatch', 'grassPatch2', 'cafeWood', 'tablecloth'])
     materials[key].userData.detail = true;
   for (const sign of Object.values(materials.signs)) sign.userData.detail = true;
   // Tiny or flush details skip the shadow pass; they would add draw calls but no visible shadow.
-  for (const key of ['window', 'windowBarred', 'windowFrench', 'lanternGlass', 'line', 'gutter', 'grassEdge', 'paint', 'paintYellow', 'tactile', 'grassPatch', 'grassPatch2', 'signalRed', 'signalAmber', 'signalGreen', 'signalGreenLit', 'signalRedDim', 'durrie', 'shelterGlass']) materials[key].userData.noCast = true;
+  for (const key of ['window', 'windowBarred', 'windowFrench', 'lanternGlass', 'line', 'gutter', 'grassEdge', 'paint', 'paintYellow', 'paintTint', 'lens', 'tactile', 'grassPatch', 'grassPatch2', 'signalRed', 'signalAmber', 'signalGreen', 'signalGreenLit', 'signalRedDim', 'durrie', 'shelterGlass', 'iron', 'gold', 'galvanised', 'bin', 'hydrant', 'cafeWood', 'tablecloth']) materials[key].userData.noCast = true;
   return materials;
 }
 
@@ -457,14 +458,14 @@ export function buildClockTower(parent, m, x, z) {
 /** Combine identical static window/frame instance buffers across the small district.
  * World transforms, per-instance colours and both shadow flags are retained. */
 export const CELL = 140;
-export function batchCityInstances(root) {
+export function batchCityInstances(root, cell = CELL) {
   root.updateWorldMatrix(true,true);
   const inverse=root.matrixWorld.clone().invert(),groups=new Map();
   root.traverse(mesh=>{
     if(!mesh.isInstancedMesh || Array.isArray(mesh.material))return;
     const centre=mesh.boundingSphere.center.clone().applyMatrix4(mesh.matrixWorld);
     // Keep each ~140 m area independently cullable instead of one district-wide bound.
-    const key=[Math.floor(centre.x/CELL),Math.floor(centre.z/CELL),mesh.geometry.uuid,mesh.material.uuid,mesh.castShadow,mesh.receiveShadow,Boolean(mesh.instanceColor)].join('/');
+    const key=[Math.floor(centre.x/cell),Math.floor(centre.z/cell),mesh.geometry.uuid,mesh.material.uuid,mesh.castShadow,mesh.receiveShadow,Boolean(mesh.instanceColor)].join('/');
     if(!groups.has(key))groups.set(key,[]);
     groups.get(key).push(mesh);
   });
