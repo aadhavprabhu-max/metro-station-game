@@ -3,7 +3,7 @@ import { box, seededRandom } from './geometry.js';
 import { uvMesh, CLUMP } from './city-buildings.js';
 import { PropKit, addLamp, addBench, addCafe } from './city-props.js';
 import { STREET_Y, CITY_BOUNDS, OLD_TOWN, CITY_ROADS, CITY_CROSSINGS, TERRACE, SQUARE_SITE, SQUARE_ISLAND } from './city-layout.js';
-import { curtainWall, brickFacade, stoneFacade, shopfrontTexture, mastTexture } from './downtown-textures.js';
+import { curtainWall, brickFacade, gridFacade, stoneFacade, shopfrontTexture, mastTexture } from './downtown-textures.js';
 import { glowFacade, GLOW } from './night-glow.js';
 
 /**
@@ -18,14 +18,15 @@ export function downtownMaterials(m) {
   const glass = map => std('#ffffff', { map, roughness: 0.46, metalness: 0.1 });
   const d = {
     glassBlue: glass(curtainWall({ seed: 1 })),
-    glassBlueLight: glass(curtainWall({ glass: ['#2f5a9e', '#3866ab', '#29508f', '#4272b4'], mullion: '#1a3360', spandrel: '#5878aa', seed: 2 })),
-    glassTeal: glass(curtainWall({ glass: ['#2a6f86', '#337d94', '#235f74', '#3d8aa0'], mullion: '#123a48', spandrel: '#4f8597', seed: 3 })),
-    glassSlate: glass(curtainWall({ glass: ['#4a5868', '#55657a', '#3e4a58', '#5f7088'], mullion: '#20282f', spandrel: '#6a7686', seed: 4 })),
-    glassDark: glass(curtainWall({ glass: ['#17233e', '#1d2c4c', '#121c34', '#24365c'], mullion: '#0a0f1c', spandrel: '#2a3a5a', seed: 5 })),
-    brick: std('#ffffff', { map: brickFacade({ seed: 7 }), roughness: 0.92 }),
-    brickDark: std('#ffffff', { map: brickFacade({ brick: '#7a4a34', pier: '#5c3524', seed: 8 }), roughness: 0.92 }),
+    glassBlueLight: glass(curtainWall({ glass: ['#2b4f95', '#33599f', '#284a8c', '#3a63aa'], mullion: '#203a68', spandrel: '#b4c2d4', edge: '#dbe3ee', light: true, seed: 2 })),
+    glassTeal: glass(curtainWall({ glass: ['#2a6f86', '#337d94', '#235f74', '#3d8aa0'], mullion: '#123a48', spandrel: '#16404e', edge: '#3f7686', seed: 3 })),
+    glassSlate: glass(curtainWall({ glass: ['#4a5868', '#55657a', '#3e4a58', '#5f7088'], mullion: '#20282f', spandrel: '#2e3844', edge: '#6a7686', seed: 4 })),
+    glassDark: glass(curtainWall({ glass: ['#17233e', '#1d2c4c', '#121c34', '#24365c'], mullion: '#0a0f1c', spandrel: '#0e1626', edge: '#2a3a5a', seed: 5 })),
+    // Red brick with projecting piers and paired tall windows; the brown tower has a square-window grid.
+    brick: std('#ffffff', { map: brickFacade({ seed: 7 }), roughness: 0.9 }),
+    brickDark: std('#ffffff', { map: gridFacade({ seed: 8 }), roughness: 0.88 }),
     tan: std('#ffffff', { map: stoneFacade({ seed: 11 }), roughness: 0.86 }),
-    beige: std('#ffffff', { map: stoneFacade({ wall: '#cbbda2', pier: '#ad9f86', glass: '#3a4656', band: '#e6dcc6', seed: 12 }), roughness: 0.86 }),
+    beige: std('#ffffff', { map: stoneFacade({ wall: '#cbbda2', pier: '#bcae92', pierLight: '#d4c7ab', pierShadow: '#948669', glass: '#46525f', mullion: '#ece4d2', sill: '#efe7d6', seed: 12 }), roughness: 0.86 }),
     shop: std('#ffffff', { map: shopfrontTexture(), roughness: 0.45 }),
     shopRed: std('#ffffff', { map: shopfrontTexture({ fascia: '#7e2a22', seed: 4 }), roughness: 0.45 }),
     stoneTrim: std('#e2d2ae', { roughness: 0.85 }), tanTrim: std('#b58a48', { roughness: 0.7 }), brickTrim: std('#cdb38e', { roughness: 0.85 }),
@@ -63,7 +64,7 @@ export function facadeBox(parent, mat, size, position, { shadow = true } = {}) {
   mesh.castShadow = shadow; mesh.receiveShadow = true; parent.add(mesh); return mesh;
 }
 
-const STYLES = [['glassBlue', 28], ['brick', 26], ['tan', 16], ['glassBlueLight', 9], ['brickDark', 9], ['beige', 6], ['glassTeal', 4], ['glassSlate', 2]];
+const STYLES = [['glassBlue', 28], ['brick', 18], ['tan', 16], ['glassBlueLight', 9], ['brickDark', 17], ['beige', 6], ['glassTeal', 4], ['glassSlate', 2]];
 function pickStyle(random, avoid) {
   const total = STYLES.reduce((s, [, w]) => s + w, 0);
   for (let tries = 0; tries < 6; tries++) {
@@ -87,9 +88,8 @@ export function buildTower(group, d, lot, random) {
   const setback = H > 48 && random() < 0.6 ? H * (0.55 + random() * 0.2) : H;
   const w1 = w - 2 * inset, d1 = dd - 2 * inset;
   facadeBox(group, mat, [w1, setback - pod, d1], [cx, y + (pod + setback) / 2, cz]);
-  // Stone or metal bands at intervals on masonry towers.
-  if (!glass) for (let h = pod + 7.2 * (2 + Math.floor(random() * 2)); h < setback - 4; h += 7.2 * 3)
-    uvMesh(group, brick ? d.brickTrim : d.tanTrim, [w1 + 0.3, 0.45, d1 + 0.3], [cx, y + h, cz], { tile: 3 });
+  // The reference masonry towers have no extra string courses; the draw keeps the shared random sequence (and so the layout) unchanged.
+  if (!glass) random();
   let topW = w1, topD = d1, top = setback;
   if (setback < H) {
     const s = 2.5 + random() * 3.5; topW = Math.max(8, w1 - 2 * s); topD = Math.max(8, d1 - 2 * s);
