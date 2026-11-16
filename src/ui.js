@@ -1,4 +1,5 @@
 import { GlassHud, UI_MODE } from './glass-hud.js';
+import { dayClock } from './day-cycle.js';
 
 /** Route journeys offered by the HUD. Each reloads the game with the chosen route. */
 export const RIDE_LINKS = Object.freeze([
@@ -238,9 +239,8 @@ export class UI {
       document.querySelector('#app').classList.toggle('surface-exploring', this.player.surfaceExploring);
     }
     this.elapsed += delta;
-    // Use one station clock for the HUD and all physical timetables.
-    const minutes = 14 * 60 + 32 + Math.floor(this.elapsed / 60);
-    const clock = `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+    // One clock for the HUD, all physical timetables and the surface sky (34 real minutes per day).
+    const clock = dayClock.text();
     if (clock !== this.lastClock) {
       this.clockElement.textContent = clock;
       for (const board of this.boards()) board.setClock(clock);

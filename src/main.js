@@ -7,6 +7,7 @@ import { WorldVisibility } from './visibility.js';
 import { AnnouncementController } from './announcements.js';
 import { mountU10Timetable } from './u10-timetable.js';
 import { Color } from 'three';
+import { dayClock } from './day-cycle.js';
 
 const interiorBackground = new Color('#64736b'), exteriorBackground = new Color('#a9ccdf');
 const interiorFog = new Color('#6c7a6f'), exteriorFog = new Color('#b7cfdb');
@@ -34,7 +35,10 @@ try {
   let shadowAnchorX = 0;
   let shadowAnchorY = 0;
   let shadowLine = 'U1';
+  world.dayClock = dayClock;
   world.update = delta => {
+    // The time of day always runs, also while surface exploration pauses the railways.
+    dayClock.advance(delta);
     player.syncSurfaceContext();
     world.surfaceSimulation.synchronize(player);
     // All transport clocks consume the same delta, including the frame that

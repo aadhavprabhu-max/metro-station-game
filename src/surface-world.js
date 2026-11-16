@@ -8,23 +8,38 @@ import { PropKit, addPalm, addCitrus, addCafe, addPlanter, addBunting, addWashin
 import { SurfaceEntrance } from './surface-entrance.js';
 import { downtownMaterials, queueDowntown } from './downtown-buildings.js';
 import { buildAurealisSquare } from './downtown-square.js';
+import { dayClock, daylightState } from './day-cycle.js';
+import { NIGHT_UNIFORMS } from './night-glow.js';
 
-// Mediterranean daylight: deep blue zenith, pale haze at the horizon, warm hard sun.
-const SKY = Object.freeze({ zenith: '#0f3fb8', mid: '#2f7fe0', horizon: '#a9d8f0', haze: '#bfe0f0' });
-const SUN = Object.freeze({ color: '#fff0d2', intensity: 3.4, offset: [-62, 78, -48] });
+// The sky, sun, moon, fog and window light follow the shared day clock (34 real minutes per day).
+const SKY = Object.freeze({ horizon: '#a9d8f0', haze: '#bfe0f0' });
+// The key light sits this far from the player along the sun (or moon) direction; the shadow camera reaches past it.
+const LIGHT_DISTANCE = 600;
 
 function createSkyDome() {
   const material = new THREE.ShaderMaterial({
-    uniforms: { zenith: { value: new THREE.Color(SKY.zenith) }, mid: { value: new THREE.Color(SKY.mid) },
-      horizon: { value: new THREE.Color(SKY.horizon) }, sun: { value: new THREE.Vector3(...SUN.offset).normalize() } },
+    uniforms: { zenith: { value: new THREE.Color() }, mid: { value: new THREE.Color() }, horizon: { value: new THREE.Color() },
+      glowColor: { value: new THREE.Color() }, glow: { value: 0.3 }, night: { value: 0 },
+      sun: { value: new THREE.Vector3(0, 1, 0) }, moon: { value: new THREE.Vector3(0, 1, 0) } },
     vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-    fragmentShader: `uniform vec3 zenith; uniform vec3 mid; uniform vec3 horizon; uniform vec3 sun; varying vec3 vDir;
+    fragmentShader: `uniform vec3 zenith; uniform vec3 mid; uniform vec3 horizon; uniform vec3 glowColor; uniform vec3 sun; uniform vec3 moon;
+      uniform float glow; uniform float night; varying vec3 vDir;
+      float hash(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
       void main(){
-        float h = clamp(vDir.y, 0.0, 1.0);
+        vec3 d = normalize(vDir);
+        float h = clamp(d.y, 0.0, 1.0);
         vec3 col = mix(horizon, mid, smoothstep(0.0, 0.22, h));
         col = mix(col, zenith, smoothstep(0.16, 0.85, h));
-        float glow = pow(max(dot(normalize(vDir), sun), 0.0), 24.0);
-        col += vec3(1.0, 0.93, 0.78) * glow * 0.35;
+        // Sun: a broad coloured glow (strongest at sunrise and sunset), a tight halo and the disc.
+        float s = max(dot(d, sun), 0.0);
+        col += glowColor * (pow(s, 6.0) * glow * 0.45 + pow(s, 24.0) * 0.35);
+        col += vec3(1.0, 0.96, 0.86) * smoothstep(0.9993, 0.9996, s) * (1.0 - night);
+        // Night: stars above the haze and a pale moon.
+        vec3 cell = floor(d * 600.0);
+        float star = step(0.9978, hash(cell)) * smoothstep(0.04, 0.3, d.y) * night;
+        col += vec3(star * (0.55 + 0.45 * hash(cell + 3.1)));
+        float m = max(dot(d, moon), 0.0);
+        col += vec3(0.86, 0.9, 1.0) * smoothstep(0.99955, 0.9997, m) * night * 1.3 + vec3(0.25, 0.35, 0.7) * pow(m, 60.0) * night * 0.3;
         gl_FragColor = vec4(col, 1.0);
         #include <colorspace_fragment>
       }`,
@@ -51,6 +66,7 @@ export class SurfaceWorld extends THREE.Group {
     this.sun = new THREE.DirectionalLight('#9cc4ff', 0.55); this.sun.position.set(80, 60, 120); this.sun.target.position.set(-16, 10, -200);
     this.sun.visible = false; this.add(this.sun, this.sun.target);
     this.sky = createSkyDome(); this.add(this.sky);
+    this.dayClock = dayClock; this.daylight = daylightState(dayClock.hours);
     this.userData.phase = 1; this.userData.newExits = ['station-2:U4'];
   }
 
@@ -424,16 +440,38 @@ export class SurfaceWorld extends THREE.Group {
   /** Daylight grade for the street: the shared key light becomes the sun while outdoors. */
   enterDaylight(world) {
     const key = world.lighting.keyLight, hemi = world.scene.children.find(o => o.isHemisphereLight);
-    this.savedLighting = { color: key.color.clone(), intensity: key.intensity, exposure: world.renderer.toneMappingExposure,
+    this.savedLighting = { color: key.color.clone(), intensity: key.intensity, exposure: world.renderer.toneMappingExposure, environment: world.scene.environmentIntensity,
       hemi: hemi && { sky: hemi.color.clone(), ground: hemi.groundColor.clone(), intensity: hemi.intensity }, hemiLight: hemi };
-    key.color.set(SUN.color); key.intensity = SUN.intensity; world.renderer.toneMappingExposure = 0.95;
-    if (hemi) { hemi.color.set('#cfe3ff'); hemi.groundColor.set('#c8b08a'); hemi.intensity = 1.0; }
+    this.applyDaylight(world);
+  }
+
+  /** Sky, sun or moon, ambient light, fog, exposure and night glow for the current time of day. */
+  applyDaylight(world) {
+    const state = daylightState(dayClock.hours, this.daylight), u = this.sky.material.uniforms;
+    u.zenith.value.copy(state.zenith); u.mid.value.copy(state.mid); u.horizon.value.copy(state.horizon);
+    u.glowColor.value.copy(state.keyColor); u.glow.value = state.glow; u.night.value = state.night;
+    u.sun.value.copy(state.sun); u.moon.value.copy(state.moon);
+    this.background.copy(state.horizon);
+    this.fog.color.copy(state.horizon).lerp(state.mid, 0.15);
+    const key = world.lighting.keyLight, hemi = this.savedLighting?.hemiLight;
+    key.color.copy(state.keyColor); key.intensity = state.keyIntensity;
+    if (hemi) { hemi.color.copy(state.hemiSky); hemi.groundColor.copy(state.hemiGround); hemi.intensity = state.hemiIntensity; }
+    // The cool bounce light opposite the sun fades out at night.
+    this.sun.color.copy(state.hemiSky); this.sun.intensity = 0.55 * (1 - state.night) + 0.08;
+    world.renderer.toneMappingExposure = state.exposure;
+    // The shared image-based fill (a neutral room) would light the street like dusk all night.
+    world.scene.environmentIntensity = this.savedLighting.environment * (1 - 0.86 * state.night);
+    NIGHT_UNIFORMS.night.value = state.night; NIGHT_UNIFORMS.lit.value = state.lit;
+    // Street lamps: a soft glow by day, bright after dusk.
+    this.materials.lanternGlass.emissiveIntensity = 0.55 + 3.2 * state.night;
+    return state;
   }
 
   leaveDaylight(world) {
     const saved = this.savedLighting; if (!saved) return;
     const key = world.lighting.keyLight;
     key.color.copy(saved.color); key.intensity = saved.intensity; world.renderer.toneMappingExposure = saved.exposure;
+    world.scene.environmentIntensity = saved.environment;
     if (saved.hemiLight) { saved.hemiLight.color.copy(saved.hemi.sky); saved.hemiLight.groundColor.copy(saved.hemi.ground); saved.hemiLight.intensity = saved.hemi.intensity; }
     this.savedLighting = null;
   }
@@ -456,15 +494,18 @@ export class SurfaceWorld extends THREE.Group {
       if(world.phase6World){world.phase6World.visible=false;world.phase6World.sun.visible=false;}
       const key=world.lighting.keyLight;
       if(!this.active) {
-        Object.assign(key.shadow.camera,{left:-90,right:90,top:90,bottom:-90,far:760});
+        Object.assign(key.shadow.camera,{left:-90,right:90,top:90,bottom:-90,far:LIGHT_DISTANCE+700});
         key.shadow.camera.updateProjectionMatrix();world.renderer.shadowMap.needsUpdate=true;
         this.enterDaylight(world);
       }
-      // Three times the old distance, same direction: tall towers stay inside the shadow camera.
-      key.position.set(player.camera.position.x+SUN.offset[0]*3,STREET_Y+SUN.offset[1]*3,player.camera.position.z+SUN.offset[2]*3);
+      // The key light follows the sun (or the moon at night), far enough out that tall towers stay inside the shadow camera.
+      const state=this.applyDaylight(world),dir=state.light;
+      key.position.set(player.camera.position.x+dir.x*LIGHT_DISTANCE,STREET_Y+dir.y*LIGHT_DISTANCE,player.camera.position.z+dir.z*LIGHT_DISTANCE);
       key.target.position.set(player.camera.position.x,STREET_Y,player.camera.position.z);
-      if(!this.shadowPosition || this.shadowPosition.distanceToSquared(player.camera.position)>4){
-        this.shadowPosition??=new THREE.Vector3();this.shadowPosition.copy(player.camera.position);world.renderer.shadowMap.needsUpdate=true;
+      // Shadows refresh after 2 m of walking, or once the sun has moved about a third of a degree.
+      if(!this.shadowPosition || this.shadowPosition.distanceToSquared(player.camera.position)>4 || this.shadowDirection.dot(dir)<0.99998){
+        this.shadowPosition??=new THREE.Vector3();this.shadowPosition.copy(player.camera.position);
+        (this.shadowDirection??=new THREE.Vector3()).copy(dir);world.renderer.shadowMap.needsUpdate=true;
       }
       world.lighting.usePlatform(this.entrance.name,player.camera.position);
     } else if(this.active) {

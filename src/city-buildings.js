@@ -4,6 +4,7 @@ import { batchStaticGeometry } from './optimize.js';
 import { architecturalMaterials } from './phase6-stations.js';
 import { STREET_Y } from './city-layout.js';
 import * as T from './city-textures.js';
+import { glowWindows, GLOW } from './night-glow.js';
 
 /** Bold, sun-faded stucco. Neighbouring houses never share a colour. */
 export const STUCCO = Object.freeze([
@@ -104,6 +105,8 @@ export function createCityMaterials(base) {
     materials[key].userData.detail = true;
   for (const sign of Object.values(materials.signs)) sign.userData.detail = true;
   // Tiny or flush details skip the shadow pass; they would add draw calls but no visible shadow.
+  // House windows light up warm at night, each window on or off by itself.
+  for (const key of ['window', 'windowBarred', 'windowFrench']) glowWindows(materials[key], GLOW.warm, 1.5);
   for (const key of ['window', 'windowBarred', 'windowFrench', 'lanternGlass', 'line', 'gutter', 'grassEdge', 'paint', 'paintYellow', 'paintTint', 'lens', 'tactile', 'grassPatch', 'grassPatch2', 'signalRed', 'signalAmber', 'signalGreen', 'signalGreenLit', 'signalRedDim', 'durrie', 'shelterGlass', 'iron', 'gold', 'galvanised', 'bin', 'hydrant', 'cafeWood', 'tablecloth']) materials[key].userData.noCast = true;
   return materials;
 }

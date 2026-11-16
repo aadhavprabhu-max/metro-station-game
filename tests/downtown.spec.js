@@ -101,6 +101,43 @@ test.describe('Downtown and Aurealis Square', () => {
     expect(calls.platform, JSON.stringify(calls)).toBeLessThanOrEqual(178);
   });
 
+  test('day-night cycle: 34 real minutes per day, vibrant sunrise and sunset, windows lit at night', async () => {
+    const r = await page.evaluate(() => {
+      const { world: w, player: p } = metro, sw = w.surfaceWorld, clock = w.dayClock, out = {};
+      p.camera.position.set(-16.2, 11.76, -362); p.transferSurface = null; p.syncSurfaceContext();
+      clock.set('12:00'); clock.advance(85); out.afterOneHour = clock.text();
+      clock.set('00:00'); clock.advance(34 * 60); out.afterOneDay = clock.text();
+      // The clock also runs on the street, where the railways are paused.
+      clock.set('12:00'); for (let i = 0; i < 120; i++) w.update(1 / 60); out.twoSeconds = +(clock.minutes - 720).toFixed(3);
+      const at = time => {
+        clock.set(time); w.update(0);
+        const s = sw.daylight, hex = c => c.getHexString();
+        return { night: +s.night.toFixed(2), horizon: hex(s.horizon), zenith: hex(s.zenith), key: +w.lighting.keyLight.intensity.toFixed(2),
+          env: +w.scene.environmentIntensity.toFixed(3), sunUp: s.sunUp, clock: document.querySelector('#gh-clock').textContent,
+          lamp: +sw.materials.lanternGlass.emissiveIntensity.toFixed(2), r: s.horizon.r, g: s.horizon.g, b: s.horizon.b };
+      };
+      for (const time of ['05:20', '06:20', '12:00', '18:15', '18:45', '19:20', '22:00']) out[time] = at(time);
+      p.startAt('U4', 'station-2'); w.update(0);
+      out.underground = { env: +w.scene.environmentIntensity.toFixed(3), exposure: w.renderer.toneMappingExposure };
+      p.camera.position.set(-16.2, 11.76, -214); p.transferSurface = null; p.syncSurfaceContext(); w.update(0);
+      return out;
+    });
+    expect(r.afterOneHour).toBe('13:00');
+    expect(r.afterOneDay).toBe('00:00');
+    expect(r.twoSeconds).toBeCloseTo(2 * 1440 / (34 * 60), 2);
+    const day = r['12:00'], night = r['22:00'];
+    expect(day).toMatchObject({ night: 0, sunUp: true, clock: '12:00' });
+    expect(night).toMatchObject({ night: 1, sunUp: false, clock: '22:00' });
+    expect(night.key).toBeLessThan(0.5); expect(night.env).toBeLessThan(0.1); expect(night.lamp).toBeGreaterThan(day.lamp + 2);
+    // Sunrise: purple, then orange. Sunset: orange, then pink, then purple.
+    expect(r['05:20'].b).toBeGreaterThan(r['05:20'].g); expect(r['05:20'].r).toBeGreaterThan(r['05:20'].g);
+    for (const t of ['06:20', '18:15']) { expect(r[t].r).toBeGreaterThan(r[t].g); expect(r[t].g).toBeGreaterThan(r[t].b); }
+    expect(r['18:45'].r).toBeGreaterThan(r['18:45'].b); expect(r['18:45'].b).toBeGreaterThan(r['18:45'].g);
+    expect(r['19:20'].b).toBeGreaterThan(r['19:20'].r); expect(r['19:20'].r).toBeGreaterThan(r['19:20'].g);
+    // Underground lighting is restored exactly.
+    expect(r.underground).toEqual({ env: 0.48, exposure: 0.88 });
+  });
+
   test('the teleport button still works from downtown', async () => {
     await page.evaluate(() => { const p = metro.player; p.camera.position.set(-16.2, 11.76, -470); p.transferSurface = null; p.syncSurfaceContext(); metro.world.update(0); });
     await page.locator('#oldtown-button').click(); await page.evaluate(() => metro.world.update(1 / 60));

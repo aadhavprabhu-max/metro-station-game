@@ -4,51 +4,66 @@ import { uvMesh, CLUMP } from './city-buildings.js';
 import { PropKit, addLamp, addBench, addCafe } from './city-props.js';
 import { STREET_Y, CITY_BOUNDS, OLD_TOWN, CITY_ROADS, CITY_CROSSINGS, TERRACE, SQUARE_SITE, SQUARE_ISLAND } from './city-layout.js';
 import { curtainWall, brickFacade, stoneFacade, shopfrontTexture, mastTexture } from './downtown-textures.js';
+import { glowFacade, GLOW } from './night-glow.js';
 
 /**
  * Downtown: non-enterable towers built as a few solid blocks with code-drawn facades,
- * merged by material per area. Palette follows the main reference render: royal-blue glass,
- * brown brick with stone trim, tan stone with gold piers; teal, grey and beige as accents.
+ * merged by material per area. Palette follows the downtown reference renders: cobalt glass
+ * with steel-blue floor bands, brown brick with muted stone trim, sand stone with ochre piers;
+ * teal-grey hip roofs, slate and beige as accents. At night the windows glow by building type:
+ * glass cool white, brick warm amber, stone golden.
  */
 export function downtownMaterials(m) {
   const std = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0, ...extra });
   const glass = map => std('#ffffff', { map, roughness: 0.46, metalness: 0.1 });
   const d = {
     glassBlue: glass(curtainWall({ seed: 1 })),
-    glassBlueLight: glass(curtainWall({ glass: ['#2759c4', '#3268d0', '#1f4aa8', '#3b7ad8'], mullion: '#16357a', spandrel: '#7aa6e2', seed: 2 })),
-    glassTeal: glass(curtainWall({ glass: ['#1f7f9c', '#2b93ad', '#16677f', '#3aa3b8'], mullion: '#0f3d4c', spandrel: '#155466', seed: 3 })),
-    glassSlate: glass(curtainWall({ glass: ['#4a5866', '#56677a', '#3c4855', '#61748a'], mullion: '#20282f', spandrel: '#2c353d', seed: 4 })),
-    glassDark: glass(curtainWall({ glass: ['#15203a', '#1b2a4a', '#101a30', '#22345a'], mullion: '#0a0f1c', spandrel: '#0e1626', seed: 5 })),
+    glassBlueLight: glass(curtainWall({ glass: ['#2f5a9e', '#3866ab', '#29508f', '#4272b4'], mullion: '#1a3360', spandrel: '#5878aa', seed: 2 })),
+    glassTeal: glass(curtainWall({ glass: ['#2a6f86', '#337d94', '#235f74', '#3d8aa0'], mullion: '#123a48', spandrel: '#4f8597', seed: 3 })),
+    glassSlate: glass(curtainWall({ glass: ['#4a5868', '#55657a', '#3e4a58', '#5f7088'], mullion: '#20282f', spandrel: '#6a7686', seed: 4 })),
+    glassDark: glass(curtainWall({ glass: ['#17233e', '#1d2c4c', '#121c34', '#24365c'], mullion: '#0a0f1c', spandrel: '#2a3a5a', seed: 5 })),
     brick: std('#ffffff', { map: brickFacade({ seed: 7 }), roughness: 0.92 }),
-    brickDark: std('#ffffff', { map: brickFacade({ brick: '#7a4730', pier: '#53301a', seed: 8 }), roughness: 0.92 }),
+    brickDark: std('#ffffff', { map: brickFacade({ brick: '#7a4a34', pier: '#5c3524', seed: 8 }), roughness: 0.92 }),
     tan: std('#ffffff', { map: stoneFacade({ seed: 11 }), roughness: 0.86 }),
-    beige: std('#ffffff', { map: stoneFacade({ wall: '#cdbfa6', pier: '#b3a68c', glass: '#3f5f8a', band: '#efe6d2', seed: 12 }), roughness: 0.86 }),
+    beige: std('#ffffff', { map: stoneFacade({ wall: '#cbbda2', pier: '#ad9f86', glass: '#3a4656', band: '#e6dcc6', seed: 12 }), roughness: 0.86 }),
     shop: std('#ffffff', { map: shopfrontTexture(), roughness: 0.45 }),
-    shopRed: std('#ffffff', { map: shopfrontTexture({ fascia: '#8e1c1c', seed: 4 }), roughness: 0.45 }),
-    stoneTrim: std('#e6d6b3', { roughness: 0.85 }), tanTrim: std('#c99a4a', { roughness: 0.7 }), brickTrim: std('#dccaa4', { roughness: 0.85 }),
-    roofTop: std('#9a9a96', { roughness: 0.95 }), plant: std('#7d8187', { roughness: 0.7, metalness: 0.3 }),
+    shopRed: std('#ffffff', { map: shopfrontTexture({ fascia: '#7e2a22', seed: 4 }), roughness: 0.45 }),
+    stoneTrim: std('#e2d2ae', { roughness: 0.85 }), tanTrim: std('#b58a48', { roughness: 0.7 }), brickTrim: std('#cdb38e', { roughness: 0.85 }),
+    roofTop: std('#8d918f', { roughness: 0.95 }), plant: std('#7d8187', { roughness: 0.7, metalness: 0.3 }),
+    roofTeal: std('#58798a', { roughness: 0.6, metalness: 0.2, flatShading: true }),
     mast: std('#ffffff', { map: mastTexture(), roughness: 0.5 }), antenna: std('#d9dde2', { roughness: 0.4, metalness: 0.5 }),
     blossom: ['#d42a8c', '#f29a2e', '#f5c42a', '#5bbf3a', '#e8508f'], crown: std('#ffffff', { flatShading: true, roughness: 0.8 }),
     kiosk: std('#c8202a', { roughness: 0.5 }), lawn: m.grass, railing: m.railing, ground: m.paving,
     hull: ['#f4f1ea', '#c8202a', '#1f56a8', '#2e8b57'].map(color => std(color, { roughness: 0.6 })),
   };
   for (const key of ['glassBlue', 'glassBlueLight', 'glassTeal', 'glassSlate', 'glassDark', 'brick', 'brickDark', 'tan', 'beige', 'shop', 'shopRed']) d[key].userData.facade = true;
+  // Night windows: one colour per building type; shopfronts stay lit a little longer.
+  for (const key of ['glassBlue', 'glassBlueLight', 'glassTeal', 'glassSlate', 'glassDark']) glowFacade(d[key], GLOW.cool, { strength: 0.95 });
+  for (const key of ['brick', 'brickDark']) glowFacade(d[key], GLOW.warm, { strength: 1.3 });
+  for (const key of ['tan', 'beige']) glowFacade(d[key], GLOW.gold, { strength: 1.2 });
+  for (const key of ['shop', 'shopRed']) glowFacade(d[key], GLOW.warm, { strength: 1.2, bias: 0.25 });
   // Trees fade out beyond ~300 m (fog hides them anyway); planters and kiosks are small clutter.
   d.crown.userData.detail = 300; m.terracotta.userData.detail = 300; m.timber.userData.detail = 300; d.kiosk.userData.detail = true; d.kiosk.userData.noCast = true;
   return d;
 }
 
-/** Box with UVs scaled to the facade module (map.userData.tileU/V metres), aligned to the box's bottom edge. */
+const hash = (...v) => { const x = Math.sin(v.reduce((s, n, i) => s + n * [12.9898, 78.233, 37.719][i % 3], 0)) * 43758.5453; return x - Math.floor(x); };
+
+/**
+ * Box with UVs scaled to the facade module (map.userData.tileU/V metres), aligned to the box's bottom edge.
+ * Each box is shifted by a whole number of modules (same look by day), so its lit windows at night differ.
+ */
 export function facadeBox(parent, mat, size, position, { shadow = true } = {}) {
   const [sx, sy, sz] = size, tu = mat.map?.userData.tileU ?? 4, tv = mat.map?.userData.tileV ?? 4;
   const geometry = new THREE.BoxGeometry(sx, sy, sz), uv = geometry.attributes.uv;
   const dims = [[sz, sy], [sz, sy], [sx, sz], [sx, sz], [sx, sy], [sx, sy]];
-  for (let face = 0; face < 6; face++) for (let k = 0; k < 4; k++) { const i = face * 4 + k; uv.setXY(i, uv.getX(i) * dims[face][0] / tu, uv.getY(i) * dims[face][1] / tv); }
+  const seed = hash(...position), ou = Math.floor(seed * 29), ov = Math.floor(hash(seed, sx, sz) * 17);
+  for (let face = 0; face < 6; face++) for (let k = 0; k < 4; k++) { const i = face * 4 + k; uv.setXY(i, uv.getX(i) * dims[face][0] / tu + ou + face * 3, uv.getY(i) * dims[face][1] / tv + ov); }
   const mesh = new THREE.Mesh(geometry, mat); mesh.position.set(...position);
   mesh.castShadow = shadow; mesh.receiveShadow = true; parent.add(mesh); return mesh;
 }
 
-const STYLES = [['glassBlue', 34], ['brick', 22], ['tan', 14], ['glassBlueLight', 12], ['brickDark', 6], ['beige', 6], ['glassTeal', 4], ['glassSlate', 2]];
+const STYLES = [['glassBlue', 28], ['brick', 26], ['tan', 16], ['glassBlueLight', 9], ['brickDark', 9], ['beige', 6], ['glassTeal', 4], ['glassSlate', 2]];
 function pickStyle(random, avoid) {
   const total = STYLES.reduce((s, [, w]) => s + w, 0);
   for (let tries = 0; tries < 6; tries++) {
@@ -103,11 +118,28 @@ export function buildTower(group, d, lot, random) {
     if (style === 'beige') for (let k = 1; k <= 2; k++) uvMesh(group, d.stoneTrim, [topW + 1.2, 0.3, topD + 1.2], [cx, y + top - k * 3.6, cz], { tile: 3 });
   } else {
     uvMesh(group, d.plant, [topW + 0.2, 1.1, topD + 0.2], [cx, y + top + 0.55, cz], { tile: 3 });
-    const pw = topW * 0.45, pd = topD * 0.4, ph = 3 + random() * 3;
-    uvMesh(group, d.roofTop, [pw, ph, pd], [cx + (random() - 0.5) * topW * 0.2, y + top + 0.5 + ph / 2, cz + (random() - 0.5) * topD * 0.2], { tile: 3 });
-    if (random() < 0.35) box(group, d.antenna, [0.25, 10 + random() * 14, 0.25], [cx + topW * 0.2, y + top + 6, cz - topD * 0.2]);
-    // Balcony railings around the top floors of some glass towers (as in the reference).
-    if (random() < 0.35 && top - pod > 20) uvMesh(group, d.railing, [topW + 0.8, 1.0, topD + 0.8], [cx, y + top - 3.6 + 0.5, cz], { tile: 2 });
+    const pw = topW * 0.45, pd = topD * 0.4, ph = 3 + random() * 3, ox = (random() - 0.5) * topW * 0.2, oz = (random() - 0.5) * topD * 0.2;
+    // Some glass towers wear a teal-grey hip roof (as in the reference); the rest a plant room.
+    // (Extra choices use a position hash so the shared random sequence, and so the layout, is unchanged.)
+    const hip = hash(cx, top, cz) < 0.4;
+    if (hip) {
+      const rise = Math.min(topW, topD) * (0.28 + 0.12 * hash(cz, cx));
+      const roof = new THREE.Mesh(HIP, d.roofTeal); roof.scale.set(topW + 0.2, rise, topD + 0.2); roof.position.set(cx, y + top + 1.1, cz);
+      roof.castShadow = roof.receiveShadow = true; group.add(roof);
+    } else uvMesh(group, d.roofTop, [pw, ph, pd], [cx + ox, y + top + 0.5 + ph / 2, cz + oz], { tile: 3 });
+    const mast = random() < 0.35, mastH = mast ? 10 + random() * 14 : 0;
+    if (mast) box(group, d.antenna, [0.25, mastH, 0.25], hip ? [cx, y + top + 1 + mastH / 2, cz] : [cx + topW * 0.2, y + top + 6, cz - topD * 0.2]);
+    // Balcony railings around the top floors of some glass towers: a slim rail and corner posts.
+    if (random() < 0.35 && top - pod > 20) {
+      const ry = y + top - 3.6 + 0.5, W = topW + 0.8, D = topD + 0.8;
+      for (const s of [-1, 1]) {
+        box(group, d.plant, [W, 0.07, 0.07], [cx, ry + 0.5, cz + s * D / 2], { shadow: false });
+        box(group, d.plant, [0.07, 0.07, D], [cx + s * W / 2, ry + 0.5, cz], { shadow: false });
+        box(group, d.plant, [W, 0.12, 0.25], [cx, ry - 0.5, cz + s * D / 2], { shadow: false });
+        box(group, d.plant, [0.25, 0.12, D], [cx + s * W / 2, ry - 0.5, cz], { shadow: false });
+        for (const t of [-1, 1]) box(group, d.plant, [0.07, 1.0, 0.07], [cx + s * W / 2, ry, cz + t * D / 2], { shadow: false });
+      }
+    }
   }
   return { minX: x0, maxX: x1, minZ: z0, maxZ: z1 };
 }
@@ -286,6 +318,8 @@ function addStreetProps(kit, m, d, area, colliders, random) {
 }
 
 const PIPE = new THREE.CylinderGeometry(1, 1, 1, 8);
+// Unit square pyramid (1 × 1 base, 1 high, base at y = 0) for hip roofs.
+const HIP = new THREE.ConeGeometry(Math.SQRT1_2, 1, 4, 1).rotateY(Math.PI / 4).translate(0, 0.5, 0);
 const PLANTER = new THREE.BoxGeometry(1, 1, 1);
 const CROWN = new THREE.IcosahedronGeometry(1, 0);
 export function addBlossomTree(kit, d, m, x, z, random, planter = true, colour = null) {

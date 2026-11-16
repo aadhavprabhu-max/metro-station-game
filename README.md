@@ -8,6 +8,8 @@ For a quick visit, open `/app.html?line=U4&station=station-2` with the developme
 
 All eight train services, door animations and transport clocks suspend while exploring the new surface district. They resume from their retained state on returning to the stairs. Existing U5 and U10 outdoor journeys continue operating normally when ridden; outdoor elevation alone does not trigger suspension. Keyboard, drag-look, sprint, touch movement and the glass menu/map remain available. Reset or Start returns to the selected railway start.
 
+**Day and night.** One shared clock drives the HUD, the timetable boards and the surface sky: a full 24-hour day lasts 34 real minutes (one game hour every 85 seconds), and it keeps running while the railways are paused on the street. Sunrise passes from purple through pink and orange to gold; sunset returns through gold, orange, pink and purple into a starry navy night with a moon. After dusk the towers light up by type (glass cool white, brick warm amber, sand stone golden), each building with its own pattern of lit windows that thins out after midnight; old-town windows, street lamps and shopfronts glow too. Append `&time=HH:MM` (for example `?line=U4&station=station-2&time=18:20`) to start at a chosen time.
+
 This is the first surface milestone. The other three U4 surface exits, the rest of the city and reconstruction of Central's existing platform halls are outside this phase. Buildings have closed interiors; no NPCs or new dependencies were introduced. See [PHASE1_REPORT.md](PHASE1_REPORT.md) for branch provenance, preservation checks, validation and performance results.
 
 ```sh

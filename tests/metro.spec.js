@@ -155,7 +155,8 @@ test('reset, focus loss, help, and reload leave controls in a clean state', asyn
   await page.reload();
   await page.waitForFunction(() => window.metro?.ready);
   expect((await page.evaluate(() => window.metro.snapshot())).position).toEqual(spawn.position);
-  await expect(page.locator('#station-clock')).toHaveText('14:32');
+  // The day starts at 14:32; one game minute passes every 1.4 real seconds (34 minutes per day).
+  await expect(page.locator('#station-clock')).toHaveText(/^14:3[2-9]$/);
 });
 
 test('departures and separate platform-side door leaves can be updated', async ({ page }) => {
