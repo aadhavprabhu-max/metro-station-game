@@ -1,13 +1,69 @@
 import * as THREE from 'three';
 import { box, label, seededRandom } from './geometry.js';
 import { uvMesh, roofGeometry, CLUMP } from './city-buildings.js';
-import { STREET_Y, CITY_ROADS, CITY_CROSSINGS } from './city-layout.js';
+import { STREET_Y, CITY_ROADS, CITY_CROSSINGS, PEDESTRIAN_ZONE } from './city-layout.js';
 
 const PIPE = new THREE.CylinderGeometry(1, 1, 1, 10);
 const PLANE = new THREE.PlaneGeometry(1, 1);
 const DECAL = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
 const BEAD = new THREE.IcosahedronGeometry(1, 0);
-const ASPHALT_TOP = STREET_Y + 0.016, PAINT_Y = STREET_Y + 0.0175;
+/** Rendered surface heights. Pavements stay flush with the carriageway; the kerb is a raised strip. */
+export const ASPHALT_TOP = STREET_Y + 0.016, PAINT_Y = STREET_Y + 0.0175, KERB_TOP = STREET_Y + 0.07, DROPPED_KERB_TOP = STREET_Y + 0.024;
+const KERB_WIDTH = 0.22, CORNER_SEGMENTS = 16;
+/**
+ * Kerb corner radius at a junction: up to 6 m, limited so the curve always ends before the dropped kerb of the
+ * zebra crossing beside the junction (crossings and the street layout keep their positions).
+ */
+export const cornerRadius = (a, b) => Math.min(6, Math.min(a.walk, b.walk) + 0.5);
+/** Which junction corners are rounded. `scope(A, B, sx, sz)`; all junctions by default. */
+export const KERB_CORNERS = { scope: () => true };
+/** World-aligned UV offset for a flat axis-aligned box top, so neighbouring pieces continue the same texture. */
+const worldUV = (x, z, sx, sz, tile) => [(x - sx / 2) / tile, -(z + sz / 2) / tile];
+
+/** Flat horizontal polygon (top face only, facing up) with world-space UVs (u = x / tile, v = −z / tile). */
+function flatPolygon(points, y, tile) {
+  const contour = points.map(([x, z]) => new THREE.Vector2(x, z));
+  const triangles = THREE.ShapeUtils.triangulateShape(contour, []), position = [], uv = [], normal = [];
+  for (const [i, j, k] of triangles) {
+    let [a, b, c] = [points[i], points[j], points[k]];
+    // Normal y = (bz − az)(cx − ax) − (bx − ax)(cz − az); flip to face up.
+    if ((b[1] - a[1]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[1] - a[1]) < 0) [b, c] = [c, b];
+    for (const [x, z] of [a, b, c]) { position.push(x, y, z); normal.push(0, 1, 0); uv.push(x / tile, -z / tile); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(position, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(normal, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  return g;
+}
+
+/** Curved kerb: a quarter-annulus band (top plus both faces) following the corner radius. */
+function kerbArc(k, map) {
+  const position = [], normal = [], uv = [], R = k.R, r = R - KERB_WIDTH, y0 = STREET_Y, y1 = KERB_TOP;
+  const tri = (a, b, c, n, ua, ub, uc) => {
+    const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    const cr = [ab[1] * ac[2] - ab[2] * ac[1], ab[2] * ac[0] - ab[0] * ac[2], ab[0] * ac[1] - ab[1] * ac[0]];
+    if (cr[0] * n[0] + cr[1] * n[1] + cr[2] * n[2] < 0) { [b, c] = [c, b]; [ub, uc] = [uc, ub]; }
+    for (const [p, q] of [[a, ua], [b, ub], [c, uc]]) { position.push(...p); normal.push(...n); uv.push(...q); }
+  };
+  const P = (rad, t, y) => { const [x, z] = map(R - rad * Math.sin(t), R - rad * Math.cos(t)); return [x, y, z]; };
+  for (let i = 0; i < CORNER_SEGMENTS; i++) {
+    const t0 = i / CORNER_SEGMENTS * Math.PI / 2, t1 = (i + 1) / CORNER_SEGMENTS * Math.PI / 2, s0 = R * t0 / 2, s1 = R * t1 / 2;
+    const out = t => { const [x, z] = map(-Math.sin(t), -Math.cos(t)), [ox, oz] = map(0, 0); return [x - ox, 0, z - oz]; };
+    // Top.
+    tri(P(R, t0, y1), P(R, t1, y1), P(r, t1, y1), [0, 1, 0], [s0, 0], [s1, 0], [s1, 0.11]);
+    tri(P(R, t0, y1), P(r, t1, y1), P(r, t0, y1), [0, 1, 0], [s0, 0], [s1, 0.11], [s0, 0.11]);
+    // Road face (away from the corner centre) and pavement face (towards it).
+    for (const [rad, sign] of [[R, 1], [r, -1]]) {
+      const n = out((t0 + t1) / 2).map(v => v * sign);
+      tri(P(rad, t0, y0), P(rad, t1, y0), P(rad, t1, y1), n, [s0, 0], [s1, 0], [s1, 0.035]);
+      tri(P(rad, t0, y0), P(rad, t1, y1), P(rad, t0, y1), n, [s0, 0], [s1, 0.035], [s0, 0.035]);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(position, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(normal, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  return g;
+}
+
+const dedupe = points => points.filter((p, i) => { const q = points[(i + points.length - 1) % points.length]; return Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-6; });
 
 /** Road frame helpers: `a` runs along the road, `b` across it (positive b = +z for x roads, +x for z roads). */
 const frame = road => road.axis === 'x'
@@ -30,7 +86,7 @@ function subtract(a0, a1, cuts) {
  * street level except kerbs (7 cm) and furniture, which always stands on a sidewalk.
  */
 export function buildRoads(root, kit, m, colliders) {
-  const random = seededRandom(1201), rects = [], zebras = [];
+  const random = seededRandom(1201), rects = [], zebras = [], corners = [], bollardRows = [];
   const roads = CITY_ROADS, mains = roads.filter(r => r.axis === 'x'), links = roads.filter(r => r.axis === 'z');
   const crosses = (r, o) => o.axis !== r.axis && span(r, o.c) && span(o, r.c);
   const endsOn = (r, o) => crosses(r, o) && (Math.abs(r.from - o.c) < 0.01 || Math.abs(r.to - o.c) < 0.01);
@@ -61,12 +117,41 @@ export function buildRoads(root, kit, m, colliders) {
   const onSidewalk = (x, z) => roads.some(r => { for (const side of [-1, 1]) {
     const along = r.axis === 'x' ? x : z, across = (r.axis === 'x' ? z : x) - r.c, w = r.width / 2;
     if (side * across > w + 0.25 && side * across < w + r.walk - 0.25 && hasWalk(r, side, along)) return true; } return false; });
+  // Rounded kerb corners wherever both pavements meet at a junction. u runs along A (away from B's carriageway),
+  // v along B (away from A's carriageway), from the old square kerb corner P.
+  for (const A of mains) for (const B of links) {
+    if (!crosses(A, B)) continue;
+    for (const sz of [-1, 1]) for (const sx of [-1, 1]) {
+      if (!span(B, A.c + sz * (A.width / 2 + 0.5)) || !span(A, B.c + sx * (B.width / 2 + 0.5))) continue;
+      if (!hasWalk(A, sz, B.c + sx * (B.width / 2 + 0.6)) || !hasWalk(B, sx, A.c + sz * (half(A) + 0.6))) continue;
+      if (!KERB_CORNERS.scope(A, B, sx, sz)) continue;
+      const R = cornerRadius(A, B);
+      corners.push({ A, B, sx, sz, R, U: Math.max(R, B.walk), V: Math.max(R, A.walk), px: B.c + sx * B.width / 2, pz: A.c + sz * A.width / 2 });
+    }
+  }
+  const ordered = (p, q) => [Math.min(p, q), Math.max(p, q)];
+  for (const k of corners) {
+    const LA = layout.get(k.A), LB = layout.get(k.B), Aw = k.A.width / 2, Bw = k.B.width / 2;
+    LA.kerbCuts[k.sz].push(ordered(k.B.c + k.sx * Bw, k.B.c + k.sx * (Bw + k.R)));
+    LA.cuts[k.sz].push(ordered(k.B.c + k.sx * Bw, k.B.c + k.sx * (Bw + k.U)));
+    LB.kerbCuts[k.sx].push(ordered(k.A.c + k.sz * Aw, k.A.c + k.sz * (Aw + k.R)));
+    LB.cuts[k.sx].push(ordered(k.A.c + k.sz * Aw, k.A.c + k.sz * (Aw + k.V)));
+    const map = (u, v) => [k.px + k.sx * u, k.pz + k.sz * v], arc = [];
+    for (let i = 0; i <= CORNER_SEGMENTS; i++) { const t = i / CORNER_SEGMENTS * Math.PI / 2; arc.push([k.R - k.R * Math.sin(t), k.R - k.R * Math.cos(t)]); }
+    const fillet = dedupe([[0, 0], ...arc]).map(p => map(...p));
+    const pavement = dedupe([...arc, [0, k.V], [k.B.walk, k.V], [k.B.walk, k.A.walk], [k.U, k.A.walk], [k.U, 0]]).map(p => map(...p));
+    const add = (geometry, material, shadow) => { const mesh = new THREE.Mesh(geometry, material); mesh.receiveShadow = true; mesh.castShadow = shadow; mesh.name = 'KerbCorner'; root.add(mesh); };
+    add(flatPolygon(fillet, ASPHALT_TOP, 8), m.asphalt, false);
+    add(flatPolygon(pavement, ASPHALT_TOP, 4), m.sidewalk, false);
+    add(kerbArc(k, map), m.kerb, true);
+    k.map = map;
+  }
   for (const road of roads) {
     const f = frame(road), L = layout.get(road), w = road.width / 2;
     const [c0, c1] = L.car;
     for (const [p0, p1] of subtract(c0, c1, L.carCuts)) {
       const [x, z] = f.at((p0 + p1) / 2, 0), [sx, sz] = f.size(p1 - p0, road.width);
-      uvMesh(root, m.asphalt, [sx, 0.006, sz], [x, ASPHALT_TOP - 0.003, z], { tile: 6, shadow: false }).receiveShadow = true;
+      uvMesh(root, m.asphalt, [sx, 0.006, sz], [x, ASPHALT_TOP - 0.003, z], { tile: 8, offset: worldUV(x, z, sx, sz, 8), shadow: false }).receiveShadow = true;
     }
     rects.push(road.axis === 'x' ? { minX: road.from, maxX: road.to, minZ: road.c - half(road), maxZ: road.c + half(road) }
       : { minX: road.c - half(road), maxX: road.c + half(road), minZ: road.from, maxZ: road.to });
@@ -83,16 +168,16 @@ export function buildRoads(root, kit, m, colliders) {
       const b = side * (w + road.walk / 2);
       for (const [a0, a1] of L.walk[side]) for (const [p0, p1] of subtract(a0, a1, L.cuts[side])) {
         const [x, z] = f.at((p0 + p1) / 2, b), [sx, sz] = f.size(p1 - p0, road.walk);
-        uvMesh(root, m.sidewalk, [sx, 0.006, sz], [x, ASPHALT_TOP - 0.003, z], { tile: 4, shadow: false }).receiveShadow = true;
+        uvMesh(root, m.sidewalk, [sx, 0.006, sz], [x, ASPHALT_TOP - 0.003, z], { tile: 4, offset: worldUV(x, z, sx, sz, 4), shadow: false }).receiveShadow = true;
       }
       for (const [k0, k1] of subtract(c0, c1, [...L.kerbCuts[side], ...drops])) {
         const [kx, kz] = f.at((k0 + k1) / 2, side * (w + 0.11)), [ksx, ksz] = f.size(k1 - k0, 0.22);
-        uvMesh(root, m.kerb, [ksx, 0.07, ksz], [kx, STREET_Y + 0.035, kz], { tile: 2 });
+        uvMesh(root, m.kerb, [ksx, KERB_TOP - STREET_Y, ksz], [kx, (STREET_Y + KERB_TOP) / 2, kz], { tile: 2 });
       }
       for (const c of crossings) {
         if (!hasWalk(road, side, c.a)) continue;
         const [kx, kz] = f.at(c.a, side * (w + 0.11)), [ksx, ksz] = f.size(3.2, 0.22);
-        uvMesh(root, m.kerb, [ksx, 0.024, ksz], [kx, STREET_Y + 0.012, kz], { tile: 2 });
+        uvMesh(root, m.kerb, [ksx, DROPPED_KERB_TOP - STREET_Y, ksz], [kx, (STREET_Y + DROPPED_KERB_TOP) / 2, kz], { tile: 2 });
         const [tx, tz] = f.at(c.a, side * (w + 0.62)), [tsx, tsz] = f.size(2.8, 0.8);
         kit.add(m.tactile, { size: [tsx, 0.004, tsz], position: [tx, ASPHALT_TOP + 0.002, tz] });
         for (const e of [-1, 1]) {
@@ -121,7 +206,11 @@ export function buildRoads(root, kit, m, colliders) {
         const [x, z] = f.at(c.a, b + 0.25), [sx, sz] = f.size(3, 0.5);
         kit.add(m.paint, { size: [sx, 0.003, sz], position: [x, PAINT_Y, z] });
       }
-      for (const s of c.s === 0 ? [-1, 1] : [c.s]) {
+      if (road.oneWay) {
+        // One-way: a single stop line across every lane, on the side traffic approaches from.
+        const s = c.s === 0 ? -road.oneWay : c.s;
+        if (c.s === 0 || road.oneWay === -c.s) { const [x, z] = f.at(c.a + s * 2.6, 0), [sx, sz] = f.size(0.3, road.width - 0.4); kit.add(m.paint, { size: [sx, 0.003, sz], position: [x, PAINT_Y, z] }); }
+      } else for (const s of c.s === 0 ? [-1, 1] : [c.s]) {
         const lane = road.axis === 'x' ? -s : s, [x, z] = f.at(c.a + s * 2.6, lane * w / 2), [sx, sz] = f.size(0.3, w - 0.2);
         kit.add(m.paint, { size: [sx, 0.003, sz], position: [x, PAINT_Y, z] });
       }
@@ -143,8 +232,10 @@ export function buildRoads(root, kit, m, colliders) {
     if (!crosses(A, B)) continue;
     let named = false;
     for (const sz of [-1, 1]) for (const sx of [-1, 1]) {
-      const px = B.c + sx * (B.width / 2 + 0.55), pz = A.c + sz * (A.width / 2 + 0.55);
-      if (!onSidewalk(px, pz)) continue;
+      // On a rounded corner the post stands on the pavement 0.55 m behind the curved kerb, on the corner diagonal.
+      const k = corners.find(c => c.A === A && c.B === B && c.sx === sx && c.sz === sz), d = k ? k.R - (k.R - 0.55) / Math.SQRT2 : 0.55;
+      const px = B.c + sx * (B.width / 2 + d), pz = A.c + sz * (A.width / 2 + d);
+      if (!k && !onSidewalk(px, pz)) continue;
       addSignal(kit, m, px, pz, sx, sz);
       colliders.push({ minX: px - 0.15, maxX: px + 0.15, minZ: pz - 0.15, maxZ: pz + 0.15 });
       if (!named && sx > 0) { addStreetName(root, kit, m, px, pz, A.name, B.name); named = true; }
@@ -162,12 +253,14 @@ export function buildRoads(root, kit, m, colliders) {
   }
   for (const { road, a } of zebras) {
     // One sign on each approach's right-hand side, facing the oncoming traffic.
+    // On a one-way road only the approach that carries traffic gets a sign.
+    const up = road.oneWay !== -1, down = road.oneWay !== 1;
     if (road.axis === 'x') {
-      if (hasWalk(road, 1, a - 2.4)) sign('crossing', a - 2.4, road.c + road.width / 2 + 0.5, -Math.PI / 2);
-      if (hasWalk(road, -1, a + 2.4)) sign('crossing', a + 2.4, road.c - road.width / 2 - 0.5, Math.PI / 2);
+      if (up && hasWalk(road, 1, a - 2.4)) sign('crossing', a - 2.4, road.c + road.width / 2 + 0.5, -Math.PI / 2);
+      if (down && hasWalk(road, -1, a + 2.4)) sign('crossing', a + 2.4, road.c - road.width / 2 - 0.5, Math.PI / 2);
     } else {
-      if (hasWalk(road, -1, a - 2.4)) sign('crossing', road.c - road.width / 2 - 0.5, a - 2.4, Math.PI);
-      if (hasWalk(road, 1, a + 2.4)) sign('crossing', road.c + road.width / 2 + 0.5, a + 2.4, 0);
+      if (up && hasWalk(road, -1, a - 2.4)) sign('crossing', road.c - road.width / 2 - 0.5, a - 2.4, Math.PI);
+      if (down && hasWalk(road, 1, a + 2.4)) sign('crossing', road.c + road.width / 2 + 0.5, a + 2.4, 0);
     }
   }
   const corso = mains[0];
@@ -178,7 +271,24 @@ export function buildRoads(root, kit, m, colliders) {
   }
   sign('noparking', -121, corso.c - corso.width / 2 - 0.55, Math.PI / 2);
   sign('noparking', 99, corso.c + corso.width / 2 + 0.55, -Math.PI / 2);
-  for (const road of links) if (mains.some(a => endsOn(road, a) && Math.abs(road.from - a.c) < 0.01)) sign('yield', road.c + road.width / 2 + 0.5, layout.get(road).car[0] + 7, 0);
+  for (const road of links) {
+    // Give way where a street meets a main road, for the direction(s) that actually approach it.
+    if (road.oneWay !== 1 && mains.some(a => endsOn(road, a) && Math.abs(road.from - a.c) < 0.01)) sign('yield', road.c + road.width / 2 + 0.5, layout.get(road).car[0] + 7, 0);
+    if (road.oneWay === 1 && mains.some(a => endsOn(road, a) && Math.abs(road.to - a.c) < 0.01)) sign('yield', road.c - road.width / 2 - 0.5, layout.get(road).car[1] - 7, Math.PI);
+  }
+  // Pedestrian zone: bollard rows across every road end that opens onto the old town.
+  for (const row of PEDESTRIAN_ZONE.bollardRows) {
+    const road = roads.find(r => r.name === row.road), f = frame(road), spacing = PEDESTRIAN_ZONE.bollardSpacing;
+    const a = row.end === 'to' ? road.to + 0.5 : road.from - 0.5, positions = [];
+    for (let b = spacing / 2; b <= half(road) - 0.25; b += spacing) for (const s of [-1, 1]) {
+      const [bx, bz] = f.at(a, s * b); positions.push([bx, bz]);
+      kit.add(m.iron, { size: [0.09, 0.85, 0.09], position: [bx, STREET_Y + 0.425, bz] }, PIPE);
+      kit.add(m.iron, { size: [0.12, 0.06, 0.12], position: [bx, STREET_Y + 0.88, bz] }, PIPE);
+      kit.add(m.gold, { size: [0.095, 0.05, 0.095], position: [bx, STREET_Y + 0.72, bz] }, PIPE);
+      colliders.push({ minX: bx - 0.12, maxX: bx + 0.12, minZ: bz - 0.12, maxZ: bz + 0.12, bollard: true });
+    }
+    bollardRows.push({ road: road.name, a, axis: road.axis, c: road.c, half: half(road), positions });
+  }
   addBusStop(root, kit, m, 18, corso, colliders, sign);
   for (const [x, z] of [[-60, -125.6], [10, -114.6], [-60, -80.8], [40, -91.4], [-99, -100], [89, -100]]) {
     kit.add(m.bin, { size: [0.28, 0.85, 0.28], position: [x, STREET_Y + 0.425, z] }, PIPE);
@@ -191,7 +301,37 @@ export function buildRoads(root, kit, m, colliders) {
     kit.add(m.hydrant, { size: [0.42, 0.08, 0.08], position: [x, STREET_Y + 0.5, z] });
     colliders.push({ minX: x - 0.25, maxX: x + 0.25, minZ: z - 0.25, maxZ: z + 0.25 });
   }
+  rects.corners = corners; rects.bollardRows = bollardRows;
   return rects;
+}
+
+/** Geometry checks for tests/road-geometry.mjs: rounded corners and the pedestrian-zone bollard rows. */
+export function roadSelfCheck(rects, probe) {
+  const failures = [], top = (x, z) => probe(x, z)[0];
+  const expect = (check, x, z, material, y, extra) => { const h = top(x, z);
+    if (!h || h.m !== material || Math.abs(h.y - y) > 0.0006) failures.push({ check, x: +x.toFixed(2), z: +z.toFixed(2), expected: `${material}@+${(y - STREET_Y).toFixed(3)}`, got: h ? `${h.m}@+${(h.y - STREET_Y).toFixed(4)}` : 'none', ...extra }); };
+  for (const k of rects.corners) {
+    const id = `${k.A.name} x ${k.B.name} (${k.sx > 0 ? '+' : '-'}x ${k.sz > 0 ? '+' : '-'}z)`;
+    for (let i = 1; i < 8; i++) {
+      const t = i / 8 * Math.PI / 2, c = (rad, f) => k.map(k.R - rad * Math.sin(t), k.R - rad * Math.cos(t));
+      expect('corner-fillet-asphalt', ...c(k.R + 0.3), 'asphalt', ASPHALT_TOP, { corner: id });
+      expect('corner-kerb', ...c(k.R - KERB_WIDTH / 2), 'kerb', KERB_TOP, { corner: id });
+      expect('corner-pavement', ...c(k.R - KERB_WIDTH - 0.3), 'sidewalk', ASPHALT_TOP, { corner: id });
+    }
+    // The straight kerbs meet the curve at both tangent points without a gap or a step.
+    expect('corner-tangent-kerb', ...k.map(k.R + 0.05, KERB_WIDTH / 2), 'kerb', KERB_TOP, { corner: id });
+    expect('corner-tangent-kerb', ...k.map(KERB_WIDTH / 2, k.R + 0.05), 'kerb', KERB_TOP, { corner: id });
+  }
+  for (const row of rects.bollardRows) {
+    const along = row.positions.map(([x, z]) => row.axis === 'x' ? z : x).sort((p, q) => p - q);
+    const gaps = along.slice(1).map((v, i) => v - along[i] - 0.24);
+    if (Math.min(...gaps) < 1.0) failures.push({ check: 'bollard-pedestrian-gap', road: row.road, minGap: Math.min(...gaps) });
+    if (Math.max(...gaps) > 1.9) failures.push({ check: 'bollard-vehicle-gap', road: row.road, maxGap: Math.max(...gaps) });
+    const edgeGap = Math.min(along[0] - (row.c - row.half), row.c + row.half - along.at(-1));
+    if (row.half - Math.max(Math.abs(along[0] - row.c), Math.abs(along.at(-1) - row.c)) > 1.9) failures.push({ check: 'bollard-row-coverage', road: row.road, edgeGap });
+    if (!along.some(v => Math.abs(v - row.c) < 1.2) || along.some(v => Math.abs(v - row.c) < 0.5)) failures.push({ check: 'bollard-centre-gap', road: row.road });
+  }
+  return failures;
 }
 
 function addSignal(kit, m, x, z, sx, sz) {

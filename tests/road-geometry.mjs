@@ -120,7 +120,11 @@ if (surface.vehicleGround) {
 }
 
 // Extra checks registered by later stages (kerb corners, pedestrian-zone bollards) live beside the road builder.
-if (surface.roadSurface?.selfCheck) for (const f of surface.roadSurface.selfCheck(probe)) fail(f.check, f);
+if (surface.roadSurface?.selfCheck) {
+  for (const f of surface.roadSurface.selfCheck(probe)) fail(f.check, f);
+  report.checks.roundedCorners = surface.roadSurface.corners.length;
+  report.checks.bollardRows = surface.roadSurface.bollardRows.map(r => ({ road: r.road, bollards: r.positions.length }));
+}
 
 const byCheck = {}; for (const f of failures) byCheck[f.check] = (byCheck[f.check] ?? 0) + 1;
 Object.assign(report, { failureCount: failures.length, failuresByCheck: byCheck, failures: failures.slice(0, 60) });

@@ -74,8 +74,9 @@ export const CITY_ROADS = Object.freeze([
   { name: 'CANAL QUAY EAST', axis: 'x', c: -346, from: OLD_TOWN.maxX, to: CITY_BOUNDS.maxX, width: 7, walk: 3 },
   { name: 'CENTRAL AVENUE', axis: 'z', c: -16.2, from: -430, to: -352, width: 12, walk: 4 },
   // Aurealis Square: two one-way roads with wide outer sidewalks either side of a pedestrian island.
-  { name: 'AUREALIS SQ WEST', axis: 'z', c: -29.2, from: -570, to: -430, width: 8, walk: 6 },
-  { name: 'AUREALIS SQ EAST', axis: 'z', c: -3.2, from: -570, to: -430, width: 8, walk: 6 },
+  // oneWay: direction of travel along the axis (+1 = towards +z). Right-hand traffic: northbound on the west road.
+  { name: 'AUREALIS SQ WEST', axis: 'z', c: -29.2, from: -570, to: -430, width: 8, walk: 6, oneWay: 1 },
+  { name: 'AUREALIS SQ EAST', axis: 'z', c: -3.2, from: -570, to: -430, width: 8, walk: 6, oneWay: -1 },
   { name: 'MERCATO AVENUE', axis: 'z', c: -104, from: CITY_BOUNDS.minZ, to: -352, width: 12, walk: 4 },
   { name: 'GARIBALDI AVENUE', axis: 'z', c: 84, from: CITY_BOUNDS.minZ, to: -352, width: 12, walk: 4 },
   { name: 'BROADWAY NORTH', axis: 'x', c: -430, from: CITY_BOUNDS.minX, to: CITY_BOUNDS.maxX, width: 12, walk: 4 },
@@ -97,6 +98,24 @@ export const WALL_RELICS = Object.freeze([
   { name: 'north-east', points: [[92, -50.3], [120.3, -50.3], [120.3, -76]], tower: [120.3, -50.3] },
   { name: 'south-east', points: [[120.3, -326], [120.3, -296]], tower: [120.3, -326], gate: { z: -320, width: 8 } },
 ]);
+/**
+ * The old town is a pedestrian zone. Bollard rows close every road end that opens onto it: the three avenues
+ * at the old-town footbridges (Central, Mercato, Garibaldi) and the two Market Street and two Canal Quay ends.
+ * Each row runs across the whole road corridor just beyond the carriageway, with 1.5 m centres and a gap on the
+ * road centre line, so pedestrians walk straight through while a car (2.05 m wide) cannot pass.
+ */
+export const PEDESTRIAN_ZONE = Object.freeze({
+  area: OLD_TOWN,
+  // Roads that keep carrying traffic through the old town (their corridors stay drivable).
+  throughRoads: Object.freeze(['VIA DEL CORSO', 'VIA DEI LIMONI', 'VICOLO DEL MERCATO', 'VIA GARIBALDI']),
+  bollardRows: Object.freeze([
+    { road: 'CENTRAL AVENUE', end: 'to' }, { road: 'MERCATO AVENUE', end: 'to' }, { road: 'GARIBALDI AVENUE', end: 'to' },
+    { road: 'MARKET STREET WEST', end: 'to' }, { road: 'MARKET STREET EAST', end: 'from' },
+    { road: 'CANAL QUAY WEST', end: 'to' }, { road: 'CANAL QUAY EAST', end: 'from' },
+  ]),
+  bollardSpacing: 1.5,
+});
+
 /** Mid-block zebra crossings where pedestrian lanes meet a road: [road name, position along it]. */
 export const CITY_CROSSINGS = Object.freeze([['VIA DEL CORSO', -16.2], ['VIA DEI LIMONI', -16.2], ['VIA DEL CORSO', 30.5]]);
 /** Festive canopies (shamianas): centre, size along x and z. */

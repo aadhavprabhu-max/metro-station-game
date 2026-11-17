@@ -78,3 +78,26 @@ Soak (300 frames, update + render at 20 m/s): JS heap after forced GC 75.43 → 
 It found no holes, no coplanar surfaces, correct bridge decks, and the expected cross-section (asphalt +16 mm, kerb +70 mm, pavement +16 mm) on all four sampled roads.
 
 Screenshots: `stage0/screens/` (baseline poses) and `captures/before/` (fixed viewpoints for the later comparisons, including the kiosk standing in East Avenue's lane).
+
+## Stage 1 — road fixes, rounded kerbs, pedestrian zone, road surface
+
+Pavement elevations, the street layout, walking floors and building placements are unchanged.
+
+### Changes
+| Change | Where | Evidence |
+|---|---|---|
+| Kiosks moved onto the pavement, 1 m behind the kerb, with consistent offsets (three stood in East / Garibaldi Avenue traffic lanes) | `src/downtown-buildings.js` | `captures/before/kiosk-east-avenue.jpg` → `captures/stage1/kiosk-east-avenue.jpg` |
+| Terrace Park path no longer runs 34 m down Terrace Street; only its link from the terrace stair to the street remains | `src/downtown-buildings.js` | `terrace-street.jpg` before/after |
+| **Rounded kerb corners at all 130 junction corners** (36 junctions). Radius = min(6 m, narrower pavement + 0.5 m): 4.5 m on avenues, 3.5 m on the 7 m old-town streets. The limit keeps every curve clear of the zebra crossing's dropped kerb, so crossings, centrelines and widths are unchanged. Each corner has a curved kerb (same height and material), an asphalt fillet and a reshaped pavement. Signal posts move 0.55 m behind the curved kerb on the corner diagonal. | `src/city-roads.js` | `stage1/trial-one-junction/` (trial), `captures/stage1/junction-*.jpg` |
+| **Old town pedestrian zone:** bollard rows (existing bollard style, 1.5 m centres, a gap on each centreline) close the three avenue entrances at the old-town footbridges (Central, Mercato, Garibaldi). The other four road ends that open onto the zone (Market Street W/E, Canal Quay W/E) are closed the same way, because otherwise a car could drive round the avenue rows. Pedestrians walk straight through; a 2.05 m car cannot pass. | `src/city-layout.js` (`PEDESTRIAN_ZONE`), `src/city-roads.js` | `bollards-*.jpg` |
+| One-way Aurealis Square roads: one stop line across both lanes on the approach side, crossing and give-way signs only for the direction that has traffic | `src/city-layout.js` (`oneWay`), `src/city-roads.js` | `aurealis-oneway.jpg` |
+| Asphalt re-authored: finer, low-contrast aggregate without glitter, an 8 m repeat, a roughness map of 0.84–0.97 (never glossy) and world-space tone variation so the repeat is not visible. Road paint gets world-space wear on its top faces. Asphalt and pavement pieces now use world-aligned UVs, so neighbouring pieces continue the same texture. | `src/city-textures.js`, `src/surface-variation.js` (new), `src/city-buildings.js` | `asphalt-*.jpg` |
+| Rendered surface heights exported (`ASPHALT_TOP`, `KERB_TOP`, …) and a geometry self-check for corners and bollard rows | `src/city-roads.js`, `src/surface-world.js` | below |
+
+### Trial on one junction first
+The corner design was first enabled only at East Avenue × Broadway North. On that build, `tests/road-geometry.mjs` passed with 0 failures, with the 4 corners geometrically checked (`stage1/road-geometry-trial-one-junction.json`), and screenshots were taken from the same viewpoints as before (`stage1/trial-one-junction/`). The trial also showed a defect in the new asphalt texture: a patch-repair rectangle repeated every 8 m. It was removed before the design was applied to all junctions.
+
+### Tests (all executed)
+- `node tests/road-geometry.mjs`: **0 failures** (was 23). 10,554 carriageway samples, no holes, no foreign surfaces, no coplanar surfaces, **0 obstacles in carriageways**, unchanged cross-sections (asphalt +16 mm, kerb +70 mm, pavement +16 mm). All **130 rounded corners** are checked at 7 points each for asphalt fillet, curved kerb and pavement, plus both tangent joints. All **7 bollard rows** are checked for pedestrian gap ≥ 1.0 m, vehicle gap < 1.9 m, coverage and centre gap. Report: `stage1/road-geometry-after.json`.
+- `node tests/surface-geometry.mjs` (existing pedestrian geometry): 0 failures, 4,192 route samples.
+- `npx playwright test tests/surface.spec.js tests/downtown.spec.js tests/rendering.spec.js`: **16 passed**, including the walk from Central square over the canal into Aurealis Square (through the new bollard row), the terrace, teleport and touch controls.

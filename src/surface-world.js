@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { box, cylinder, label, seededRandom } from './geometry.js';
 import { batchStaticGeometry } from './optimize.js';
 import { STREET_Y, CITY_BOUNDS, OLD_TOWN, SQUARE_SITE, CITY_PLOTS, CITY_ROUTES, CITY_SQUARES, CITY_SHAMIANAS, CITY_ARRIVAL, CENTRAL_EXIT, CITY_ROADS, ROAD_BRIDGES, TERRACE, WALL_RELICS, rectContains } from './city-layout.js';
-import { buildRoads, addShamiana, addGrassPatches } from './city-roads.js';
+import { buildRoads, addShamiana, addGrassPatches, roadSelfCheck } from './city-roads.js';
 import { createCityMaterials, buildHouse, buildClockTower, batchCityInstances, uvMesh } from './city-buildings.js';
 import { PropKit, addPalm, addCitrus, addCafe, addPlanter, addBunting, addWashing, addLamp, addBench, addPot } from './city-props.js';
 import { SurfaceEntrance } from './surface-entrance.js';
@@ -175,6 +175,8 @@ export class SurfaceWorld extends THREE.Group {
     this.addStringLines(kit);
     // Asphalt roads with sidewalks, markings and street furniture; festive canopies; lawn patches.
     const roadRects = buildRoads(root, kit, m, this.colliders);
+    // Rounded corners and pedestrian-zone bollard rows, exposed for tests/road-geometry.mjs and the vehicle.
+    this.roadSurface = { corners: roadRects.corners, bollardRows: roadRects.bollardRows, selfCheck: probe => roadSelfCheck(roadRects, probe) };
     for (const [i, spec] of CITY_SHAMIANAS.entries()) addShamiana(root, kit, m, spec, this.colliders, 700 + i);
     this.addGrass(kit, roadRects);
     kit.flush(root);

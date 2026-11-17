@@ -1,0 +1,70 @@
+{
+  "checks": {
+    "carriagewaySamples": 10554,
+    "obstaclesInCarriageways": 0,
+    "crossSections": [
+      {
+        "road": "BROADWAY NORTH",
+        "at": 140,
+        "asphalt": "asphalt@+0.016",
+        "kerb": "kerb@+0.070",
+        "sidewalk": "sidewalk@+0.016"
+      },
+      {
+        "road": "VIA DEL CORSO",
+        "at": -60,
+        "asphalt": "asphalt@+0.016",
+        "kerb": "kerb@+0.070",
+        "sidewalk": "sidewalk@+0.016"
+      },
+      {
+        "road": "MERCATO AVENUE",
+        "at": -600,
+        "asphalt": "asphalt@+0.016",
+        "kerb": "kerb@+0.070",
+        "sidewalk": "sidewalk@+0.016"
+      },
+      {
+        "road": "MIDTOWN STREET",
+        "at": 140,
+        "asphalt": "asphalt@+0.016",
+        "kerb": "kerb@+0.070",
+        "sidewalk": "sidewalk@+0.016"
+      }
+    ],
+    "roundedCorners": 130,
+    "bollardRows": [
+      {
+        "road": "CENTRAL AVENUE",
+        "bollards": 14
+      },
+      {
+        "road": "MERCATO AVENUE",
+        "bollards": 14
+      },
+      {
+        "road": "GARIBALDI AVENUE",
+        "bollards": 14
+      },
+      {
+        "road": "MARKET STREET WEST",
+        "bollards": 10
+      },
+      {
+        "road": "MARKET STREET EAST",
+        "bollards": 10
+      },
+      {
+        "road": "CANAL QUAY WEST",
+        "bollards": 8
+      },
+      {
+        "road": "CANAL QUAY EAST",
+        "bollards": 8
+      }
+    ]
+  },
+  "failureCount": 0,
+  "failuresByCheck": {},
+  "failures": []
+}
