@@ -128,16 +128,26 @@ test.describe('Driving the GT3 R', () => {
     expect(r.collisions).toBeGreaterThan(0); expect(inside).toBe(false); expect(r.finite).toBe(true);
   });
 
-  test('the on-screen movement pad drives the car (touch)', async () => {
-    test.setTimeout(240000);
-    expect(await place(-66, -118, Math.PI / 2)).toBe(true);
-    // The pad's buttons add the same key codes as the keyboard; press "up" the way a touch would.
-    const r = await page.evaluate(() => { const up = document.querySelector('[data-move="ArrowUp"]'), init = { bubbles: true, pointerId: 7, pointerType: 'touch', isPrimary: true };
-      up.dispatchEvent(new PointerEvent('pointerdown', init)); for (let i = 0; i < 120; i++) metro.world.update(1 / 60);
-      up.dispatchEvent(new PointerEvent('pointerup', init)); const v = metro.vehicle.physics.forwardSpeed * 3.6; for (let i = 0; i < 30; i++) metro.world.update(1 / 60);
-      return { speedWhilePressed: v, throttleAfterRelease: metro.vehicle.physics.pedals.throttle }; });
-    expect(r.speedWhilePressed, JSON.stringify(r)).toBeGreaterThan(30);
-    expect(r.throttleAfterRelease).toBe(0);
+  test('the on-screen movement pad drives the car (touch)', async ({ browser }) => {
+    test.setTimeout(300000);
+    // Genuine touch input on a touch device (as in surface.spec.js): synthetic PointerEvents cannot be captured.
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    const touch = await context.newPage(); const touchErrors = [];
+    touch.on('pageerror', e => touchErrors.push(e.message)); touch.on('console', m => { if (m.type() === 'error') touchErrors.push(m.text()); });
+    await touch.goto(`${url}?line=U4&station=station-2`, { timeout: 180000 });
+    await touch.waitForFunction(() => metro?.ready, undefined, { timeout: 180000 });
+    expect(await touch.evaluate(async () => { const { world: w, player: p, vehicle: v } = metro; w.renderer.setAnimationLoop(null); p.teleportToSurface(); w.update(1 / 60);
+      v.parked = { x: -66, z: -118, yaw: Math.PI / 2 }; await v.load(); v.placeParked(); await v.enter(); w.update(1 / 60); w.renderer.render(w.scene, w.camera); return p.driving; })).toBe(true);
+    await expect(touch.locator('#touch-controls')).toBeVisible();
+    const button = await touch.locator('[data-move="ArrowUp"]').boundingBox(), session = await context.newCDPSession(touch);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: button.x + button.width / 2, y: button.y + button.height / 2, id: 1 }] });
+    const pressed = await touch.evaluate(() => { for (let i = 0; i < 120; i++) metro.world.update(1 / 60); return { speedKmh: metro.vehicle.physics.forwardSpeed * 3.6, throttle: metro.vehicle.physics.pedals.throttle }; });
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    const released = await touch.evaluate(() => { for (let i = 0; i < 30; i++) metro.world.update(1 / 60); return { throttle: metro.vehicle.physics.pedals.throttle, keys: metro.player.keys.size }; });
+    await context.close();
+    expect(pressed.speedKmh, JSON.stringify({ pressed, released })).toBeGreaterThan(30);
+    expect(released).toEqual({ throttle: 0, keys: 0 });
+    expect(touchErrors).toEqual([]);
   });
 
   test('F leaves the car beside it; walking, T and the camera work as before', async () => {
