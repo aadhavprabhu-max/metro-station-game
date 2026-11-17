@@ -1,0 +1,245 @@
+{
+  "checks": {
+    "carriagewaySamples": 10554,
+    "obstaclesInCarriageways": 6,
+    "crossSections": [
+      {
+        "road": "BROADWAY NORTH",
+        "at": 140,
+        "asphalt": "asphalt@+0.016",
+        "kerb": "kerb@+0.070",
+        "sidewalk": "sidewalk@+0.016"
+      },
+      {
+        "road": "VIA DEL CORSO",
+        "at": -60,
+        "asphalt": "asphalt@+0.016",
+        "kerb": "kerb@+0.070",
+        "sidewalk": "sidewalk@+0.016"
+      },
+      {
+        "road": "MERCATO AVENUE",
+        "at": -600,
+        "asphalt": "asphalt@+0.016",
+        "kerb": "kerb@+0.070",
+        "sidewalk": "sidewalk@+0.016"
+      },
+      {
+        "road": "MIDTOWN STREET",
+        "at": 140,
+        "asphalt": "asphalt@+0.016",
+        "kerb": "kerb@+0.070",
+        "sidewalk": "sidewalk@+0.016"
+      }
+    ]
+  },
+  "failureCount": 23,
+  "failuresByCheck": {
+    "foreign-surface-on-carriageway": 17,
+    "obstacle-in-carriageway": 6
+  },
+  "failures": [
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": -13,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": -11,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": -9,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": -7,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": -5,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": -3,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": -1,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": 1,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": 3,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": 5,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": 7,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": 9,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": 11,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": 13,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": 15,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": 17,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "foreign-surface-on-carriageway",
+      "road": "TERRACE STREET",
+      "x": -16.2,
+      "z": 19,
+      "surface": "paving",
+      "aboveAsphalt": 0.044
+    },
+    {
+      "check": "obstacle-in-carriageway",
+      "road": "EAST AVENUE",
+      "collider": [
+        195.9,
+        59.4,
+        197.3,
+        60.6
+      ],
+      "intrusion": 1.2
+    },
+    {
+      "check": "obstacle-in-carriageway",
+      "road": "WEST AVENUE",
+      "collider": [
+        -237.3,
+        -140.6,
+        -235.9,
+        -139.4
+      ],
+      "intrusion": 0.1
+    },
+    {
+      "check": "obstacle-in-carriageway",
+      "road": "EAST AVENUE",
+      "collider": [
+        195.9,
+        -150.6,
+        197.3,
+        -149.4
+      ],
+      "intrusion": 1.2
+    },
+    {
+      "check": "obstacle-in-carriageway",
+      "road": "WEST AVENUE",
+      "collider": [
+        -237.3,
+        -470.6,
+        -235.9,
+        -469.4
+      ],
+      "intrusion": 0.1
+    },
+    {
+      "check": "obstacle-in-carriageway",
+      "road": "MERCATO AVENUE",
+      "collider": [
+        -111.3,
+        -380.6,
+        -109.9,
+        -379.4
+      ],
+      "intrusion": 0.1
+    },
+    {
+      "check": "obstacle-in-carriageway",
+      "road": "GARIBALDI AVENUE",
+      "collider": [
+        78.7,
+        -470.6,
+        80.1,
+        -469.4
+      ],
+      "intrusion": 1.2
+    }
+  ]
+}
