@@ -10,6 +10,7 @@ import { downtownMaterials, queueDowntown } from './downtown-buildings.js';
 import { buildAurealisSquare } from './downtown-square.js';
 import { dayClock, daylightState } from './day-cycle.js';
 import { NIGHT_UNIFORMS } from './night-glow.js';
+import { fadeShadowEdges, materialsOutside, shadowEdgeFadeOrigin } from './shadow-edge-fade.js';
 
 // The sky, sun, moon, fog and window light follow the shared day clock (34 real minutes per day).
 const SKY = Object.freeze({ horizon: '#a9d8f0', haze: '#bfe0f0' });
@@ -31,6 +32,12 @@ export function snappedShadowCentre(position, direction, out = new THREE.Vector3
   SP.set(position.x, STREET_Y, position.z);
   const x = Math.round(SP.dot(SX) / grid) * grid, y = Math.round(SP.dot(SY) / grid) * grid, z = Math.round(SP.dot(SZ) / SHADOW_AXIS_STEP) * SHADOW_AXIS_STEP;
   return out.copy(SX).multiplyScalar(x).addScaledVector(SY, y).addScaledVector(SZ, z);
+}
+/** A world position in shadow-map coordinates (0–1) for a map centred at `centre` along `direction` (same camera basis as above). */
+export function shadowMapCoord(position, centre, direction, out) {
+  SZ.copy(direction).normalize(); SX.crossVectors(Math.abs(SZ.y) > 0.999 ? SX.set(0, 0, 1) : UP, SZ).normalize(); SY.crossVectors(SZ, SX);
+  SP.subVectors(position, centre);
+  return out.set(0.5 + SP.dot(SX) / (2 * SHADOW_HALF), 0.5 + SP.dot(SY) / (2 * SHADOW_HALF));
 }
 
 function createSkyDome() {
@@ -212,6 +219,7 @@ export class SurfaceWorld extends THREE.Group {
     this.userData.combinedInstanceGroups=batchCityInstances(root, 400);
     this.collectDetail(root);
     this.indexColliders();
+    this.fadeShadowEdges(root);
     this.built=true;
     this.downtown = downtownMaterials(m);
     queueDowntown(this, this.downtown);
@@ -226,13 +234,21 @@ export class SurfaceWorld extends THREE.Group {
     const start = performance.now();
     while (this.jobs.length && performance.now() - start < budget) {
       const group = this.jobs.shift()();
-      if (group) { batchStaticGeometry(group); batchCityInstances(group); this.collectDetail(group); }
+      if (group) { batchStaticGeometry(group); batchCityInstances(group); this.collectDetail(group); this.fadeShadowEdges(group); }
     }
     if (!this.jobs.length) {
       // One final merge of all static geometry by material: far fewer draw calls for a city this size.
       batchStaticGeometry(this.district);
       this.indexColliders(); this.downtownReady = true;
     }
+  }
+
+  /** Soft shadow edges for street-only materials (see shadow-edge-fade.js); shared underground materials are left as they are. */
+  fadeShadowEdges(root) {
+    this.sharedMaterials ??= this.parent ? materialsOutside(this.parent, this) : new Set();
+    const r = fadeShadowEdges(root, this.sharedMaterials);
+    this.shadowFadeStats = { patched: (this.shadowFadeStats?.patched ?? 0) + r.patched, skippedShared: (this.shadowFadeStats?.skippedShared ?? 0) + r.skippedShared };
+    return r;
   }
 
   /** Finish everything now (tests and tools). */
@@ -530,6 +546,8 @@ export class SurfaceWorld extends THREE.Group {
       if(refresh || !this.shadowPosition || !this.shadowPosition.equals(centre)){
         (this.shadowPosition??=new THREE.Vector3()).copy(centre);world.renderer.shadowMap.needsUpdate=true;
       }
+      // Distant shadows fade with distance from the viewer, not from the map's (stepping) centre: see shadow-edge-fade.js.
+      shadowMapCoord(player.camera.position,centre,held,shadowEdgeFadeOrigin.value);
       world.lighting.usePlatform(this.entrance.name,player.camera.position);
     } else if(this.active) {
       this.leaveDaylight(world);

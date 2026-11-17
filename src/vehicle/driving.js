@@ -61,7 +61,7 @@ export class DrivingController {
         this.ground = new VehicleGround(surface);
         this.physics = new VehiclePhysics(GT3R, this.ground);
         this.model = new VehicleModel(gltf.scene, GT3R);
-        surface.add(this.model); this.model.visible = false;
+        surface.add(this.model); this.model.visible = false; surface.fadeShadowEdges(this.model);
         this.shadow = new CarShadow(await buildShadowProxy(this.model)); surface.add(this.shadow); this.shadow.visible = false;
         this.placeParked();
         this.state = 'idle'; return true;
