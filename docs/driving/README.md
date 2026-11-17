@@ -163,3 +163,31 @@ Two first-run failures were real physics bugs and were fixed: the collision cont
 - Facade impact: stopped outside the building.
 - Rounded junction Broadway North → East Avenue at 36 km/h: ends in the southbound lane, no contact, 0 mm error.
 - `tests/road-geometry.mjs` check 7: drivable and rendered heights agree at **222,915** points (worst error 0 mm).
+
+## Stage 4 — driving in the game
+
+| File | Role |
+|---|---|
+| `src/vehicle/vehicle-model.js` | Rig for the model. Each wheel gets a knuckle (hub centre, steering, suspension travel) and a spin pivot built from the measured tyre centre; the model's own nodes all pivot at the car origin. Discs spin, uprights and calipers steer. The steering wheel turns about its column axis, found from its geometry (principal axes; it points at the driver and tilts 18° up) at 12:1. Rims swap to motion blur above 28 rad/s; the brake lights brighten. Static parts are merged by material (221 → 156 draw calls). The cockpit LOD rule from Stage 2 applies. |
+| `src/vehicle/driving.js` | Lazy loading on first use (≈1.1 s here), Drive / Leave car button (F), HUD (speed, gear, rev bar, controls). Keyboard (W/S, A/D, hold S at a standstill to reverse) and the existing on-screen movement pad. Chase camera at a fixed 5.9 m that keeps its framing at any speed; drag-look orbits and re-centres. Cockpit camera (C), manual gears (G, then Q/E), recovery (Backspace). The parked car is not simulated when settled and is hidden beyond 250 m. In the standalone single-file preview it shows: "Driving needs the hosted version (development server or GitHub Pages)". |
+| `src/player.js`, `src/main.js`, `src/surface.css` | `player.driving` hands the camera and keys to the car and restores them; R, T and Back to U4 leave the car first. The street context, train suspension and HUD stay as they were. |
+
+Keyboard steering is rate-limited, eases back to centre, and narrows its range with speed to about what the tyres can use, as a driver's hands would. The physics itself has no steering or grip assistance.
+
+Bugs found and fixed during integration:
+- The parked car, holding its brake, triggered the driver's hold-to-reverse and backed away. Parked cars now never select reverse.
+- The chase camera's position lag grew to 8 m at 78 km/h. Only its heading is smoothed now, so the distance stays at 5.9 m.
+
+Tests (all executed):
+- `npx playwright test tests/driving.spec.js`, 8 passed, using real keyboard input:
+  - Drive button and camera hand-over, with hub pivots verified at the tyre centres
+  - Standing start with 4 tyres within 1 cm of the road
+  - Brake to a stop, then reverse
+  - Left turn round the rounded corner into East Avenue with no contact
+  - West Avenue bridge
+  - Bollards stop the car while pedestrians pass between them
+  - Facade impact
+  - F to leave, then walking, T and the camera behave as before
+- Regression: `surface`, `downtown`, `rendering`, `teleport`, `glass-ui`, `metro` and `driving` specs: **53 passed**.
+
+Screenshots: `stage4/`. In this stage the car still casts into the street's shared shadow map; Stage 5 changes that.

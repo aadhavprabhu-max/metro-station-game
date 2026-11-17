@@ -8,6 +8,7 @@ import { AnnouncementController } from './announcements.js';
 import { mountU10Timetable } from './u10-timetable.js';
 import { Color } from 'three';
 import { dayClock } from './day-cycle.js';
+import { DrivingController } from './vehicle/driving.js';
 
 const interiorBackground = new Color('#64736b'), exteriorBackground = new Color('#a9ccdf');
 const interiorFog = new Color('#6c7a6f'), exteriorFog = new Color('#b7cfdb');
@@ -28,6 +29,9 @@ try {
   const liftButton = document.createElement('button'); liftButton.className = 'lift-action'; liftButton.hidden = true;
   document.querySelector('#app').append(liftButton); let activeLift = null;
   liftButton.addEventListener('click', () => activeLift?.activate(player));
+  // Driving on the street (the GT3 R loads on first use).
+  const driving = world.surfaceWorld ? new DrivingController(world, player, ui) : null;
+  world.vehicle = driving;
   const visibility = new WorldVisibility(world);
   world.visibility = visibility;
   let shadowTimer = 0;
@@ -46,6 +50,7 @@ try {
     const transportDelta = world.surfaceSimulation.paused ? 0 : delta;
     world.surfaceSimulation.advance(world, transportDelta);
     player.update(delta);
+    driving?.update(delta);
     world.surfaceSimulation.synchronize(player);
     if (!world.surfaceSimulation.paused) {
       announcer.update(transportDelta);
@@ -136,7 +141,7 @@ try {
   });
   // Deliberate inspection API for smoke tests and future station systems, with no per-frame DOM work.
   const runtime = {
-    world, player, ready: false, status: 'initializing',
+    world, player, vehicle: driving, ready: false, status: 'initializing',
     get frames() { return frames; },
     snapshot() {
       return {
@@ -150,6 +155,7 @@ try {
         stationCount: world.network.nodes.size, trainCount: world.trains.length,
         riding: Boolean(player.ridingCar), currentStation: player.station.displayName,
         surfaceExploring: player.surfaceExploring, trainsSuspended: world.surfaceSimulation.paused,
+        driving: Boolean(player.driving), vehicle: player.driving ? driving.physics.telemetry() : null,
         departures: world.station.departures.departures.map(item => ({ ...item })),
         drawCalls: world.renderer.info.render.calls,
         triangles: world.renderer.info.render.triangles,

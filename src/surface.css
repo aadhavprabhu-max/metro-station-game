@@ -11,3 +11,14 @@
 .top-actions .oldtown-button span{margin-right:5px}
 @media(max-width:560px){.gh .oldtown-button{top:66px;right:14px;height:40px;font-size:14px;padding:0 14px 0 12px}}
 @media(max-height:520px){.gh .oldtown-button{top:64px}}
+/* Driving: the Drive / Leave car pill under the old-town pill, and a compact speed panel (bottom left). */
+.drive-button{position:absolute;z-index:1;top:128px;right:20px;height:44px;padding:0 18px 0 14px;border-radius:22px;display:flex;align-items:center;gap:8px;pointer-events:auto;color:var(--gh-ink,#f7f8f5);background:var(--gh-glass,#24382cdd);border:1px solid var(--gh-border,#ffffff29);backdrop-filter:blur(var(--gh-blur,22px));font-family:var(--gh-font,Arial,sans-serif);font-size:15px;font-weight:600;letter-spacing:.01em;white-space:nowrap;cursor:pointer;transition:opacity .25s ease,transform var(--spring-d,.4s) var(--spring,ease)}
+.drive-button span{font-size:15px;line-height:1}.drive-button:hover{transform:translateY(-1px)}.drive-button:active{transform:scale(.97)}.drive-button:disabled{opacity:.7;cursor:progress}
+.gh-menu-open .drive-button{opacity:0;pointer-events:none}
+.drive-hud{position:absolute;z-index:5;left:20px;bottom:22px;display:grid;grid-template-columns:auto auto;align-items:end;gap:6px 18px;padding:14px 18px;border-radius:22px;color:var(--gh-ink,#f7f8f5);background:var(--gh-glass,#24382cdd);border:1px solid var(--gh-border,#ffffff29);backdrop-filter:blur(var(--gh-blur,22px));font-family:var(--gh-font,Arial,sans-serif);pointer-events:none;max-width:min(420px,calc(100% - 40px))}
+.drive-hud strong{display:block;font-size:30px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}.drive-hud small{font-size:11px;opacity:.75}
+.drive-rpm{grid-column:1/3;height:4px;border-radius:2px;background:#ffffff26;overflow:hidden}.drive-rpm span{display:block;height:100%;background:currentColor;transform-origin:left;transform:scaleX(0)}
+.drive-help{grid-column:1/3;margin:0;font-size:11px;opacity:.78;line-height:1.35}
+.drive-note{position:absolute;z-index:5;right:20px;top:184px;max-width:300px;margin:0;padding:12px 16px;border-radius:18px;color:var(--gh-ink,#f7f8f5);background:var(--gh-glass,#24382cdd);border:1px solid var(--gh-border,#ffffff29);backdrop-filter:blur(var(--gh-blur,22px));font:13px/1.4 var(--gh-font,Arial,sans-serif)}
+.driving .surface-status{display:none}
+@media(max-width:560px){.drive-button{top:116px;right:14px;height:40px;font-size:14px}.drive-hud{left:14px;bottom:14px;padding:10px 14px}.drive-hud strong{font-size:24px}.drive-help{display:none}.drive-note{right:14px;top:166px;max-width:calc(100% - 28px)}}
