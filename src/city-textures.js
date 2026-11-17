@@ -265,28 +265,55 @@ export function palmBarkTexture() {
 
 export const bump = texture => linear(texture.clone());
 
-/** Dark asphalt: fine aggregate, sealed repair patches and a few tar-filled cracks. */
+/**
+ * Worn urban asphalt (one repeat = 8 m): dense, low-contrast aggregate with a few lighter stones and faint
+ * sealed cracks. No glitter: the brightest aggregate stays close to the binder colour. No distinctive shapes
+ * (patches) that would reveal the repeat; large-scale tone comes from surface-variation.js in world space.
+ */
 export function asphaltTexture(seed = 501) {
-  return repeat(canvasTexture(512, 512, (ctx, w, h) => {
+  return repeat(canvasTexture(1024, 1024, (ctx, w, h) => {
     const random = seededRandom(seed);
-    ctx.fillStyle = '#34363a'; ctx.fillRect(0, 0, w, h);
-    for (let i = 0; i < 14; i++) {
-      const v = random() < 0.5 ? 40 : 58;
-      ctx.fillStyle = `rgba(${v},${v + 1},${v + 4},${0.25 + random() * 0.3})`;
-      ctx.fillRect(random() * w, random() * h, 40 + random() * 140, 30 + random() * 90);
+    ctx.fillStyle = '#3c3e42'; ctx.fillRect(0, 0, w, h);
+    // Soft tonal variation (large, very faint).
+    for (let i = 0; i < 70; i++) {
+      const v = random() < 0.5 ? 46 : 72;
+      ctx.fillStyle = `rgba(${v},${v + 1},${v + 3},${0.05 + random() * 0.07})`;
+      ctx.beginPath(); ctx.arc(random() * w, random() * h, 40 + random() * 160, 0, Math.PI * 2); ctx.fill();
     }
-    for (let i = 0; i < 52000; i++) {
-      const light = random() < 0.42, v = light ? Math.round(110 + random() * 90) : Math.round(12 + random() * 22);
-      ctx.fillStyle = `rgba(${v},${v},${v + (light ? 0 : 3)},${0.18 + random() * 0.32})`;
-      ctx.fillRect(Math.floor(random() * w), Math.floor(random() * h), random() < 0.85 ? 1 : 2, random() < 0.85 ? 1 : 2);
+    // Aggregate: dense 1–3 px grains, mostly within ±30 of the binder.
+    for (let i = 0; i < 100000; i++) {
+      const light = random() < 0.45, v = light ? Math.round(74 + random() * 34) : Math.round(28 + random() * 22), s = random() < 0.7 ? 1 : random() < 0.8 ? 2 : 3;
+      ctx.fillStyle = `rgba(${v},${v},${v + 2},${0.22 + random() * 0.3})`;
+      ctx.fillRect(Math.floor(random() * w), Math.floor(random() * h), s, s);
     }
-    ctx.strokeStyle = 'rgba(14,14,16,.75)'; ctx.lineWidth = 2;
-    for (let i = 0; i < 5; i++) {
+    // A few lighter stones (still muted).
+    for (let i = 0; i < 2600; i++) {
+      const v = Math.round(108 + random() * 30);
+      ctx.fillStyle = `rgba(${v},${v - 2},${v - 4},${0.25 + random() * 0.25})`;
+      ctx.fillRect(Math.floor(random() * w), Math.floor(random() * h), 2, 2);
+    }
+    // Fine sealed cracks.
+    ctx.strokeStyle = 'rgba(18,18,20,0.45)'; ctx.lineWidth = 1.4;
+    for (let i = 0; i < 4; i++) {
       let x = random() * w, y = random() * h; ctx.beginPath(); ctx.moveTo(x, y);
-      for (let k = 0; k < 9; k++) { x += (random() - 0.5) * 44; y += (random() - 0.2) * 30; ctx.lineTo(x, y); }
+      for (let k = 0; k < 10; k++) { x += (random() - 0.5) * 38; y += (random() - 0.25) * 26; ctx.lineTo(x, y); }
       ctx.stroke();
     }
   }));
+}
+
+/** Matching roughness (green channel): 0.84–0.97, a little smoother on worn areas. Never glossy. */
+export function asphaltRoughnessTexture(seed = 503) {
+  return linear(repeat(canvasTexture(512, 512, (ctx, w, h) => {
+    const random = seededRandom(seed);
+    ctx.fillStyle = 'rgb(236,236,236)'; ctx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 60; i++) {
+      const v = Math.round(214 + random() * 32);
+      ctx.fillStyle = `rgba(${v},${v},${v},0.35)`;
+      ctx.beginPath(); ctx.arc(random() * w, random() * h, 20 + random() * 90, 0, Math.PI * 2); ctx.fill();
+    }
+    for (let i = 0; i < 30000; i++) { const v = Math.round(222 + random() * 33); ctx.fillStyle = `rgb(${v},${v},${v})`; ctx.fillRect(Math.floor(random() * w), Math.floor(random() * h), 1, 1); }
+  })));
 }
 
 /** Square sidewalk slabs (8 per repeat) with thin red joint outlines. */

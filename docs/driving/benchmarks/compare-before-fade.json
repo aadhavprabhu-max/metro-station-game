@@ -1,0 +1,237 @@
+{
+  "label": "compare-before-fade",
+  "commit": "48214f3+dirty",
+  "date": "2026-11-17T21:49:38.681Z",
+  "url": "http://127.0.0.1:5178/app.html",
+  "environment": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "mode": "SwiftShader (software, headless)",
+    "cores": 4,
+    "viewport": [
+      960,
+      600
+    ],
+    "canvas": [
+      960,
+      600
+    ],
+    "pixelRatio": 1,
+    "gpuTimer": true,
+    "vehicle": true
+  },
+  "scene": {
+    "meshes": 773,
+    "instancedMeshes": 610,
+    "instances": 60053,
+    "triangles": 1131626,
+    "materials": 191,
+    "shadowCasters": 368,
+    "textures": 138,
+    "textureMBEstimate": 112.1,
+    "colliders": 2729
+  },
+  "method": {
+    "poses": "2 passes x 20 renders (+12 with forced shadow refresh) after 8 warm-up renders; renderer.render + gl.finish",
+    "cpu": "120 world.update(1/60) calls with the camera moved at a fixed speed; rendering excluded",
+    "realtime": "15 s of the game's own animation loop with the camera moved at 25 m/s around the downtown loop",
+    "soak": "300 frames of update+render at 20 m/s with forced GC before and after (CDP heap usage)"
+  },
+  "errors": [
+    "page.evaluate: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --enable-precise-memory-info --user-data-dir=/tmp/playwright_chromiumdev_profile-gh5L3b --remote-debugging-pipe --no-startup-window\n<launched> pid=1415\n[pid=1415][err] [1117/214917.059136:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory\n[pid=1415][err] [1117/214917.059446:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are \"tcp\" and on UNIX \"unix\")\n[pid=1415][err] [1117/214917.060478:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory\n[pid=1415][err] [1117/214917.060509:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory\n[pid=1415][err] [1117/214917.070129:WARNING:media/gpu/vaapi/vaapi_wrapper.cc:1660] drmGetDevices2() has not found any devices\n[pid=1415][err] [1117/214917.072203:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=1415][err] [1117/214917.072426:WARNING:device/bluetooth/dbus/bluez_dbus_manager.cc:209] Floss manager service not available, cannot set Floss enable/disable.\n[pid=1415][err] [1117/214917.072642:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are \"tcp\" and on UNIX \"unix\")\n[pid=1415][err] [1117/214917.072862:WARNING:sandbox/policy/linux/sandbox_linux.cc:405] InitializeSandbox() called with multiple threads in process gpu-process.\n[pid=1415][err] [1117/214917.078285:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=1415][err] [1117/214917.201717:INFO:CONSOLE:934] \"[vite] connecting...\", source: http://127.0.0.1:5178/@vite/client (934)\n[pid=1415][err] [1117/214917.229403:INFO:CONSOLE:1047] \"[vite] connected.\", source: http://127.0.0.1:5178/@vite/client (1047)\n[pid=1415] <gracefully close start>\n[pid=1415] <forcefully close>\n[pid=1415] <kill>\n[pid=1415] <will force kill>"
+  ],
+  "poses": [
+    {
+      "name": "oldtown-central-square",
+      "frameMs": {
+        "n": 20,
+        "median": 11.3,
+        "p95": 15.3,
+        "p99": 15.3,
+        "max": 15.3,
+        "mean": 11.48
+      },
+      "gpuMs": null,
+      "withShadowRefreshMs": {
+        "n": 12,
+        "median": 11.9,
+        "p95": 1191.5,
+        "p99": 1191.5,
+        "max": 1191.5,
+        "mean": 110.08
+      },
+      "calls": 335,
+      "triangles": 935320,
+      "shadowFrame": {
+        "calls": 474,
+        "triangles": 1603448
+      },
+      "district": "Old town",
+      "surface": true,
+      "repeatMedians": [
+        11.3,
+        12.2
+      ]
+    },
+    {
+      "name": "downtown-broadway-central",
+      "frameMs": {
+        "n": 20,
+        "median": 10.3,
+        "p95": 12.9,
+        "p99": 12.9,
+        "max": 12.9,
+        "mean": 10.43
+      },
+      "gpuMs": null,
+      "withShadowRefreshMs": {
+        "n": 12,
+        "median": 12,
+        "p95": 18.5,
+        "p99": 18.5,
+        "max": 18.5,
+        "mean": 12.49
+      },
+      "calls": 195,
+      "triangles": 270956,
+      "shadowFrame": {
+        "calls": 345,
+        "triangles": 909216
+      },
+      "district": "Downtown",
+      "surface": true,
+      "repeatMedians": [
+        10.3,
+        7.1
+      ]
+    },
+    {
+      "name": "downtown-mercato-midtown",
+      "frameMs": {
+        "n": 20,
+        "median": 42.2,
+        "p95": 14135,
+        "p99": 14135,
+        "max": 14135,
+        "mean": 2153.94
+      },
+      "gpuMs": null,
+      "withShadowRefreshMs": {
+        "n": 12,
+        "median": 21.2,
+        "p95": 5145.3,
+        "p99": 5145.3,
+        "max": 5145.3,
+        "mean": 894.93
+      },
+      "calls": 130,
+      "triangles": 185926,
+      "shadowFrame": {
+        "calls": 268,
+        "triangles": 812870
+      },
+      "district": "Downtown",
+      "surface": true,
+      "repeatMedians": [
+        42.2,
+        1700.9
+      ]
+    },
+    {
+      "name": "road-bridge-west-ave",
+      "frameMs": {
+        "n": 20,
+        "median": 1733,
+        "p95": 13795.8,
+        "p99": 13795.8,
+        "max": 13795.8,
+        "mean": 2568.43
+      },
+      "gpuMs": null,
+      "withShadowRefreshMs": {
+        "n": 12,
+        "median": 2717.6,
+        "p95": 12258.8,
+        "p99": 12258.8,
+        "max": 12258.8,
+        "mean": 3338.23
+      },
+      "calls": 197,
+      "triangles": 398836,
+      "shadowFrame": {
+        "calls": 336,
+        "triangles": 1044148
+      },
+      "district": "Downtown",
+      "surface": true,
+      "repeatMedians": [
+        1733,
+        1366.9
+      ]
+    },
+    {
+      "name": "east-ave-broadway",
+      "frameMs": {
+        "n": 20,
+        "median": 2424.4,
+        "p95": 11047,
+        "p99": 11047,
+        "max": 11047,
+        "mean": 2872.01
+      },
+      "gpuMs": null,
+      "withShadowRefreshMs": {
+        "n": 12,
+        "median": 2187.1,
+        "p95": 5254.6,
+        "p99": 5254.6,
+        "max": 5254.6,
+        "mean": 1502.67
+      },
+      "calls": 402,
+      "triangles": 994930,
+      "shadowFrame": {
+        "calls": 479,
+        "triangles": 1088352
+      },
+      "district": "Downtown",
+      "surface": true,
+      "repeatMedians": [
+        2424.4,
+        1988.9
+      ]
+    },
+    {
+      "name": "downtown-look-up",
+      "frameMs": {
+        "n": 20,
+        "median": 17.3,
+        "p95": 30710.2,
+        "p99": 30710.2,
+        "max": 30710.2,
+        "mean": 2801.18
+      },
+      "gpuMs": null,
+      "withShadowRefreshMs": {
+        "n": 12,
+        "median": 3666.6,
+        "p95": 3910,
+        "p99": 3910,
+        "max": 3910,
+        "mean": 2197.66
+      },
+      "calls": 200,
+      "triangles": 285996,
+      "shadowFrame": {
+        "calls": 350,
+        "triangles": 924256
+      },
+      "district": "Downtown",
+      "surface": true,
+      "repeatMedians": [
+        17.3,
+        2306.1
+      ]
+    }
+  ]
+}

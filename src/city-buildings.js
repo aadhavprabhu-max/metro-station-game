@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { addAsphaltVariation, addPaintWear } from './surface-variation.js';
 import { box, cylinder, instances, label, seededRandom } from './geometry.js';
 import { batchStaticGeometry } from './optimize.js';
 import { architecturalMaterials } from './phase6-stations.js';
@@ -80,11 +81,12 @@ export function createCityMaterials(base) {
   // Roadway, sidewalks, signage and festival finishes.
   const asphaltMap = T.asphaltTexture(), walkMap = T.sidewalkTexture(), cloth = T.shamianaTexture(), valance = T.valanceTexture();
   Object.assign(materials, {
-    asphalt: std('#ffffff', { map: asphaltMap, bumpMap: asphaltMap, bumpScale: 1.2, roughness: 0.96 }),
+    // Matt asphalt: roughness 0.84–0.97 from its own map, with world-space tone variation (see surface-variation.js).
+    asphalt: addAsphaltVariation(std('#ffffff', { map: asphaltMap, bumpMap: asphaltMap, bumpScale: 0.9, roughness: 1, roughnessMap: T.asphaltRoughnessTexture() })),
     sidewalk: std('#e2ddd2', { map: walkMap, bumpMap: walkMap, bumpScale: 0.8, roughness: 0.9 }),
     kerb: rough('#a7a49c', { bumpScale: 1.4 }),
     tactile: std('#ffffff', { map: T.tactileTexture(), roughness: 0.8 }),
-    paint: std('#f1f1ea', { roughness: 0.65 }), paintYellow: std('#f2c230', { roughness: 0.65 }), paintTint: std('#ffffff', { roughness: 0.65 }),
+    paint: addPaintWear(std('#ecebe4', { roughness: 0.7 })), paintYellow: addPaintWear(std('#f2c230', { roughness: 0.7 })), paintTint: addPaintWear(std('#ffffff', { roughness: 0.7 })),
     lens: new THREE.MeshBasicMaterial({ color: '#ffffff', toneMapped: false }),
     galvanised: std('#8f969b', { roughness: 0.45, metalness: 0.6 }),
     signalRed: std('#ff2a1a', { emissive: '#ff2a1a', emissiveIntensity: 1.6 }), signalAmber: std('#4a3608'), signalGreen: std('#0d3d1a'),

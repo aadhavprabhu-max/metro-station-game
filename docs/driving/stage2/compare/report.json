@@ -1,0 +1,209 @@
+{
+  "original": {
+    "triangles": 489304,
+    "meshes": 151,
+    "size": [
+      2.049,
+      1.253,
+      4.768
+    ],
+    "min": [
+      -1.019,
+      0.02,
+      -2.384
+    ]
+  },
+  "optimised": {
+    "triangles": 489304,
+    "meshes": 151,
+    "size": [
+      2.049,
+      1.254,
+      4.768
+    ],
+    "min": [
+      -1.019,
+      0.02,
+      -2.384
+    ]
+  },
+  "exteriorLod": {
+    "triangles": 324242,
+    "meshes": 151,
+    "size": [
+      2.049,
+      1.254,
+      4.768
+    ],
+    "min": [
+      -1.019,
+      0.02,
+      -2.384
+    ]
+  },
+  "views": {
+    "front-three-quarter": {
+      "original": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimised": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimisedVsOriginal": {
+        "meanAbsDiff": 0.15,
+        "pixelsOver24Pct": 0.045
+      },
+      "exteriorLodVsOriginal": {
+        "meanAbsDiff": 0.249,
+        "pixelsOver24Pct": 0.152
+      }
+    },
+    "rear-three-quarter": {
+      "original": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimised": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimisedVsOriginal": {
+        "meanAbsDiff": 0.126,
+        "pixelsOver24Pct": 0.045
+      },
+      "exteriorLodVsOriginal": {
+        "meanAbsDiff": 0.161,
+        "pixelsOver24Pct": 0.093
+      }
+    },
+    "side": {
+      "original": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimised": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimisedVsOriginal": {
+        "meanAbsDiff": 0.147,
+        "pixelsOver24Pct": 0.05
+      },
+      "exteriorLodVsOriginal": {
+        "meanAbsDiff": 0.169,
+        "pixelsOver24Pct": 0.072
+      }
+    },
+    "top": {
+      "original": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimised": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimisedVsOriginal": {
+        "meanAbsDiff": 0.176,
+        "pixelsOver24Pct": 0.063
+      },
+      "exteriorLodVsOriginal": {
+        "meanAbsDiff": 0.346,
+        "pixelsOver24Pct": 0.309
+      }
+    },
+    "wheel-close": {
+      "original": {
+        "calls": 173,
+        "triangles": 490109
+      },
+      "optimised": {
+        "calls": 173,
+        "triangles": 490109
+      },
+      "optimisedVsOriginal": {
+        "meanAbsDiff": 1.016,
+        "pixelsOver24Pct": 0.112
+      },
+      "exteriorLodVsOriginal": {
+        "meanAbsDiff": 1.017,
+        "pixelsOver24Pct": 0.113
+      }
+    },
+    "cockpit-through-glass": {
+      "original": {
+        "calls": 168,
+        "triangles": 487569
+      },
+      "optimised": {
+        "calls": 168,
+        "triangles": 487569
+      },
+      "optimisedVsOriginal": {
+        "meanAbsDiff": 0.91,
+        "pixelsOver24Pct": 0.164
+      },
+      "exteriorLodVsOriginal": {
+        "meanAbsDiff": 2.229,
+        "pixelsOver24Pct": 1.41
+      }
+    },
+    "chase-camera": {
+      "original": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimised": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimisedVsOriginal": {
+        "meanAbsDiff": 0.039,
+        "pixelsOver24Pct": 0.032
+      },
+      "exteriorLodVsOriginal": {
+        "meanAbsDiff": 0.041,
+        "pixelsOver24Pct": 0.035
+      }
+    },
+    "chase-orbit-side": {
+      "original": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimised": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimisedVsOriginal": {
+        "meanAbsDiff": 0.045,
+        "pixelsOver24Pct": 0.018
+      },
+      "exteriorLodVsOriginal": {
+        "meanAbsDiff": 0.056,
+        "pixelsOver24Pct": 0.032
+      }
+    },
+    "chase-orbit-front": {
+      "original": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimised": {
+        "calls": 187,
+        "triangles": 510420
+      },
+      "optimisedVsOriginal": {
+        "meanAbsDiff": 0.04,
+        "pixelsOver24Pct": 0.017
+      },
+      "exteriorLodVsOriginal": {
+        "meanAbsDiff": 0.067,
+        "pixelsOver24Pct": 0.047
+      }
+    }
+  },
+  "errors": []
+}

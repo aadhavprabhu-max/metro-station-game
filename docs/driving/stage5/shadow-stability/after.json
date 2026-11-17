@@ -1,0 +1,225 @@
+{
+  "label": "after",
+  "url": "http://127.0.0.1:5173/app.html",
+  "maxChangedPixelsPct": 0.154,
+  "meanChangedPixelsPct": 0.025,
+  "results": [
+    {
+      "pose": "broadway",
+      "time": "10:00",
+      "diffs": [
+        {
+          "offsetM": 0.9,
+          "meanAbsDiff": 0.022,
+          "changedPixelsPct": 0.043
+        },
+        {
+          "offsetM": 2.3,
+          "meanAbsDiff": 0.022,
+          "changedPixelsPct": 0.039
+        },
+        {
+          "offsetM": 4.7,
+          "meanAbsDiff": 0.024,
+          "changedPixelsPct": 0.043
+        },
+        {
+          "offsetM": 7.1,
+          "meanAbsDiff": 0.024,
+          "changedPixelsPct": 0.045
+        },
+        {
+          "offsetM": 13.7,
+          "meanAbsDiff": 0.027,
+          "changedPixelsPct": 0.046
+        },
+        {
+          "offsetM": 19.3,
+          "meanAbsDiff": 0.027,
+          "changedPixelsPct": 0.045
+        }
+      ]
+    },
+    {
+      "pose": "broadway",
+      "time": "17:40",
+      "diffs": [
+        {
+          "offsetM": 0.9,
+          "meanAbsDiff": 0.022,
+          "changedPixelsPct": 0.039
+        },
+        {
+          "offsetM": 2.3,
+          "meanAbsDiff": 0.019,
+          "changedPixelsPct": 0.037
+        },
+        {
+          "offsetM": 4.7,
+          "meanAbsDiff": 0.022,
+          "changedPixelsPct": 0.038
+        },
+        {
+          "offsetM": 7.1,
+          "meanAbsDiff": 0.026,
+          "changedPixelsPct": 0.048
+        },
+        {
+          "offsetM": 13.7,
+          "meanAbsDiff": 0.075,
+          "changedPixelsPct": 0.154
+        },
+        {
+          "offsetM": 19.3,
+          "meanAbsDiff": 0.073,
+          "changedPixelsPct": 0.153
+        }
+      ]
+    },
+    {
+      "pose": "east-avenue",
+      "time": "10:00",
+      "diffs": [
+        {
+          "offsetM": 0.9,
+          "meanAbsDiff": 0,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 2.3,
+          "meanAbsDiff": 0,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 4.7,
+          "meanAbsDiff": 0,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 7.1,
+          "meanAbsDiff": 0,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 13.7,
+          "meanAbsDiff": 0,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 19.3,
+          "meanAbsDiff": 0.047,
+          "changedPixelsPct": 0.107
+        }
+      ]
+    },
+    {
+      "pose": "east-avenue",
+      "time": "17:40",
+      "diffs": [
+        {
+          "offsetM": 0.9,
+          "meanAbsDiff": 0,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 2.3,
+          "meanAbsDiff": 0,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 4.7,
+          "meanAbsDiff": 0,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 7.1,
+          "meanAbsDiff": 0,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 13.7,
+          "meanAbsDiff": 0,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 19.3,
+          "meanAbsDiff": 0,
+          "changedPixelsPct": 0
+        }
+      ]
+    },
+    {
+      "pose": "old-town-corso",
+      "time": "10:00",
+      "diffs": [
+        {
+          "offsetM": 0.9,
+          "meanAbsDiff": 0.001,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 2.3,
+          "meanAbsDiff": 0.002,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 4.7,
+          "meanAbsDiff": 0.004,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 7.1,
+          "meanAbsDiff": 0.007,
+          "changedPixelsPct": 0.001
+        },
+        {
+          "offsetM": 13.7,
+          "meanAbsDiff": 0.019,
+          "changedPixelsPct": 0.019
+        },
+        {
+          "offsetM": 19.3,
+          "meanAbsDiff": 0.024,
+          "changedPixelsPct": 0.019
+        }
+      ]
+    },
+    {
+      "pose": "old-town-corso",
+      "time": "17:40",
+      "diffs": [
+        {
+          "offsetM": 0.9,
+          "meanAbsDiff": 0.001,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 2.3,
+          "meanAbsDiff": 0.003,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 4.7,
+          "meanAbsDiff": 0.006,
+          "changedPixelsPct": 0
+        },
+        {
+          "offsetM": 7.1,
+          "meanAbsDiff": 0.009,
+          "changedPixelsPct": 0.001
+        },
+        {
+          "offsetM": 13.7,
+          "meanAbsDiff": 0.029,
+          "changedPixelsPct": 0.011
+        },
+        {
+          "offsetM": 19.3,
+          "meanAbsDiff": 0.036,
+          "changedPixelsPct": 0.011
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

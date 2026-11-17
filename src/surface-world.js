@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { box, cylinder, label, seededRandom } from './geometry.js';
 import { batchStaticGeometry } from './optimize.js';
 import { STREET_Y, CITY_BOUNDS, OLD_TOWN, SQUARE_SITE, CITY_PLOTS, CITY_ROUTES, CITY_SQUARES, CITY_SHAMIANAS, CITY_ARRIVAL, CENTRAL_EXIT, CITY_ROADS, ROAD_BRIDGES, TERRACE, WALL_RELICS, rectContains } from './city-layout.js';
-import { buildRoads, addShamiana, addGrassPatches } from './city-roads.js';
+import { buildRoads, addShamiana, addGrassPatches, roadSelfCheck } from './city-roads.js';
 import { createCityMaterials, buildHouse, buildClockTower, batchCityInstances, uvMesh } from './city-buildings.js';
 import { PropKit, addPalm, addCitrus, addCafe, addPlanter, addBunting, addWashing, addLamp, addBench, addPot } from './city-props.js';
 import { SurfaceEntrance } from './surface-entrance.js';
@@ -10,11 +10,35 @@ import { downtownMaterials, queueDowntown } from './downtown-buildings.js';
 import { buildAurealisSquare } from './downtown-square.js';
 import { dayClock, daylightState } from './day-cycle.js';
 import { NIGHT_UNIFORMS } from './night-glow.js';
+import { fadeShadowEdges, materialsOutside, shadowEdgeFadeOrigin } from './shadow-edge-fade.js';
 
 // The sky, sun, moon, fog and window light follow the shared day clock (34 real minutes per day).
 const SKY = Object.freeze({ horizon: '#a9d8f0', haze: '#bfe0f0' });
 // The key light sits this far from the player along the sun (or moon) direction; the shadow camera reaches past it.
 const LIGHT_DISTANCE = 600;
+// The street shadow map (±90 m, 2048²) is re-rendered only when its centre moves to the next cell of a grid
+// aligned with its own texels (about 16 m), or when the sun or moon has moved by about a third of a degree.
+// Aligned to texels, static shadows land on exactly the same texels after a refresh: no shimmer or popping.
+// The camera always stays within ~11 m of the centre, so at least ~79 m of shadow remains around it.
+// The grid is defined by a *held* light direction, renewed only at those sun steps: the day/night clock turns the
+// sun a little every frame, and a grid that turned with it would move the centre (and refresh) every frame.
+// Along the light axis itself an orthographic shadow map does not change, so that component takes a coarse step.
+const SHADOW_HALF = 90, SHADOW_MAP = 2048, SHADOW_SNAP = 16, SHADOW_AXIS_STEP = 200, SUN_STEP_COS = 0.99998;
+const UP = new THREE.Vector3(0, 1, 0), SX = new THREE.Vector3(), SY = new THREE.Vector3(), SZ = new THREE.Vector3(), SP = new THREE.Vector3();
+/** Texel-aligned shadow centre for a viewer position and light direction (unit vector towards the light). */
+export function snappedShadowCentre(position, direction, out = new THREE.Vector3()) {
+  SZ.copy(direction).normalize(); SX.crossVectors(Math.abs(SZ.y) > 0.999 ? SX.set(0, 0, 1) : UP, SZ).normalize(); SY.crossVectors(SZ, SX);
+  const texel = 2 * SHADOW_HALF / SHADOW_MAP, grid = Math.round(SHADOW_SNAP / texel) * texel;
+  SP.set(position.x, STREET_Y, position.z);
+  const x = Math.round(SP.dot(SX) / grid) * grid, y = Math.round(SP.dot(SY) / grid) * grid, z = Math.round(SP.dot(SZ) / SHADOW_AXIS_STEP) * SHADOW_AXIS_STEP;
+  return out.copy(SX).multiplyScalar(x).addScaledVector(SY, y).addScaledVector(SZ, z);
+}
+/** A world position in shadow-map coordinates (0–1) for a map centred at `centre` along `direction` (same camera basis as above). */
+export function shadowMapCoord(position, centre, direction, out) {
+  SZ.copy(direction).normalize(); SX.crossVectors(Math.abs(SZ.y) > 0.999 ? SX.set(0, 0, 1) : UP, SZ).normalize(); SY.crossVectors(SZ, SX);
+  SP.subVectors(position, centre);
+  return out.set(0.5 + SP.dot(SX) / (2 * SHADOW_HALF), 0.5 + SP.dot(SY) / (2 * SHADOW_HALF));
+}
 
 function createSkyDome() {
   const material = new THREE.ShaderMaterial({
@@ -175,6 +199,8 @@ export class SurfaceWorld extends THREE.Group {
     this.addStringLines(kit);
     // Asphalt roads with sidewalks, markings and street furniture; festive canopies; lawn patches.
     const roadRects = buildRoads(root, kit, m, this.colliders);
+    // Rounded corners and pedestrian-zone bollard rows, exposed for tests/road-geometry.mjs and the vehicle.
+    this.roadSurface = { corners: roadRects.corners, bollardRows: roadRects.bollardRows, selfCheck: probe => roadSelfCheck(roadRects, probe) };
     for (const [i, spec] of CITY_SHAMIANAS.entries()) addShamiana(root, kit, m, spec, this.colliders, 700 + i);
     this.addGrass(kit, roadRects);
     kit.flush(root);
@@ -193,6 +219,7 @@ export class SurfaceWorld extends THREE.Group {
     this.userData.combinedInstanceGroups=batchCityInstances(root, 400);
     this.collectDetail(root);
     this.indexColliders();
+    this.fadeShadowEdges(root);
     this.built=true;
     this.downtown = downtownMaterials(m);
     queueDowntown(this, this.downtown);
@@ -207,13 +234,21 @@ export class SurfaceWorld extends THREE.Group {
     const start = performance.now();
     while (this.jobs.length && performance.now() - start < budget) {
       const group = this.jobs.shift()();
-      if (group) { batchStaticGeometry(group); batchCityInstances(group); this.collectDetail(group); }
+      if (group) { batchStaticGeometry(group); batchCityInstances(group); this.collectDetail(group); this.fadeShadowEdges(group); }
     }
     if (!this.jobs.length) {
       // One final merge of all static geometry by material: far fewer draw calls for a city this size.
       batchStaticGeometry(this.district);
       this.indexColliders(); this.downtownReady = true;
     }
+  }
+
+  /** Soft shadow edges for street-only materials (see shadow-edge-fade.js); shared underground materials are left as they are. */
+  fadeShadowEdges(root) {
+    this.sharedMaterials ??= this.parent ? materialsOutside(this.parent, this) : new Set();
+    const r = fadeShadowEdges(root, this.sharedMaterials);
+    this.shadowFadeStats = { patched: (this.shadowFadeStats?.patched ?? 0) + r.patched, skippedShared: (this.shadowFadeStats?.skippedShared ?? 0) + r.skippedShared };
+    return r;
   }
 
   /** Finish everything now (tests and tools). */
@@ -448,6 +483,7 @@ export class SurfaceWorld extends THREE.Group {
   /** Sky, sun or moon, ambient light, fog, exposure and night glow for the current time of day. */
   applyDaylight(world) {
     const state = daylightState(dayClock.hours, this.daylight), u = this.sky.material.uniforms;
+    this.lightState = state;
     u.zenith.value.copy(state.zenith); u.mid.value.copy(state.mid); u.horizon.value.copy(state.horizon);
     u.glowColor.value.copy(state.keyColor); u.glow.value = state.glow; u.night.value = state.night;
     u.sun.value.copy(state.sun); u.moon.value.copy(state.moon);
@@ -494,19 +530,24 @@ export class SurfaceWorld extends THREE.Group {
       if(world.phase6World){world.phase6World.visible=false;world.phase6World.sun.visible=false;}
       const key=world.lighting.keyLight;
       if(!this.active) {
-        Object.assign(key.shadow.camera,{left:-90,right:90,top:90,bottom:-90,far:LIGHT_DISTANCE+700});
+        Object.assign(key.shadow.camera,{left:-SHADOW_HALF,right:SHADOW_HALF,top:SHADOW_HALF,bottom:-SHADOW_HALF,far:LIGHT_DISTANCE+700});
         key.shadow.camera.updateProjectionMatrix();world.renderer.shadowMap.needsUpdate=true;
         this.enterDaylight(world);
       }
       // The key light follows the sun (or the moon at night), far enough out that tall towers stay inside the shadow camera.
       const state=this.applyDaylight(world),dir=state.light;
-      key.position.set(player.camera.position.x+dir.x*LIGHT_DISTANCE,STREET_Y+dir.y*LIGHT_DISTANCE,player.camera.position.z+dir.z*LIGHT_DISTANCE);
-      key.target.position.set(player.camera.position.x,STREET_Y,player.camera.position.z);
-      // Shadows refresh after 2 m of walking, or once the sun has moved about a third of a degree.
-      if(!this.shadowPosition || this.shadowPosition.distanceToSquared(player.camera.position)>4 || this.shadowDirection.dot(dir)<0.99998){
-        this.shadowPosition??=new THREE.Vector3();this.shadowPosition.copy(player.camera.position);
-        (this.shadowDirection??=new THREE.Vector3()).copy(dir);world.renderer.shadowMap.needsUpdate=true;
+      // Hold the light direction until the sun (or moon) has moved about a third of a degree, as the shadow refresh always did.
+      let refresh=false;
+      if(!this.shadowDirection || this.shadowDirection.dot(dir)<SUN_STEP_COS){ (this.shadowDirection??=new THREE.Vector3()).copy(dir); refresh=true; }
+      const held=this.shadowDirection,centre=snappedShadowCentre(player.camera.position,held,this.shadowCentre??=new THREE.Vector3());
+      key.position.copy(centre).addScaledVector(held,LIGHT_DISTANCE);
+      key.target.position.copy(centre);
+      // Shadows refresh at a sun step or when the texel-aligned centre moves to the next cell.
+      if(refresh || !this.shadowPosition || !this.shadowPosition.equals(centre)){
+        (this.shadowPosition??=new THREE.Vector3()).copy(centre);world.renderer.shadowMap.needsUpdate=true;
       }
+      // Distant shadows fade with distance from the viewer, not from the map's (stepping) centre: see shadow-edge-fade.js.
+      shadowMapCoord(player.camera.position,centre,held,shadowEdgeFadeOrigin.value);
       world.lighting.usePlatform(this.entrance.name,player.camera.position);
     } else if(this.active) {
       this.leaveDaylight(world);

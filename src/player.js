@@ -17,6 +17,9 @@ export class PlayerController {
     this.transferSurface = null;
     this.surfaceWorld = null;
     this.surfaceExploring = false;
+    /** True while driving on the street; the vehicle controller then owns the camera and reads `keys`. */
+    this.driving = false;
+    this.vehicleController = null;
     this.startLineId = station.lineId ?? 'U1';
     this.startStationId = station.stationId;
     this.ridingCar = null;
@@ -109,6 +112,7 @@ export class PlayerController {
   configureSurface(surfaceWorld) { this.surfaceWorld = surfaceWorld; }
 
   syncSurfaceContext() {
+    if (this.driving) { this.surfaceExploring = true; return; }
     this.surfaceExploring = Boolean(!this.ridingCar && this.surfaceWorld?.findSurface(
       this.camera.position.x, this.camera.position.z, this.camera.position.y - SPAWN.y, 0.06, this.radius));
   }
@@ -121,8 +125,12 @@ export class PlayerController {
   }
 
   /** One-click arrival in the Central old town; trains freeze as they do when walking up. */
+  /** Leave the car (if driving) without moving anywhere else. */
+  exitVehicle(options) { return this.vehicleController?.exit(options) ?? false; }
+
   teleportToSurface(spot = this.surfaceWorld?.arrival) {
     const world = this.surfaceWorld;
+    if (this.driving) this.exitVehicle({ silent: true });
     if (!world || !spot) return false;
     const streetY = world.streetY;
     if (!world.findSurface(spot.x, spot.z, streetY, 0.06, this.radius)) return false;
@@ -154,7 +162,8 @@ export class PlayerController {
   }
 
   interactionHint() {
-    if (this.surfaceExploring) return { text: 'Central old town · Press T or Back to U4, or walk through the stone arch', enabled: false, action: null };
+    if (this.driving) return { text: 'Driving · F or Leave car to get out', enabled: false, action: null };
+    if (this.surfaceExploring) return { text: 'Central old town · F to drive · T or Back to U4, or walk through the stone arch', enabled: false, action: null };
     if (!this.service) return { text: '', enabled: false, action: null };
     const { service } = this;
     if (this.ridingCar) {
@@ -265,6 +274,7 @@ export class PlayerController {
   }
 
   reset() {
+    if (this.driving) this.exitVehicle({ silent: true });
     this.releaseDrag();
     this.keys.clear();
     this.ridingCar = null;
@@ -381,6 +391,7 @@ export class PlayerController {
   }
 
   update(delta) {
+    if (this.driving) return;
     this.syncRide();
     if (!this.enabled) return;
     if (!this.ridingCar) {

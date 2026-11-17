@@ -306,8 +306,9 @@ function addStreetProps(kit, m, d, area, colliders, random) {
       }
     }
   }
-  // A few red kiosks and flower pots by doors.
-  for (const [x, z] of [[-236.6, -140], [196.6, -150], [-110.6, -380], [79.4, -470], [-236.6, -470], [196.6, 60], [-98, 55], [-25.6, -390]]) {
+  // A few red kiosks on the pavement, 1 m behind the kerb (the avenue kiosks previously stood on or over it,
+  // three of them inside the East and Garibaldi Avenue traffic lanes).
+  for (const [x, z] of [[-237, -140], [193, -150], [-111, -380], [77, -470], [-237, -470], [193, 60], [-98, 55], [-25.6, -390]]) {
     if (areaOf(x, z) !== area) continue;
     // Red street kiosk: slim body, glazed upper band, overhanging roof.
     kit.add(d.kiosk, { size: [1.1, 1.5, 0.9], position: [x, y + 0.75, z] });
@@ -338,7 +339,10 @@ export function addBlossomTree(kit, d, m, x, z, random, planter = true, colour =
 function addPark(group, kit, m, d, b, colliders, random) {
   const y = STREET_Y, cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2;
   box(group, m.grass, [b.x1 - b.x0, 0.04, b.z1 - b.z0], [cx, y + 0.02, cz], { shadow: false }).receiveShadow = true;
-  for (const [sx, sz, px, pz] of [[b.x1 - b.x0, 4, cx, cz], [4, b.z1 - b.z0, -16.2, cz]]) uvMesh(group, m.paving, [sx, 0.03, sz], [px, y + 0.045, pz], { tile: 8, shadow: false });
+  // Cross path through the park, and the short link from the terrace's north stair to Terrace Street. The link
+  // stops where the street begins: it used to continue for 34 m down the middle of the carriageway.
+  const street = CITY_ROADS.find(r => r.name === 'TERRACE STREET'), link = [b.z0, street.from];
+  for (const [sx, sz, px, pz] of [[b.x1 - b.x0, 4, cx, cz], [4, link[1] - link[0], -16.2, (link[0] + link[1]) / 2]]) uvMesh(group, m.paving, [sx, 0.03, sz], [px, y + 0.045, pz], { tile: 8, shadow: false });
   for (let i = 0; i < 16; i++) {
     const x = b.x0 + 3 + random() * (b.x1 - b.x0 - 6), z = b.z0 + 3 + random() * (b.z1 - b.z0 - 6);
     if (Math.abs(z - cz) < 4 || Math.abs(x + 16.2) < 4) continue;

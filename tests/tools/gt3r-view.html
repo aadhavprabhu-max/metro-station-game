@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>GT3 R asset view</title><style>html,body{margin:0;background:#8fa3ad}</style></head>
+<body><canvas id="c" width="800" height="500"></canvas>
+<script type="module">
+// Fixed-view renderer for tests/vehicle-asset-compare.mjs (original vs optimised model, same lighting and cameras).
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const renderer = new THREE.WebGLRenderer({ canvas: document.querySelector('#c'), antialias: true, preserveDrawingBuffer: true });
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#8fa3ad');
+scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
+const sun = new THREE.DirectionalLight('#fff3dd', 2.2); sun.position.set(4, 6, 3); scene.add(sun, new THREE.HemisphereLight('#dfe9ff', '#5a5446', 0.6));
+const camera = new THREE.PerspectiveCamera(40, 800 / 500, 0.05, 100);
+window.loadModel = async (url, { scale = 1, hideLod = true, showLodOnly = false } = {}) => {
+  const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+  const gltf = await loader.loadAsync(url); const root = gltf.scene; root.scale.setScalar(scale); scene.add(root); root.updateMatrixWorld(true);
+  root.traverse(o => { if (/^COCKPIT_LOD1/.test(o.name)) o.visible = !hideLod || showLodOnly; if (/^COCKPIT_HR/.test(o.name) && showLodOnly) o.visible = false; });
+  let triangles = 0, meshes = 0; root.traverse(o => { if (o.isMesh) { let v = true; for (let p = o; p; p = p.parent) if (!p.visible) v = false; if (v) { meshes++; triangles += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; } } });
+  const box = new THREE.Box3().setFromObject(root); window.model = root;
+  return { triangles, meshes, size: box.getSize(new THREE.Vector3()).toArray().map(n => +n.toFixed(3)), min: box.min.toArray().map(n => +n.toFixed(3)) };
+};
+window.view = ([px, py, pz], [tx, ty, tz], fov = 40) => { camera.fov = fov; camera.updateProjectionMatrix(); camera.position.set(px, py, pz); camera.lookAt(tx, ty, tz); renderer.render(scene, camera); return { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, png: renderer.domElement.toDataURL('image/png') }; };
+window.ready = true;
+</script></body></html>

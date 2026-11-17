@@ -1,0 +1,14 @@
+14:25:48 environment {"userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36","gpu":"ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)","mode":"SwiftShader (software, headless)","cores":4,"viewport":[960,600],"canvas":[960,600],"pixelRatio":1,"gpuTimer":true,"vehicle":false}
+14:25:48 scene {"meshes":773,"instancedMeshes":610,"instances":60029,"triangles":1109352,"materials":191,"shadowCasters":368,"textures":137,"textureMBEstimate":106.8,"colliders":2724}
+14:25:56 pose oldtown-central-square {"calls":335,"triangles":909036,"frameMs":22.6,"gpuMs":null,"repeats":[22.6,12.2]}
+14:28:22 pose downtown-broadway-central {"calls":194,"triangles":232622,"frameMs":9.1,"gpuMs":null,"repeats":[9.1,7.3]}
+14:29:57 pose downtown-mercato-midtown {"calls":131,"triangles":172684,"frameMs":19.5,"gpuMs":null,"repeats":[19.5,899.9]}
+14:31:42 pose road-bridge-west-ave {"calls":197,"triangles":378932,"frameMs":976.5,"gpuMs":null,"repeats":[976.5,729]}
+14:33:57 pose east-ave-broadway {"calls":401,"triangles":951588,"frameMs":2341.7,"gpuMs":null,"repeats":[2341.7,1264.9]}
+14:36:15 pose downtown-look-up {"calls":199,"triangles":247662,"frameMs":16.3,"gpuMs":null,"repeats":[16.3,2185.1]}
+14:38:10 pose downtown-look-down-road {"calls":187,"triangles":256722,"frameMs":25.9,"gpuMs":null,"repeats":[25.9,894.6]}
+14:39:40 pose downtown-broadway-central-night {"calls":194,"triangles":232622,"frameMs":1076.8,"gpuMs":null,"repeats":[1076.8,846.1]}
+14:40:40 pose downtown-mercato-midtown-night {"calls":131,"triangles":172684,"frameMs":29.5,"gpuMs":null,"repeats":[29.5,981.4]}
+14:40:41 cpu {"walk1_4":{"updateMs":{"n":120,"median":0.1,"p95":0.6,"p99":5,"max":8.6,"mean":0.26},"shadowRefreshesPerSecond":0.5},"sprint7":{"updateMs":{"n":120,"median":0.1,"p95":0.3,"p99":0.5,"max":9.3,"mean":0.18},"shadowRefreshesPerSecond":3.5},"drive25":{"updateMs":{"n":120,"median":0.1,"p95":0.3,"p99":0.7,"max":7.4,"mean":0.153},"shadowRefreshesPerSecond":14.5},"drive50":{"updateMs":{"n":120,"median":0.1,"p95":1,"p99":4.3,"max":10.1,"mean":0.317},"shadowRefreshesPerSecond":24.5}}
+page.evaluate: TypeError: Cannot read properties of undefined (reading 'toFixed')
+Node.js v22.23.4
