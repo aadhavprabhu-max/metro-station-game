@@ -128,6 +128,18 @@ test.describe('Driving the GT3 R', () => {
     expect(r.collisions).toBeGreaterThan(0); expect(inside).toBe(false); expect(r.finite).toBe(true);
   });
 
+  test('the on-screen movement pad drives the car (touch)', async () => {
+    test.setTimeout(240000);
+    expect(await place(-66, -118, Math.PI / 2)).toBe(true);
+    // The pad's buttons add the same key codes as the keyboard; press "up" the way a touch would.
+    const r = await page.evaluate(() => { const up = document.querySelector('[data-move="ArrowUp"]'), init = { bubbles: true, pointerId: 7, pointerType: 'touch', isPrimary: true };
+      up.dispatchEvent(new PointerEvent('pointerdown', init)); for (let i = 0; i < 120; i++) metro.world.update(1 / 60);
+      up.dispatchEvent(new PointerEvent('pointerup', init)); const v = metro.vehicle.physics.forwardSpeed * 3.6; for (let i = 0; i < 30; i++) metro.world.update(1 / 60);
+      return { speedWhilePressed: v, throttleAfterRelease: metro.vehicle.physics.pedals.throttle }; });
+    expect(r.speedWhilePressed, JSON.stringify(r)).toBeGreaterThan(30);
+    expect(r.throttleAfterRelease).toBe(0);
+  });
+
   test('F leaves the car beside it; walking, T and the camera work as before', async () => {
     test.setTimeout(240000);
     expect(await place(-66, -117.05, Math.PI / 2)).toBe(true);

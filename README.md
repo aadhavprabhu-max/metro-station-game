@@ -20,6 +20,31 @@ METRO_PRODUCTION_URL=http://127.0.0.1:5175/app.html npm test -- tests/surface.sp
 node tests/surface-live-inspect.mjs
 ```
 
+## Driving the Porsche 911 GT3 R
+
+On the street (old town or downtown), press **F** or the **◆ Drive** button. The car waits in the Via del Corso parking bays and loads on first use, about 9 MB. Downtown roads have rounded kerbs and markings for right-hand traffic. The old town is a pedestrian zone: bollards close every road end that opens onto it. Via del Corso, Via dei Limoni, Vicolo del Mercato and Via Garibaldi still run through it.
+
+| Control | Action |
+|---|---|
+| W / ↑ | Throttle |
+| S / ↓ | Brake; hold at a standstill to select reverse |
+| A / D, ← / → | Steer |
+| C | Chase or cockpit view (drag to look around) |
+| G, then Q / E | Manual gears (G again for automatic) |
+| Backspace | Put the car back on its wheels at the last safe spot |
+| F | Leave the car (R, T and Back to U4 also leave it first) |
+
+Touch: the existing on-screen movement pad drives the car (up = throttle, down = brake, left/right = steer).
+
+The physics runs at a fixed 240 Hz: four independent suspension corners, tyre slip and grip, a six-speed sequential gearbox, limited-slip differential, brake bias, ABS/TC and aerodynamics. Every parameter is marked as published, measured from the model or estimated in `src/vehicle/gt3r-params.js`. The road surface the car drives on is built from the rendered road geometry. Driving needs the hosted version (development server or GitHub Pages); the single-file preview opened from disk says so. Engineering record, measurements and tests: [docs/driving/README.md](docs/driving/README.md).
+
+```sh
+node tests/road-geometry.mjs
+node tests/vehicle-physics.mjs
+node tests/vehicle-city.mjs
+npx playwright test tests/driving.spec.js
+```
+
 ## Credits — Porsche 911 GT3 R model
 
 The drivable car uses "2024 Porsche 992 GT3 R" by Dave Love SketchFab (https://sketchfab.com/Tyler_Dave), https://sketchfab.com/3d-models/2024-porsche-992-gt3-r-b76c9b2ae2d548c3869426eac4ab8a19, under **CC BY-NC-SA 4.0** (non-commercial, share-alike). The optimised adaptation `public/vehicles/gt3r/gt3r.glb` is distributed under the same licence; see `public/vehicles/gt3r/ATTRIBUTION.md` for the changes made and the original licence file. Porsche names, logos and liveries are trademarks of their owners.

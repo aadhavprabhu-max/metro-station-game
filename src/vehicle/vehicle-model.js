@@ -50,7 +50,9 @@ export class VehicleModel extends THREE.Group {
     this.lightMaterials = [];
     scene.traverse(o => { if (o.isMesh) for (const m of [o.material].flat()) if (/Emissive_Light_Rear|Glass_Emissive_Rear|AUX_LIGHT/i.test(m.name) && !this.lightMaterials.includes(m)) this.lightMaterials.push(m); });
     for (const m of this.lightMaterials) { m.userData.baseEmissive = m.emissiveIntensity ?? 1; if (!m.emissiveMap && m.map) { m.emissiveMap = m.map; m.emissive?.set('#ffffff'); } }
-    this.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    // The car receives the street's (cached) shadows; its own moving shadow is projected every frame
+    // (car-shadow.js), so it is kept out of the cached shadow map, where it would leave a stale shadow behind.
+    this.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = true; } });
     // Merge static, opaque parts by material (excluding everything that moves or toggles).
     const dynamic = new Set([...this.wheelRigs.map(r => r.knuckle), this.steering?.pivot, this.cockpit, this.cockpitLod].filter(Boolean));
     this.drawCalls = { before: countMeshes(this) };
@@ -133,7 +135,7 @@ function mergeStatic(root, skip) {
     if (!merged) continue;
     merged.computeBoundingSphere();
     const mesh = new THREE.Mesh(merged, meshes[0].material); mesh.name = `GT3R-${meshes[0].material.name || 'part'}`;
-    mesh.castShadow = mesh.receiveShadow = true; root.add(mesh);
+    mesh.castShadow = false; mesh.receiveShadow = true; root.add(mesh);
     for (const m of meshes) m.removeFromParent();
   }
 }

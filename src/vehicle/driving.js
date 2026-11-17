@@ -5,6 +5,7 @@ import { VehiclePhysics } from './vehicle-physics.js';
 import { VehicleGround } from './vehicle-ground.js';
 import { VehicleModel } from './vehicle-model.js';
 import { GT3R } from './gt3r-params.js';
+import { CarShadow, buildShadowProxy } from './car-shadow.js';
 
 /** Where the car waits: the Via del Corso parking bays (eastbound kerb), facing east. */
 export const PARKING = Object.freeze({ x: -66, z: -117.05, yaw: Math.PI / 2 });
@@ -61,6 +62,7 @@ export class DrivingController {
         this.physics = new VehiclePhysics(GT3R, this.ground);
         this.model = new VehicleModel(gltf.scene, GT3R);
         surface.add(this.model); this.model.visible = false;
+        this.shadow = new CarShadow(await buildShadowProxy(this.model)); surface.add(this.shadow); this.shadow.visible = false;
         this.placeParked();
         this.state = 'idle'; return true;
       } catch (error) {
@@ -133,7 +135,7 @@ export class DrivingController {
     } else car.setInput(PARKED);
     // Parked and out of sight: no simulation needed.
     const near = this.driving || this.model.position.distanceToSquared(this.player.camera.position) < 250 ** 2;
-    this.model.visible = near;
+    this.model.visible = near; this.shadow.visible = near;
     if (near) this.model.updateLod(this.player.camera.position, this.driving && this.cameraMode === 'cockpit');
     if (near && (this.driving || car.speed > 0.01 || !this.settled)) { const alpha = car.update(delta); this.syncModel(alpha); this.settled = !this.driving && car.speed < 0.01; }
     if (this.driving) this.updateCamera(delta);
@@ -145,6 +147,12 @@ export class DrivingController {
     this.model.position.copy(this.renderPosition); this.model.quaternion.copy(this.renderQuaternion);
     const light = this.world.surfaceWorld.lightState;
     this.model.sync(car, { braking: (car.pedals?.brake ?? 0) > 0.05 && this.driving, night: light?.night ?? 0 });
+    // Projected shadow along the same sun/moon direction as the street's shadows: full strength in sunshine,
+    // fading with a low sun, a faint moon shadow at night; the soft contact occlusion under the car always.
+    if (light && this.shadow) {
+      const elevation = THREE.MathUtils.smoothstep(light.light.y, 0.04, 0.3), strength = 0.55 * (1 - light.night) * elevation + 0.12 * light.night;
+      this.shadow.update(this.world.renderer, this.model, light.light, strength, this.ground.heightAt(car.position.x, car.position.z) ?? this.world.surfaceWorld.streetY);
+    }
   }
 
   updateCamera(delta) {
