@@ -16,17 +16,20 @@ const SKY = Object.freeze({ horizon: '#a9d8f0', haze: '#bfe0f0' });
 // The key light sits this far from the player along the sun (or moon) direction; the shadow camera reaches past it.
 const LIGHT_DISTANCE = 600;
 // The street shadow map (±90 m, 2048²) is re-rendered only when its centre moves to the next cell of a grid
-// aligned with its own texels (about 16 m), or when the sun or moon has moved. Aligned to texels, static
-// shadows land on exactly the same texels after a refresh: no shimmer or popping. The camera always stays
-// within ~11 m of the centre, so at least ~79 m of shadow remains around it in every direction.
-const SHADOW_HALF = 90, SHADOW_MAP = 2048, SHADOW_SNAP = 16;
+// aligned with its own texels (about 16 m), or when the sun or moon has moved by about a third of a degree.
+// Aligned to texels, static shadows land on exactly the same texels after a refresh: no shimmer or popping.
+// The camera always stays within ~11 m of the centre, so at least ~79 m of shadow remains around it.
+// The grid is defined by a *held* light direction, renewed only at those sun steps: the day/night clock turns the
+// sun a little every frame, and a grid that turned with it would move the centre (and refresh) every frame.
+// Along the light axis itself an orthographic shadow map does not change, so that component takes a coarse step.
+const SHADOW_HALF = 90, SHADOW_MAP = 2048, SHADOW_SNAP = 16, SHADOW_AXIS_STEP = 200, SUN_STEP_COS = 0.99998;
 const UP = new THREE.Vector3(0, 1, 0), SX = new THREE.Vector3(), SY = new THREE.Vector3(), SZ = new THREE.Vector3(), SP = new THREE.Vector3();
 /** Texel-aligned shadow centre for a viewer position and light direction (unit vector towards the light). */
 export function snappedShadowCentre(position, direction, out = new THREE.Vector3()) {
   SZ.copy(direction).normalize(); SX.crossVectors(Math.abs(SZ.y) > 0.999 ? SX.set(0, 0, 1) : UP, SZ).normalize(); SY.crossVectors(SZ, SX);
   const texel = 2 * SHADOW_HALF / SHADOW_MAP, grid = Math.round(SHADOW_SNAP / texel) * texel;
   SP.set(position.x, STREET_Y, position.z);
-  const x = Math.round(SP.dot(SX) / grid) * grid, y = Math.round(SP.dot(SY) / grid) * grid, z = Math.round(SP.dot(SZ) / grid) * grid;
+  const x = Math.round(SP.dot(SX) / grid) * grid, y = Math.round(SP.dot(SY) / grid) * grid, z = Math.round(SP.dot(SZ) / SHADOW_AXIS_STEP) * SHADOW_AXIS_STEP;
   return out.copy(SX).multiplyScalar(x).addScaledVector(SY, y).addScaledVector(SZ, z);
 }
 
@@ -517,13 +520,15 @@ export class SurfaceWorld extends THREE.Group {
       }
       // The key light follows the sun (or the moon at night), far enough out that tall towers stay inside the shadow camera.
       const state=this.applyDaylight(world),dir=state.light;
-      const centre=snappedShadowCentre(player.camera.position,dir,this.shadowCentre??=new THREE.Vector3());
-      key.position.copy(centre).addScaledVector(dir,LIGHT_DISTANCE);
+      // Hold the light direction until the sun (or moon) has moved about a third of a degree, as the shadow refresh always did.
+      let refresh=false;
+      if(!this.shadowDirection || this.shadowDirection.dot(dir)<SUN_STEP_COS){ (this.shadowDirection??=new THREE.Vector3()).copy(dir); refresh=true; }
+      const held=this.shadowDirection,centre=snappedShadowCentre(player.camera.position,held,this.shadowCentre??=new THREE.Vector3());
+      key.position.copy(centre).addScaledVector(held,LIGHT_DISTANCE);
       key.target.position.copy(centre);
-      // Shadows refresh when the texel-aligned centre moves to the next cell, or once the sun has moved about a third of a degree.
-      if(!this.shadowPosition || !this.shadowPosition.equals(centre) || this.shadowDirection.dot(dir)<0.99998){
-        this.shadowPosition??=new THREE.Vector3();this.shadowPosition.copy(centre);
-        (this.shadowDirection??=new THREE.Vector3()).copy(dir);world.renderer.shadowMap.needsUpdate=true;
+      // Shadows refresh at a sun step or when the texel-aligned centre moves to the next cell.
+      if(refresh || !this.shadowPosition || !this.shadowPosition.equals(centre)){
+        (this.shadowPosition??=new THREE.Vector3()).copy(centre);world.renderer.shadowMap.needsUpdate=true;
       }
       world.lighting.usePlatform(this.entrance.name,player.camera.position);
     } else if(this.active) {

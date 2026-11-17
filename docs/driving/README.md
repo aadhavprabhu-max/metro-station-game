@@ -191,3 +191,81 @@ Tests (all executed):
 - Regression: `surface`, `downtown`, `rendering`, `teleport`, `glass-ui`, `metro` and `driving` specs: **53 passed**.
 
 Screenshots: `stage4/`. In this stage the car still casts into the street's shared shadow map; Stage 5 changes that.
+
+## Stage 5 — shadows and performance (in progress)
+
+### Changes
+- **Street shadow map:** refreshed only when its texel-aligned centre moves to the next ~16 m cell, or when the sun or moon has moved ~0.36°. Coverage stays ±90 m at 2048², with at least ~79 m around the viewer.
+- **Car shadow:** the car is kept out of that cached map. It gets its own per-frame projected shadow (a ~3.9 k-triangle silhouette rendered from the sun into a 256² texture, projected onto the ground) plus contact occlusion. It uses the same sun/moon direction as the street and fades with a low sun and at night (`src/vehicle/car-shadow.js`).
+
+### Regression found in `096dfe1`, and its fix
+The back-to-back benchmark (`benchmarks/compare-final.json`) showed that `096dfe1` refreshed the street shadow map **on every frame (60/s)** whenever the day/night clock was running, i.e. always in normal play. The cause: the clock turns the sun about 0.002° per frame, the snapping grid was built from that live direction, so the snapped centre changed by rounding-level amounts every frame. The earlier popping test had frozen the clock, so it missed this. That commit's message ("about 8× less often") was therefore wrong for normal play.
+
+The fix in `src/surface-world.js`:
+- The light is positioned from a **held** sun/moon direction, renewed only at ~0.36° sun steps, the same threshold the original code used for shadow refreshes. The sky, sun disc, colours and intensities still follow the clock every frame.
+- The component along the light axis, which does not change an orthographic shadow map, takes a coarse 200 m step.
+
+### Verification (all executed; `stage5/shadow-refresh/*.json`, `tests/shadow-refresh.mjs`)
+Refreshes per second along Broadway North (4 s per case; 10:00 and 22:00 give the same picture):
+
+| Speed | Original / Stage 4 | `096dfe1`, clock running | `096dfe1`, clock held | **Fixed, clock running** | **Fixed, clock held** |
+|---|---|---|---|---|---|
+| 0 | 0.25 | 60 | 0.25 | 0.25 | 0 |
+| 1.4 m/s | 0.5 | 60 | 0.25 | 0.25 | 0 |
+| 7 m/s | 3.75 | 60 | 1.5 | 1.25 | 1.0 |
+| 25 m/s | 16 | 60 | 6.75 | 6.0 | 5.5 |
+| 50 m/s | 24.75 | 60 | 12.75 | 11.25 | 11.0 |
+
+The running clock now adds at most 0.5 refreshes/s (sun steps). At every speed, time and clock mode the fixed build refreshes no more often than Stage 4; `SHADOW_ASSERT=1 SHADOW_COMPARE=stage4.json` passes.
+
+Above the cell crossings (about 3.6/s at 50 m/s), the remaining refreshes come from the existing detail culling, which forces a shadow refresh whenever small props beyond 170 m switch on or off. That behaviour predates this work and is unchanged.
+
+**Popping** (a fixed camera watches Broadway while the viewer drives 50 m past at 25 m/s; the billboard tickers are held still because they change the image every frame regardless of shadows):
+
+| Build | Clock | Refreshes | Frames that visibly changed | Largest single change | Total change over the drive |
+|---|---|---|---|---|---|
+| Original | running / held | 31 / 31 | 24 / 24 | 0.72 % | 4.6 % |
+| Stage 4 | running / held | 31 / 31 | 24 / 24 | 0.73 % | 4.6 % |
+| `096dfe1` | running | 120 | 20 | 3.78 % | 4.8 % |
+| **Fixed** | running / held | 13 / 12 | 4 / 4 | **3.93 %** | 4.9 % |
+
+No visible change ever happened without a refresh, in any build. Up to ~79 m around the viewer, refreshes reproduce the same texels.
+
+**Open issue: larger, rarer pops at the shadow-range edge.** The ±90 m shadow area's far edge now advances in 16 m jumps instead of 2 m steps. The total change is the same (≈4.6–4.9 % over 50 m in every build), but it arrives in a few bigger pops: one jump changed 3.9 % of the frame, when a distant tower shadow down the avenue appeared at once. The original's 24 small steps were each under 0.75 %. This is a visible-popping trade-off introduced by Stage 5 and not yet resolved.
+
+Options:
+- **Smaller cells (e.g. 4 m):** pops roughly 4× smaller, with more refreshes but still well below the original.
+- **Fade shadows towards the edge of the shadow area:** removes the edge pop, but needs a shader change on the street's materials.
+
+The fixed-offset popping test (`shadow-stability.mjs`, clock held) is unchanged by the fix: mean 0.025 % changed pixels per refresh (original 0.042 %), 0 % within a cell.
+
+**Performance, pre-fix against fixed, run back to back with identical settings** (`benchmarks/compare-prefix-096dfe1.json`, `benchmarks/compare-fixed.json`; SwiftShader):
+- Shadow refreshes per second (benchmark CPU scenario):
+  - walking: 60 → 1.0 (original 0.5)
+  - sprinting: 60 → 1.5 (original 3.5)
+  - 25 m/s: 60 → 5.5 (original 14.5)
+  - 50 m/s: 60 → 9.5 (original 24.5)
+- Soak, 300 frames at 20 m/s with the clock running:
+  - refresh frames: 300 → **22** (original 55)
+  - frame time median: 1,536 → 7.5 ms
+  - frame time p95: 2,104 → 52 ms (original 12.8 / 852 ms)
+- Pose draw calls and triangles: identical before and after the fix.
+- JS heap after GC: flat at 79.2 MB.
+- **Limits:**
+  - In software rendering the driving scenario covers only 1 s of game time (60 frames).
+  - The software frame times are not repeatable between runs; see Stage 0.
+  - Real-GPU frame rates and the 60 FPS target still need a run on real hardware (instructions under Stage 0).
+
+**Regression suite after the fix:**
+- 13 node checks passed: road geometry, vehicle physics, vehicle on the city, surface, transfer, Phase 5/6, U10 geometry and mechanics, map physics and map data.
+- 19 Playwright specs, every test passing:
+  - The full run: 102 passed, 1 failed and 1 did not run.
+  - The failure was the new touch-pad driving test, which dispatched synthetic pointer events that the game's `setPointerCapture` rejects. The test now uses genuine touch input, as `surface.spec.js` does. The skipped test followed it in the same serial spec.
+  - On rerun, `driving.spec.js` passed 9 of 9.
+
+### Stage 5 status
+- The shadow-refresh regression is fixed and verified.
+- Stage 5 is **not complete**. Still open:
+  - the edge-pop trade-off above
+  - real-GPU frame-rate validation
+  - rebuilding the standalone `index.html` and checking its "driving needs the hosted version" message

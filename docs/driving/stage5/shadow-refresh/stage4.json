@@ -1,0 +1,159 @@
+{
+  "label": "stage4",
+  "url": "http://127.0.0.1:5176/app.html",
+  "rates": {
+    "10:00 clock running 0 m/s": {
+      "refreshesPerSecond": 0.25,
+      "onStreet": true
+    },
+    "10:00 clock running 1.4 m/s": {
+      "refreshesPerSecond": 0.5,
+      "onStreet": true
+    },
+    "10:00 clock running 7 m/s": {
+      "refreshesPerSecond": 3.75,
+      "onStreet": true
+    },
+    "10:00 clock running 25 m/s": {
+      "refreshesPerSecond": 16,
+      "onStreet": true
+    },
+    "10:00 clock running 50 m/s": {
+      "refreshesPerSecond": 24.75,
+      "onStreet": true
+    },
+    "10:00 clock frozen 0 m/s": {
+      "refreshesPerSecond": 0,
+      "onStreet": true
+    },
+    "10:00 clock frozen 1.4 m/s": {
+      "refreshesPerSecond": 0.5,
+      "onStreet": true
+    },
+    "10:00 clock frozen 7 m/s": {
+      "refreshesPerSecond": 3.75,
+      "onStreet": true
+    },
+    "10:00 clock frozen 25 m/s": {
+      "refreshesPerSecond": 16,
+      "onStreet": true
+    },
+    "10:00 clock frozen 50 m/s": {
+      "refreshesPerSecond": 24.75,
+      "onStreet": true
+    },
+    "22:00 clock running 0 m/s": {
+      "refreshesPerSecond": 0.25,
+      "onStreet": true
+    },
+    "22:00 clock running 1.4 m/s": {
+      "refreshesPerSecond": 0.5,
+      "onStreet": true
+    },
+    "22:00 clock running 7 m/s": {
+      "refreshesPerSecond": 3.75,
+      "onStreet": true
+    },
+    "22:00 clock running 25 m/s": {
+      "refreshesPerSecond": 16,
+      "onStreet": true
+    },
+    "22:00 clock running 50 m/s": {
+      "refreshesPerSecond": 24.75,
+      "onStreet": true
+    },
+    "22:00 clock frozen 0 m/s": {
+      "refreshesPerSecond": 0,
+      "onStreet": true
+    },
+    "22:00 clock frozen 1.4 m/s": {
+      "refreshesPerSecond": 0.5,
+      "onStreet": true
+    },
+    "22:00 clock frozen 7 m/s": {
+      "refreshesPerSecond": 3.75,
+      "onStreet": true
+    },
+    "22:00 clock frozen 25 m/s": {
+      "refreshesPerSecond": 16,
+      "onStreet": true
+    },
+    "22:00 clock frozen 50 m/s": {
+      "refreshesPerSecond": 24.75,
+      "onStreet": true
+    }
+  },
+  "popping": {
+    "running": {
+      "frames": 120,
+      "metresDriven": 50,
+      "refreshes": 31,
+      "framesWithVisibleShadowChange": 24,
+      "visibleChangesWithoutRefresh": 0,
+      "visibleChangePcts": [
+        0.087,
+        0.023,
+        0.011,
+        0.011,
+        0.036,
+        0.025,
+        0.025,
+        0.286,
+        0.43,
+        0.067,
+        0.168,
+        0.23,
+        0.193,
+        0.261,
+        0.735,
+        0.372,
+        0.545,
+        0.603,
+        0.205,
+        0.153,
+        0.028,
+        0.11,
+        0.005,
+        0.005
+      ],
+      "maxChangedPixelsPct": 0.7348,
+      "totalChangedPixelsPct": 4.618
+    },
+    "frozen": {
+      "frames": 120,
+      "metresDriven": 50,
+      "refreshes": 31,
+      "framesWithVisibleShadowChange": 24,
+      "visibleChangesWithoutRefresh": 0,
+      "visibleChangePcts": [
+        0.087,
+        0.023,
+        0.011,
+        0.011,
+        0.036,
+        0.027,
+        0.023,
+        0.293,
+        0.43,
+        0.068,
+        0.165,
+        0.23,
+        0.195,
+        0.261,
+        0.73,
+        0.372,
+        0.536,
+        0.598,
+        0.21,
+        0.155,
+        0.053,
+        0.096,
+        0.005,
+        0.005
+      ],
+      "maxChangedPixelsPct": 0.7297,
+      "totalChangedPixelsPct": 4.628
+    }
+  },
+  "errors": []
+}
