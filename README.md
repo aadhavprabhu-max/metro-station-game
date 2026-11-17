@@ -20,6 +20,10 @@ METRO_PRODUCTION_URL=http://127.0.0.1:5175/app.html npm test -- tests/surface.sp
 node tests/surface-live-inspect.mjs
 ```
 
+## Credits — Porsche 911 GT3 R model
+
+The drivable car uses "2024 Porsche 992 GT3 R" by Dave Love SketchFab (https://sketchfab.com/Tyler_Dave), https://sketchfab.com/3d-models/2024-porsche-992-gt3-r-b76c9b2ae2d548c3869426eac4ab8a19, under **CC BY-NC-SA 4.0** (non-commercial, share-alike). The optimised adaptation `public/vehicles/gt3r/gt3r.glb` is distributed under the same licence; see `public/vehicles/gt3r/ATTRIBUTION.md` for the changes made and the original licence file. Porsche names, logos and liveries are trademarks of their owners.
+
 ## Liquid Glass HUD and interactive network map
 
 The default interface is a Liquid Glass HUD. Open `?ui=legacy` for the original HUD, which is kept unchanged for comparison and will only be removed after review.

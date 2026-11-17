@@ -101,3 +101,23 @@ The corner design was first enabled only at East Avenue × Broadway North. On th
 - `node tests/road-geometry.mjs`: **0 failures** (was 23). 10,554 carriageway samples, no holes, no foreign surfaces, no coplanar surfaces, **0 obstacles in carriageways**, unchanged cross-sections (asphalt +16 mm, kerb +70 mm, pavement +16 mm). All **130 rounded corners** are checked at 7 points each for asphalt fillet, curved kerb and pavement, plus both tangent joints. All **7 bollard rows** are checked for pedestrian gap ≥ 1.0 m, vehicle gap < 1.9 m, coverage and centre gap. Report: `stage1/road-geometry-after.json`.
 - `node tests/surface-geometry.mjs` (existing pedestrian geometry): 0 failures, 4,192 route samples.
 - `npx playwright test tests/surface.spec.js tests/downtown.spec.js tests/rendering.spec.js`: **16 passed**, including the walk from Central square over the canal into Aurealis Square (through the new bollard row), the terrace, teleport and touch controls.
+
+## Stage 2 — Porsche 911 GT3 R asset
+
+**Licence:** CC BY-NC-SA 4.0 is applied (as identified by the project owner). The archive's own `license.txt` (which states CC-BY-4.0) is kept unchanged beside the model. Full attribution and the adaptation notice are in `public/vehicles/gt3r/ATTRIBUTION.md`.
+
+`scripts/optimize-gt3r.mjs` is an offline pipeline. Its tools are dev dependencies only (`@gltf-transform/*`, `meshoptimizer`, `sharp`) and nothing is shipped to the browser beyond `three`'s bundled meshopt decoder.
+
+| | Original download | `public/vehicles/gt3r/gt3r.glb` |
+|---|---|---|
+| Size | 38.3 MB (glTF + bin + 35 PNG) | **8.98 MB** (one GLB) |
+| Scale | 1/100 (root node 0.01) | metres (verified: wheelbase 2.517 m vs 2,507 mm published) |
+| Materials / textures | 89 / 35 | 55 / 30 (exact duplicates merged) |
+| Texture resolution | — | unchanged (WebP; normal maps lossless) |
+| Triangles drawn, full detail | 489,304 | 489,304 |
+| Triangles drawn, exterior cockpit LOD | — | 324,242 (cockpit 260,263 → 95,201) |
+
+**Visual A/B** (`tests/vehicle-asset-compare.mjs`; same lighting, cameras and viewport; `stage2/compare/*.jpg` show original | optimised | optimised with exterior LOD):
+- Optimised against original: mean pixel difference 0.04–1.0 (out of 255), at most 0.16 % of pixels differ by more than 24 levels in any view. Visually identical.
+- Exterior cockpit LOD from the chase-camera positions: 0.04–0.07 mean, ≤ 0.05 % of pixels. Indistinguishable.
+- Exterior cockpit LOD looking straight into the cabin from 1.5 m: 2.2 mean, 1.4 % of pixels, with visible shading smears on the dashboard. **So the LOD is never used for the cockpit view or within 4 m of the car**; the full original cockpit is shown there.

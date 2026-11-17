@@ -1,0 +1,21 @@
+{
+  "before": {
+    "triangles": 489304,
+    "primitives": 151,
+    "meshes": 151,
+    "materials": 89,
+    "textures": 35
+  },
+  "after": {
+    "triangles": 584505,
+    "primitives": 221,
+    "meshes": 221,
+    "materials": 55,
+    "textures": 30
+  },
+  "cockpitLod": {
+    "before": 260263,
+    "after": 95201
+  },
+  "glbBytes": 8983384
+}
