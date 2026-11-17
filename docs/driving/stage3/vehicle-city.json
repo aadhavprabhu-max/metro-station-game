@@ -1,0 +1,73 @@
+{
+  "groundBuildMs": 76.3,
+  "groundTriangles": 15464,
+  "zoneRects": 7,
+  "ground": {
+    "asphalt": 0.015999794006347656,
+    "kerb": 0.06999969482421875,
+    "canal": null,
+    "bridgeDeck": 0.015999794006347656
+  },
+  "broadway": {
+    "worstContactM": 0,
+    "minContacts": 4,
+    "x": 38.38,
+    "z": -427,
+    "speedKmh": 183.4,
+    "collisions": 0,
+    "finite": true
+  },
+  "bridge": {
+    "worstContactM": 0,
+    "minContacts": 4,
+    "x": -227,
+    "z": -371.12,
+    "speedKmh": 90.2,
+    "collisions": 0,
+    "finite": true
+  },
+  "bollards": {
+    "worstContactM": 0,
+    "minContacts": 3,
+    "x": -19.3,
+    "z": -354.18,
+    "speedKmh": -0.4,
+    "collisions": 73,
+    "finite": true,
+    "noseZ": -351.65
+  },
+  "zone": {
+    "worstContactM": 0,
+    "minContacts": 4,
+    "x": -40,
+    "z": -123.82,
+    "speedKmh": 0,
+    "collisions": 758,
+    "finite": true
+  },
+  "kerb": {
+    "peakVerticalG": 0.24,
+    "maxTiltDeg": 1.64,
+    "onKerbOrPavement": true
+  },
+  "building": {
+    "worstContactM": 0,
+    "minContacts": 2,
+    "x": 150,
+    "z": -510.47,
+    "speedKmh": 0,
+    "collisions": 807,
+    "finite": true
+  },
+  "junction": {
+    "worstContactM": 0,
+    "minContacts": 4,
+    "x": 202.77,
+    "z": -461.66,
+    "speedKmh": 36,
+    "collisions": 0,
+    "finite": true,
+    "headingDeg": 178.3
+  },
+  "failures": []
+}

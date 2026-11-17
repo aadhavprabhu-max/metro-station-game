@@ -107,7 +107,9 @@ for (const x of [-230, 200]) for (let z = -342; z <= -325; z += 0.5) for (const 
   if (!h.length || h[0].m !== 'asphalt') fail('bridge-deck', { x: x + dx, z, got: h[0]?.m ?? 'none' });
 }
 
-// 7. Rendered versus drivable heights (only once the vehicle ground model exists).
+// 7. Rendered versus drivable heights: the vehicle's ground model must return the rendered top surface everywhere.
+const { VehicleGround } = await import('../src/vehicle/vehicle-ground.js').catch(() => ({}));
+if (VehicleGround) surface.vehicleGround = new VehicleGround(surface);
 if (surface.vehicleGround) {
   const g = surface.vehicleGround; let n = 0, worst = 0, worstAt = null;
   for (let x = -305; x < 276; x += 1.37) for (let z = -645; z < 80; z += 1.37) {

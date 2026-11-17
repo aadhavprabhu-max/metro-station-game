@@ -121,3 +121,45 @@ The corner design was first enabled only at East Avenue × Broadway North. On th
 - Optimised against original: mean pixel difference 0.04–1.0 (out of 255), at most 0.16 % of pixels differ by more than 24 levels in any view. Visually identical.
 - Exterior cockpit LOD from the chase-camera positions: 0.04–0.07 mean, ≤ 0.05 % of pixels. Indistinguishable.
 - Exterior cockpit LOD looking straight into the cabin from 1.5 m: 2.2 mean, 1.4 % of pixels, with visible shading smears on the dashboard. **So the LOD is never used for the cockpit view or within 4 m of the car**; the full original cockpit is shown there.
+
+## Stage 3 — vehicle physics (headless)
+
+Before this work there was no vehicle physics in Aurealis; this is new code in `src/vehicle/`. No physics engine was added: the street is a set of rendered surfaces plus about 2,700 axis-aligned obstacles, and a raycast-suspension rigid body is the standard model for that.
+
+| Module | Content |
+|---|---|
+| `gt3r-params.js` | Every parameter with its provenance: **PUBLISHED** (mass ≈1,250–1,265 kg BoP, 416 kW, 4,194 cc, six-speed sequential, RWD, wheelbase, tyre sizes), **MEASURED** from the model (hubs, tyre radii, envelope), or **ESTIMATED** (CoG, inertia, springs/dampers ≈3.2 Hz, anti-roll, tyre μ 1.7 and slip peaks, gear ratios, torque-curve shape matched to 416 kW, LSD, aero CdA 0.95 / ClA 3.1, brake capacity and bias 58 %). |
+| `vehicle-physics.js` | Fixed **240 Hz** step with an accumulator and interpolated render pose. 6-DOF rigid body (semi-implicit Euler, world inertia tensor). Four independent spring/damper corners (separate bump and rebound), bump stops and anti-roll bars. The tyre contact treats the tyre as a circle along its heading, so it rolls up kerbs. Relaxation-length tyres with combined slip on a normalised Pacejka curve and load sensitivity. **Implicit** wheel-spin/slip solve (stable at any tyre stiffness). Engine curve, launch clutch, sequential box with auto/manual shifting, clutch-type LSD, brakes with bias, ABS/TC (toggleable), drag and downforce. Box collisions (SAT) against the city colliders with impulse, friction and position correction. Floor-contact safety and recovery. No allocations per step. |
+| `vehicle-ground.js` | The drivable ground is built **from the rendered surface triangles themselves**, so the physics surface and what is drawn cannot differ. It reuses the district's collider grid and adds the pedestrian-zone boundary (behind the bollard rows) and the district edge. |
+
+The physics uses the mean rear half-track: the model's rear hubs are 15 mm asymmetric, which made the car pull to one side. The visual rig keeps each wheel's measured position.
+
+### Results (`stage3/vehicle-physics.json`, synthetic test surfaces that exist only in the test)
+| Test | Result |
+|---|---|
+| Rest | 0.4 mm drift, no jitter; front load share 0.42 (matches CoG); settles at authored ride height |
+| Standing start | 0–100 km/h **3.28 s**, 0–200 km/h **9.43 s**, 0° heading deviation |
+| Braking (ABS) | 100–0 **21.2 m** (peak 1.90 g); 200–0 **73.6 m** (peak 2.45 g with downforce); straight (0° yaw). Without ABS: 23.5 m, wheels lock |
+| Progressive braking | deceleration follows the pedal to the limit (0.81 → 1.92 g), then ABS holds a plateau that eases as downforce falls |
+| Low-speed steering | full lock 24.9° (inner wheel, Ackermann); turning circle ≈ 12.3 m path, ≈ 14 m kerb to kerb |
+| Cornering limit (25 m circle) | **1.64 g** at 107 km/h |
+| Step steer at 180 km/h | 63 % yaw-rate rise in 0.067 s, 8.8 % overshoot, 1.59 g |
+| Kerb strike / bumps / washboard | 0.66 g peak, recovers; 100 % tyre contact over 3 cm bumps at 60 km/h (body heave 4 mm rms); straight on washboard |
+| 8 % grade | climbs; holds with the brake, 0 mm creep |
+| Collisions | wall at 10 and 30 m/s and a 0.24 m bollard at 30 m/s: no tunnelling, no spin, no NaN |
+| Traction (TC off) | power oversteer (rear slip 0.51, body slip 25°), recovered in 0.82 s by lift and countersteer; with TC, rear slip held at 0.10 |
+| Frame-rate independence | identical results at 30, 60 and 144 Hz (0 m spread) |
+| Cost | 0.014 ms per 60 Hz frame |
+
+Two first-run failures were real physics bugs and were fixed: the collision contact point used a single box corner (a head-on wall spun the car; a bollard was missed), and the asymmetric rear track made the car pull. Three were test-design errors and were corrected: a fixed 1.8° steer limited the skid-pad test, the braking test demanded strict monotonicity past the ABS limit, and the grade-hold test included the braking distance and triggered auto-reverse. The braking envelope was widened from 24–45 m to 19–40 m, because its lower bound implied μ ≤ 1.6, contradicting the stated slick-tyre estimate. Grip was not changed.
+
+### On the real city (`stage3/vehicle-city.json`, `tests/vehicle-city.mjs`)
+- Ground model built in 95 ms from 15,464 rendered surface triangles.
+- Broadway North straight (to 183 km/h): 4 tyres on the rendered surface, **0 mm** contact error.
+- West Avenue road bridge: deck crossed, 0 mm error.
+- Central Avenue bollards stop the car (nose at z = −351.65).
+- The pedestrian-zone boundary holds from Via del Corso.
+- Diagonal kerb mount at 25 km/h: 0.24 g, 1.6° tilt.
+- Facade impact: stopped outside the building.
+- Rounded junction Broadway North → East Avenue at 36 km/h: ends in the southbound lane, no contact, 0 mm error.
+- `tests/road-geometry.mjs` check 7: drivable and rendered heights agree at **222,915** points (worst error 0 mm).

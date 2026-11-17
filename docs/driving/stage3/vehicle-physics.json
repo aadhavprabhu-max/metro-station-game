@@ -1,0 +1,158 @@
+{
+  "rest": {
+    "driftM": 0.00038,
+    "heaveM": -0.0015,
+    "maxSpeedAfter1s": 0,
+    "frontLoadShare": 0.42,
+    "allContact": true
+  },
+  "acceleration": {
+    "zeroTo100s": 3.28,
+    "zeroTo200s": 9.43,
+    "maxHeadingDeviationDeg": 0,
+    "gearAt200": 4,
+    "rpm": 8739
+  },
+  "braking": [
+    {
+      "from": 100,
+      "abs": true,
+      "distanceM": 21.23,
+      "timeS": 1.58,
+      "peakDecelG": 1.9,
+      "yawChangeDeg": 0,
+      "lockedWheels": 4
+    },
+    {
+      "from": 200,
+      "abs": true,
+      "distanceM": 73.62,
+      "timeS": 2.88,
+      "peakDecelG": 2.45,
+      "yawChangeDeg": 0,
+      "lockedWheels": 4
+    },
+    {
+      "from": 100,
+      "abs": false,
+      "distanceM": 23.53,
+      "timeS": 1.73,
+      "peakDecelG": 1.8,
+      "yawChangeDeg": 0,
+      "lockedWheels": 4
+    }
+  ],
+  "progressiveBraking": {
+    "decelGEvery250ms": [
+      0.81,
+      1.33,
+      1.68,
+      1.92,
+      1.87,
+      1.81,
+      1.77,
+      1.74
+    ],
+    "peakAtIndex": 3
+  },
+  "lowSpeedSteering": {
+    "pathDiameterM": 12.3,
+    "kerbToKerbEstimateM": 13.98,
+    "maxWheelAngleDeg": 24.9
+  },
+  "cornering": {
+    "peakLateralG": 1.64,
+    "atKmh": 107
+  },
+  "highSpeedSteering": {
+    "steadyYawRateDegS": 18.19,
+    "riseTime63S": 0.067,
+    "overshootPct": 8.8,
+    "lateralG": 1.59
+  },
+  "kerbStrike": {
+    "peakVerticalG": 0.66,
+    "minWheelLoadN": 0,
+    "finalAllContact": true,
+    "yawDeg": 0.04
+  },
+  "bumps": {
+    "contactRatio": 1,
+    "bodyHeaveRmsM": 0.0041
+  },
+  "washboard": {
+    "maxYawRateDegS": 0,
+    "speedKmh": 73.5
+  },
+  "ramp": {
+    "gradePct": 8,
+    "holdCreepM": 0,
+    "climbedM": 2.1
+  },
+  "wall10": {
+    "impactMs": 9.68,
+    "reboundMs": 0.01,
+    "maxAngularVelocity": 0.04,
+    "noseZ": 39.95,
+    "obstacleZ": 40,
+    "finite": true
+  },
+  "wall30": {
+    "impactMs": 29.51,
+    "reboundMs": 0.01,
+    "maxAngularVelocity": 0.03,
+    "noseZ": 79.94,
+    "obstacleZ": 80,
+    "finite": true
+  },
+  "bollard30": {
+    "impactMs": 29.51,
+    "reboundMs": 0,
+    "maxAngularVelocity": 0.21,
+    "noseZ": 80.05,
+    "obstacleZ": 80,
+    "finite": true
+  },
+  "tractionLossRecovery": {
+    "lost": {
+      "rearSlip": 0.51,
+      "bodySlipDeg": 25.5
+    },
+    "recoveredAfterS": 0.82,
+    "spunOut": false,
+    "withTcRearSlip": 0.1
+  },
+  "frameRateIndependence": {
+    "runs": [
+      {
+        "fps": 30,
+        "x": 51.5473,
+        "z": 77.4281,
+        "speed": 11.934,
+        "steps": 1440
+      },
+      {
+        "fps": 60,
+        "x": 51.5473,
+        "z": 77.4281,
+        "speed": 11.934,
+        "steps": 1440
+      },
+      {
+        "fps": 144,
+        "x": 51.5473,
+        "z": 77.4281,
+        "speed": 11.934,
+        "steps": 1440
+      }
+    ],
+    "spreadM": 0,
+    "speedSpread": 0
+  },
+  "cost": {
+    "msPerSimulatedSecond": 0.89,
+    "stepsPerSecond": 240,
+    "msPer60HzFrame": 0.015
+  },
+  "failures": []
+}
