@@ -1,7 +1,7 @@
 {
   "label": "compare-before-fade",
-  "commit": "48214f3+dirty",
-  "date": "2026-11-17T21:49:38.681Z",
+  "commit": "824ce61",
+  "date": "2026-11-17T23:42:32.080Z",
   "url": "http://127.0.0.1:5178/app.html",
   "environment": {
     "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
@@ -35,30 +35,29 @@
     "poses": "2 passes x 20 renders (+12 with forced shadow refresh) after 8 warm-up renders; renderer.render + gl.finish",
     "cpu": "120 world.update(1/60) calls with the camera moved at a fixed speed; rendering excluded",
     "realtime": "15 s of the game's own animation loop with the camera moved at 25 m/s around the downtown loop",
-    "soak": "300 frames of update+render at 20 m/s with forced GC before and after (CDP heap usage)"
+    "soak": "300 frames of update+render at 20 m/s with forced GC before and after (CDP heap usage)",
+    "drive": "scripted drive on Broadway North (full throttle for 6 s with a lane change at 4-5.2 s, then 40 % throttle, braking in the last 2 s of the requested game time); 15 s of game time at 1/60 s per rendered frame, or a 120 s real-time cap once at least 60 frames exist"
   },
-  "errors": [
-    "page.evaluate: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /opt/pw-browsers/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --no-sandbox --disable-dev-shm-usage --use-angle=swiftshader --enable-unsafe-swiftshader --enable-precise-memory-info --user-data-dir=/tmp/playwright_chromiumdev_profile-gh5L3b --remote-debugging-pipe --no-startup-window\n<launched> pid=1415\n[pid=1415][err] [1117/214917.059136:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory\n[pid=1415][err] [1117/214917.059446:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are \"tcp\" and on UNIX \"unix\")\n[pid=1415][err] [1117/214917.060478:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory\n[pid=1415][err] [1117/214917.060509:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Failed to connect to socket /run/dbus/system_bus_socket: No such file or directory\n[pid=1415][err] [1117/214917.070129:WARNING:media/gpu/vaapi/vaapi_wrapper.cc:1660] drmGetDevices2() has not found any devices\n[pid=1415][err] [1117/214917.072203:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=1415][err] [1117/214917.072426:WARNING:device/bluetooth/dbus/bluez_dbus_manager.cc:209] Floss manager service not available, cannot set Floss enable/disable.\n[pid=1415][err] [1117/214917.072642:ERROR:dbus/bus.cc:405] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are \"tcp\" and on UNIX \"unix\")\n[pid=1415][err] [1117/214917.072862:WARNING:sandbox/policy/linux/sandbox_linux.cc:405] InitializeSandbox() called with multiple threads in process gpu-process.\n[pid=1415][err] [1117/214917.078285:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: \n[pid=1415][err] [1117/214917.201717:INFO:CONSOLE:934] \"[vite] connecting...\", source: http://127.0.0.1:5178/@vite/client (934)\n[pid=1415][err] [1117/214917.229403:INFO:CONSOLE:1047] \"[vite] connected.\", source: http://127.0.0.1:5178/@vite/client (1047)\n[pid=1415] <gracefully close start>\n[pid=1415] <forcefully close>\n[pid=1415] <kill>\n[pid=1415] <will force kill>"
-  ],
+  "errors": [],
   "poses": [
     {
       "name": "oldtown-central-square",
       "frameMs": {
         "n": 20,
         "median": 11.3,
-        "p95": 15.3,
-        "p99": 15.3,
-        "max": 15.3,
-        "mean": 11.48
+        "p95": 14.4,
+        "p99": 14.4,
+        "max": 14.4,
+        "mean": 10.94
       },
       "gpuMs": null,
       "withShadowRefreshMs": {
         "n": 12,
-        "median": 11.9,
-        "p95": 1191.5,
-        "p99": 1191.5,
-        "max": 1191.5,
-        "mean": 110.08
+        "median": 9,
+        "p95": 2671.4,
+        "p99": 2671.4,
+        "max": 2671.4,
+        "mean": 230.47
       },
       "calls": 335,
       "triangles": 935320,
@@ -70,27 +69,27 @@
       "surface": true,
       "repeatMedians": [
         11.3,
-        12.2
+        7.1
       ]
     },
     {
       "name": "downtown-broadway-central",
       "frameMs": {
         "n": 20,
-        "median": 10.3,
-        "p95": 12.9,
-        "p99": 12.9,
-        "max": 12.9,
-        "mean": 10.43
+        "median": 7.3,
+        "p95": 14.1,
+        "p99": 14.1,
+        "max": 14.1,
+        "mean": 7.63
       },
       "gpuMs": null,
       "withShadowRefreshMs": {
         "n": 12,
-        "median": 12,
-        "p95": 18.5,
-        "p99": 18.5,
-        "max": 18.5,
-        "mean": 12.49
+        "median": 5,
+        "p95": 6,
+        "p99": 6,
+        "max": 6,
+        "mean": 5.1
       },
       "calls": 195,
       "triangles": 270956,
@@ -101,28 +100,28 @@
       "district": "Downtown",
       "surface": true,
       "repeatMedians": [
-        10.3,
-        7.1
+        7.3,
+        4.5
       ]
     },
     {
       "name": "downtown-mercato-midtown",
       "frameMs": {
         "n": 20,
-        "median": 42.2,
-        "p95": 14135,
-        "p99": 14135,
-        "max": 14135,
-        "mean": 2153.94
+        "median": 29.1,
+        "p95": 8153.3,
+        "p99": 8153.3,
+        "max": 8153.3,
+        "mean": 1363.12
       },
       "gpuMs": null,
       "withShadowRefreshMs": {
         "n": 12,
-        "median": 21.2,
-        "p95": 5145.3,
-        "p99": 5145.3,
-        "max": 5145.3,
-        "mean": 894.93
+        "median": 2635.7,
+        "p95": 5718.7,
+        "p99": 5718.7,
+        "max": 5718.7,
+        "mean": 1658.81
       },
       "calls": 130,
       "triangles": 185926,
@@ -133,28 +132,28 @@
       "district": "Downtown",
       "surface": true,
       "repeatMedians": [
-        42.2,
-        1700.9
+        29.1,
+        924.8
       ]
     },
     {
       "name": "road-bridge-west-ave",
       "frameMs": {
         "n": 20,
-        "median": 1733,
-        "p95": 13795.8,
-        "p99": 13795.8,
-        "max": 13795.8,
-        "mean": 2568.43
+        "median": 930.5,
+        "p95": 7977.4,
+        "p99": 7977.4,
+        "max": 7977.4,
+        "mean": 1466.95
       },
       "gpuMs": null,
       "withShadowRefreshMs": {
         "n": 12,
-        "median": 2717.6,
-        "p95": 12258.8,
-        "p99": 12258.8,
-        "max": 12258.8,
-        "mean": 3338.23
+        "median": 1469.7,
+        "p95": 6435.8,
+        "p99": 6435.8,
+        "max": 6435.8,
+        "mean": 1792.39
       },
       "calls": 197,
       "triangles": 398836,
@@ -165,28 +164,28 @@
       "district": "Downtown",
       "surface": true,
       "repeatMedians": [
-        1733,
-        1366.9
+        930.5,
+        730.5
       ]
     },
     {
       "name": "east-ave-broadway",
       "frameMs": {
         "n": 20,
-        "median": 2424.4,
-        "p95": 11047,
-        "p99": 11047,
-        "max": 11047,
-        "mean": 2872.01
+        "median": 2280.8,
+        "p95": 10730.6,
+        "p99": 10730.6,
+        "max": 10730.6,
+        "mean": 2276.21
       },
       "gpuMs": null,
       "withShadowRefreshMs": {
         "n": 12,
-        "median": 2187.1,
-        "p95": 5254.6,
-        "p99": 5254.6,
-        "max": 5254.6,
-        "mean": 1502.67
+        "median": 1504.3,
+        "p95": 3002.1,
+        "p99": 3002.1,
+        "max": 3002.1,
+        "mean": 905.82
       },
       "calls": 402,
       "triangles": 994930,
@@ -197,28 +196,28 @@
       "district": "Downtown",
       "surface": true,
       "repeatMedians": [
-        2424.4,
-        1988.9
+        2280.8,
+        1146
       ]
     },
     {
       "name": "downtown-look-up",
       "frameMs": {
         "n": 20,
-        "median": 17.3,
-        "p95": 30710.2,
-        "p99": 30710.2,
-        "max": 30710.2,
-        "mean": 2801.18
+        "median": 16.2,
+        "p95": 18431.9,
+        "p99": 18431.9,
+        "max": 18431.9,
+        "mean": 1653.53
       },
       "gpuMs": null,
       "withShadowRefreshMs": {
         "n": 12,
-        "median": 3666.6,
-        "p95": 3910,
-        "p99": 3910,
-        "max": 3910,
-        "mean": 2197.66
+        "median": 2178,
+        "p95": 2343.3,
+        "p99": 2343.3,
+        "max": 2343.3,
+        "mean": 1301.78
       },
       "calls": 200,
       "triangles": 285996,
@@ -229,9 +228,284 @@
       "district": "Downtown",
       "surface": true,
       "repeatMedians": [
-        17.3,
-        2306.1
+        16.2,
+        2137.5
+      ]
+    },
+    {
+      "name": "downtown-look-down-road",
+      "frameMs": {
+        "n": 20,
+        "median": 17.5,
+        "p95": 8780.8,
+        "p99": 8780.8,
+        "max": 8780.8,
+        "mean": 1441.3
+      },
+      "gpuMs": null,
+      "withShadowRefreshMs": {
+        "n": 12,
+        "median": 1956.3,
+        "p95": 7521.2,
+        "p99": 7521.2,
+        "max": 7521.2,
+        "mean": 1776.97
+      },
+      "calls": 188,
+      "triangles": 285300,
+      "shadowFrame": {
+        "calls": 338,
+        "triangles": 923560
+      },
+      "district": "Downtown",
+      "surface": true,
+      "repeatMedians": [
+        17.5,
+        958.5
+      ]
+    },
+    {
+      "name": "downtown-broadway-central-night",
+      "frameMs": {
+        "n": 20,
+        "median": 912.8,
+        "p95": 4648.6,
+        "p99": 4648.6,
+        "max": 4648.6,
+        "mean": 829.61
+      },
+      "gpuMs": null,
+      "withShadowRefreshMs": {
+        "n": 12,
+        "median": 1372.7,
+        "p95": 5877.4,
+        "p99": 5877.4,
+        "max": 5877.4,
+        "mean": 1505.65
+      },
+      "calls": 195,
+      "triangles": 270956,
+      "shadowFrame": {
+        "calls": 360,
+        "triangles": 943350
+      },
+      "district": "Downtown",
+      "surface": true,
+      "repeatMedians": [
+        912.8,
+        704.9
+      ]
+    },
+    {
+      "name": "downtown-mercato-midtown-night",
+      "frameMs": {
+        "n": 20,
+        "median": 15,
+        "p95": 6823.3,
+        "p99": 6823.3,
+        "max": 6823.3,
+        "mean": 606.3
+      },
+      "gpuMs": null,
+      "withShadowRefreshMs": {
+        "n": 12,
+        "median": 1060,
+        "p95": 1189.9,
+        "p99": 1189.9,
+        "max": 1189.9,
+        "mean": 571.1
+      },
+      "calls": 130,
+      "triangles": 185926,
+      "shadowFrame": {
+        "calls": 247,
+        "triangles": 562194
+      },
+      "district": "Downtown",
+      "surface": true,
+      "repeatMedians": [
+        15,
+        897.1
       ]
     }
-  ]
+  ],
+  "cpu": {
+    "walk1_4": {
+      "updateMs": {
+        "n": 120,
+        "median": 0.1,
+        "p95": 1,
+        "p99": 5.8,
+        "max": 7.4,
+        "mean": 0.291
+      },
+      "shadowRefreshesPerSecond": 1
+    },
+    "sprint7": {
+      "updateMs": {
+        "n": 120,
+        "median": 0.1,
+        "p95": 0.5,
+        "p99": 0.9,
+        "max": 7.3,
+        "mean": 0.19
+      },
+      "shadowRefreshesPerSecond": 1.5
+    },
+    "drive25": {
+      "updateMs": {
+        "n": 120,
+        "median": 0.1,
+        "p95": 0.3,
+        "p99": 0.6,
+        "max": 6.4,
+        "mean": 0.152
+      },
+      "shadowRefreshesPerSecond": 5.5
+    },
+    "drive50": {
+      "updateMs": {
+        "n": 120,
+        "median": 0.1,
+        "p95": 0.6,
+        "p99": 3.9,
+        "max": 6.1,
+        "mean": 0.233
+      },
+      "shadowRefreshesPerSecond": 9.5
+    }
+  },
+  "realtime": {
+    "frames": 53,
+    "frameIntervalMs": {
+      "n": 53,
+      "median": 1028.1,
+      "p95": 3937.6,
+      "p99": 37888.4,
+      "max": 37888.4,
+      "mean": 2121.21
+    },
+    "fpsMedian": 1,
+    "fps1PercentLow": 0,
+    "updateMs": {
+      "n": 54,
+      "median": 0.5,
+      "p95": 1.1,
+      "p99": 1.7,
+      "max": 1.7,
+      "mean": 0.515
+    },
+    "shadowRefreshFrames": 5,
+    "intervalWithShadowRefreshMs": {
+      "n": 5,
+      "median": 1817.3,
+      "p95": 37888.4,
+      "p99": 37888.4,
+      "max": 37888.4,
+      "mean": 8591.76
+    },
+    "intervalWithoutMs": {
+      "n": 48,
+      "median": 1028.1,
+      "p95": 3874.9,
+      "p99": 6902.2,
+      "max": 6902.2,
+      "mean": 1447.19
+    }
+  },
+  "soak": {
+    "frames": 300,
+    "frameMs": {
+      "n": 300,
+      "median": 6.5,
+      "p95": 24.5,
+      "p99": 866.8,
+      "max": 1518.5,
+      "mean": 41.27
+    },
+    "shadowRefreshFrames": 22,
+    "frameMsWithShadowRefresh": {
+      "n": 22,
+      "median": 7.9,
+      "p95": 17.8,
+      "p99": 19.7,
+      "max": 19.7,
+      "mean": 9.6
+    },
+    "frameMsWithout": {
+      "n": 278,
+      "median": 6.4,
+      "p95": 31.5,
+      "p99": 866.8,
+      "max": 1518.5,
+      "mean": 43.77
+    },
+    "heapAfterGCMB": {
+      "before": 79.13,
+      "after": 79.22
+    },
+    "rendererMemory": {
+      "before": {
+        "geometries": 189,
+        "textures": 183
+      },
+      "after": {
+        "geometries": 191,
+        "textures": 186
+      }
+    }
+  },
+  "drive": {
+    "gameSecondsRequested": 15,
+    "gameSecondsCovered": 1,
+    "frames": 60,
+    "intervals": 59,
+    "realSeconds": 468.3,
+    "stoppedBy": "real-time cap",
+    "frameIntervalMs": {
+      "n": 59,
+      "median": 93.9,
+      "p95": 5711.4,
+      "p99": 360647.6,
+      "max": 360647.6,
+      "mean": 7863.1
+    },
+    "fpsMedian": 10.6,
+    "fps1PercentLow": 0,
+    "updateMs": {
+      "n": 60,
+      "median": 0.9,
+      "p95": 5.2,
+      "p99": 8.9,
+      "max": 8.9,
+      "mean": 1.478
+    },
+    "shadowRefreshFrames": 1,
+    "shadowRefreshesPerGameSecond": 1,
+    "intervalWithShadowRefreshMs": {
+      "n": 1,
+      "median": 360647.6,
+      "p95": 360647.6,
+      "p99": 360647.6,
+      "max": 360647.6,
+      "mean": 360647.6
+    },
+    "intervalWithoutMs": {
+      "n": 58,
+      "median": 93.9,
+      "p95": 5435.4,
+      "p99": 7839.9,
+      "max": 7839.9,
+      "mean": 1780.61
+    },
+    "maxSpeedKmh": 31.2,
+    "endSpeedKmh": 31.2,
+    "calls": 493,
+    "triangles": 1319092,
+    "modelDrawCalls": {
+      "before": 221,
+      "after": 156
+    }
+  },
+  "glError": 0
 }

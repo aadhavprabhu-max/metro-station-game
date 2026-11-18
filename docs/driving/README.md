@@ -231,11 +231,21 @@ Above the cell crossings (about 3.6/s at 50 m/s), the remaining refreshes come f
 
 No visible change ever happened without a refresh, in any build. Up to ~79 m around the viewer, refreshes reproduce the same texels.
 
-**Open issue: larger, rarer pops at the shadow-range edge.** The ±90 m shadow area's far edge now advances in 16 m jumps instead of 2 m steps. The total change is the same (≈4.6–4.9 % over 50 m in every build), but it arrives in a few bigger pops: one jump changed 3.9 % of the frame, when a distant tower shadow down the avenue appeared at once. The original's 24 small steps were each under 0.75 %. This is a visible-popping trade-off introduced by Stage 5 and not yet resolved.
+**Edge pops (introduced by the fix above), resolved by edge fading.** The ±90 m shadow area's far edge advanced in 16 m jumps, so distant shadows appeared in a few big pops: one jump changed 3.9 % of the frame when a tower shadow down the avenue appeared at once.
 
-Options:
-- **Smaller cells (e.g. 4 m):** pops roughly 4× smaller, with more refreshes but still well below the original.
-- **Fade shadows towards the edge of the shadow area:** removes the edge pop, but needs a shader change on the street's materials.
+`src/shadow-edge-fade.js` now blends the directional shadow lookup of street materials (and the car) to unshadowed between about 58 and 77 m from the viewer, measured in the shadow map's own plane. Design points:
+- **Anchored to the viewer, not to the map.** A first version faded towards the map's border (75–97 % of the half-width). It did not remove the pop: the band was ~20 m wide and moved with the map's 16 m steps, so a facade's fade jumped from 0.95 to 0.77 in one frame (measured by raycasting the changed pixels). The viewer moves continuously, so a viewer-anchored fade glides instead. The fade origin is computed from the same basis as the snapped centre and matched `key.shadow.matrix` exactly in four positions and times.
+- **Always inside the map.** The viewer is at most ~8 m per axis from the centre, so the band ends before the border; the map's last 5 % also fades as a safety net.
+- **Scope.** Only materials used exclusively by the street (and the car) are patched (102 materials); 13 shared with the underground stations are skipped. Existing `onBeforeCompile` and program cache keys are chained.
+
+Popping over 50 m at 25 m/s, fixed camera (`stage5/shadow-refresh/before-fade.json`, `after-fade.json`):
+
+| Build | Clock | Refreshes | Frames with visible change | Changes (% of pixels) | Total |
+|---|---|---|---|---|---|
+| Before fade | running / held | 13 / 12 | 4 / 4 | 0.666, 3.933, 0.251, 0.005 | 4.86 % |
+| **Edge fade** | running / held | 13 / 12 | **1 / 1** | **0.005** | **0.005 %** |
+
+Refresh rates are unchanged (6/s at 25 m/s). Visuals (`stage5/edge-fade/`, before | after | difference): in all five views (Broadway evening, East Avenue morning, near shadows at noon, Via del Corso, night) nothing changed in the lower 40 % of the frame; only distant facade shadows differ, now fading instead of ending in a hard line. Lighting, the day/night cycle and materials are otherwise unchanged.
 
 The fixed-offset popping test (`shadow-stability.mjs`, clock held) is unchanged by the fix: mean 0.025 % changed pixels per refresh (original 0.042 %), 0 % within a cell.
 
@@ -263,9 +273,17 @@ The fixed-offset popping test (`shadow-stability.mjs`, clock held) is unchanged 
   - The failure was the new touch-pad driving test, which dispatched synthetic pointer events that the game's `setPointerCapture` rejects. The test now uses genuine touch input, as `surface.spec.js` does. The skipped test followed it in the same serial spec.
   - On rerun, `driving.spec.js` passed 9 of 9.
 
+**Performance before and after edge fading, back to back with identical settings** (`benchmarks/compare-before-fade.json`, `benchmarks/compare-after-fade.json`; SwiftShader):
+- Identical in both: draw calls and triangles at all nine poses, shadow refreshes per second (walk 1, sprint 1.5, 25 m/s 5.5, 50 m/s 9.5), soak refresh frames (22 of 300), heap after GC (79.1 → 79.2 MB and 79.5 → 79.6 MB), geometry and texture counts.
+- Soak frame-time median: 6.5 ms before, 6.4 ms after.
+- The other software timings vary far more between runs than between builds (one pose measured 930 ms before and 7.9 ms after with no related change), so they show neither a cost nor a gain. The fade adds one `smoothstep` pair per shadow lookup on street materials; its real cost needs a real-GPU run.
+
+**Regression suite on the final code:** 13 of 13 node checks and 104 of 104 Playwright tests (19 specs) passed. The production build (`npm run build`) was also served under `/metro-station-game/` and driven in an emulated Pixel 7 with no errors or failed requests; after merging, the Pages workflow's own deployment check passed.
+
 ### Stage 5 status
 - The shadow-refresh regression is fixed and verified.
+- The edge-pop trade-off is resolved by edge fading and verified.
+- The standalone `index.html` is rebuilt; opened from disk, it shows "Driving needs the hosted version (development server or GitHub Pages)…" and does not enter the car (checked, no page errors).
 - Stage 5 is **not complete**. Still open:
-  - the edge-pop trade-off above
-  - real-GPU frame-rate validation
-  - rebuilding the standalone `index.html` and checking its "driving needs the hosted version" message
+  - real-GPU frame-rate validation (60 FPS is not claimed)
+  - checking touch driving on a real phone
