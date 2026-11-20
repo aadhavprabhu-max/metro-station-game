@@ -1,0 +1,130 @@
+/* Aurealis-Bahn Island HUD — ported from design/island/aurealis-island.html (ISLAND CSS block).
+   Only change vs. the prototype: every selector is scoped under .island so generic names
+   (.train, .dot, .fill …) can't leak into the game. Values, sizes and timings are unchanged. */
+
+.island{
+  --black:#000000;           /* true black, as requested */
+  --line:#F2B33D;            /* active line colour (set via API) */
+  --ok:#34C759; --warn:#FF9F0A; --bad:#FF453A;
+  --txt:#ffffff; --sub:rgba(255,255,255,.56); --chip:#1c1c1e;
+  --spring:cubic-bezier(.3,1.32,.5,1); --dur:.6s;
+  position:absolute;top:11px;left:50%;width:0;height:0;z-index:10;transform-origin:0 0;
+  font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;
+  user-select:none;-webkit-user-select:none;
+  transition:transform .25s var(--spring),filter .45s ease}
+.island *{box-sizing:border-box;margin:0;padding:0}
+.island.press{transform:scale(.965)}
+.island.hidden{opacity:0;transform:translateY(-10px) scale(.6);filter:blur(6px);pointer-events:none;
+  transition:opacity .28s ease,transform var(--dur) var(--spring),filter .28s ease}
+.island{transition:transform .25s var(--spring),filter .45s ease,opacity .35s ease}
+.island.lifted{filter:drop-shadow(0 14px 26px rgba(0,0,0,.36))}
+.island .bridge{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+.island .bridge path{fill:var(--black)}
+.island .pill{position:relative;background:var(--black);overflow:hidden;cursor:pointer;
+  position:absolute;left:0;top:0;transform:translateX(-50%);width:126px;height:37px;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.island .layer{position:absolute;top:0;left:50%;transform:translateX(-50%) scale(.9);transform-origin:50% 0;
+  opacity:0;filter:blur(7px);pointer-events:none;color:var(--txt);
+  transition:opacity .2s ease,filter .28s ease,transform var(--dur) var(--spring)}
+.island .layer.on{opacity:1;filter:blur(0);transform:translateX(-50%) scale(1);pointer-events:auto;transition-delay:.07s,.07s,0s}
+
+/* detached bubble (split state) */
+.island .bubble{position:absolute;width:0;height:0;border-radius:50%;background:var(--black);overflow:hidden;display:grid;place-items:center;opacity:0;cursor:pointer}
+.island .bubble .bi{width:19px;height:19px;transform-origin:50% 50%}   /* JS scales this wrapper… */
+.island .bubble svg{width:19px;height:19px}
+.island .bubble.closing .bi{color:var(--warn)}
+.island .bubble.closing .bi svg{animation:ai-pulse 1s ease-in-out infinite}  /* …and the pulse lives on the svg, so they never fight */
+.island .bubble.open .bi{color:var(--ok)}
+@keyframes ai-pulse{50%{opacity:.35;transform:scale(.88)}}
+
+/* shared bits */
+.island .badge{display:grid;place-items:center;background:var(--line);color:#000;font-weight:700;border-radius:6px;
+  font-size:10.5px;height:20px;min-width:24px;padding:0 4px;letter-spacing:-.01em}
+.island .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.island .lc{color:var(--line)}
+.island .row{display:flex;align-items:center}
+.island .sub{color:var(--sub)}
+.island svg{display:block}
+
+/* compact + split layers */
+.island .l-compact,.island .l-split{height:37px;display:flex;align-items:center;justify-content:space-between;padding:0 9px 0 8px}
+.island .l-compact .r,.island .l-split .r{font-size:14px;font-weight:600;letter-spacing:-.01em;padding-right:4px}
+.island .l-compact .l{display:flex;align-items:center;gap:6px}
+.island .ring{width:20px;height:20px}
+.island .ring circle{fill:none;stroke-width:2.6}
+.island .ring .bg{stroke:rgba(255,255,255,.14)}
+.island .ring .fg{stroke:var(--line);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .3s linear}
+
+/* expanded */
+.island .l-expanded{height:178px}
+.island .l-expanded > div{position:absolute}
+.island .cam{top:0;left:50%;transform:translateX(-50%);width:126px;height:37px;background:var(--black);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}                  /* faint hairline so the camera zone reads */
+.island .x-lead{left:18px;top:15px}
+.island .x-trail{right:20px;top:16px;text-align:right}
+.island .x-trail .big{font-size:30px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.island .x-trail .big small{font-size:15px;font-weight:600;margin-left:2px}
+.island .x-trail .sub{font-size:12px;margin-top:5px;font-weight:500;color:var(--sub)}
+.island .x-center{top:44px;left:50%;transform:translateX(-50%);width:196px;text-align:center}
+.island .x-center .ex-t{font-size:17px;font-weight:600;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.island .x-center .ex-k{font-size:12px;font-weight:500;color:var(--sub);margin-top:2px;white-space:nowrap}
+.island .x-bottom{left:22px;right:22px;top:96px}
+.island .ex-icon{width:48px;height:48px;border-radius:13px;background:var(--line);display:grid;place-items:center;color:#000}
+.island .ex-icon svg{width:26px;height:26px}
+.island .track{position:relative;margin:0 4px;height:36px}
+.island .track .rail{position:absolute;left:0;right:0;top:5px;height:4px;border-radius:2px;background:rgba(255,255,255,.14)}
+.island .track .fill{position:absolute;left:0;top:5px;height:4px;border-radius:2px;background:var(--line);width:0;transition:width .3s linear}
+.island .track .stop{position:absolute;top:1px;width:12px;height:12px;border-radius:50%;background:var(--black);border:2.5px solid rgba(255,255,255,.4);transform:translateX(-50%)}
+.island .track .stop.passed{border-color:var(--line)}
+.island .track .lbl{position:absolute;top:19px;font-size:11.5px;font-weight:500;color:var(--sub);white-space:nowrap;transform:translateX(-50%)}
+.island .track .lbl.cur{color:#fff;font-weight:600}
+.island .track .lbl.first{transform:none} .island .track .lbl.last{transform:translateX(-100%)}
+.island .train{position:absolute;top:-4px;width:22px;height:22px;border-radius:50%;background:#fff;color:#000;display:grid;place-items:center;
+  transform:translateX(-50%);box-shadow:0 0 0 3px var(--black);transition:left .3s linear}
+.island .train svg{width:13px;height:13px}
+.island .track.reset .fill,.island .track.reset .train{transition:none}
+.island .ex-foot{display:flex;justify-content:space-between;margin-top:10px;font-size:12px;font-weight:500;color:var(--sub)}
+.island .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:1px}
+.island .late .dot{background:var(--warn)} .island .late .st{color:var(--warn)}
+
+/* alert */
+.island .l-alert{height:76px;display:flex;align-items:center;gap:12px;padding:0 14px 0 16px}
+.island .al-ic{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--chip)}
+.island .al-ic svg{width:22px;height:22px}
+.island .al-tx{flex:1;min-width:0}
+.island .al-t{font-size:15.5px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.island .al-s{font-size:12.5px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.island .al-btn{flex:none;background:var(--chip);color:#fff;border:0;font:600 13px Inter,system-ui;padding:8px 14px;border-radius:99px;cursor:pointer}
+.island .tone-warn .al-ic{color:var(--warn);background:rgba(255,159,10,.16)}
+.island .tone-ok .al-ic{color:var(--ok);background:rgba(52,199,89,.16)}
+.island .tone-info .al-ic{color:var(--line);background:rgba(255,255,255,.08)}
+.island .tone-bad .al-ic{color:var(--bad);background:rgba(255,69,58,.16)}
+
+/* actions */
+.island .l-actions{height:164px;padding:16px 20px 0}
+.island .ac-h{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:500;color:var(--sub)}
+.island .ac-h .row{gap:8px;color:#fff;font-weight:600;font-size:13.5px}
+.island .ac-hide{background:var(--chip);color:#fff;border:0;font:600 12px Inter,system-ui;padding:5px 11px;border-radius:99px;cursor:pointer}
+.island .ac-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
+.island .ac{display:flex;flex-direction:column;align-items:center;gap:7px;background:none;border:0;color:#fff;cursor:pointer;font:500 11.5px Inter,system-ui}
+.island .ac i{width:56px;height:56px;border-radius:50%;background:var(--chip);display:grid;place-items:center;transition:transform .3s var(--spring),background .2s}
+.island .ac i svg{width:22px;height:22px}
+.island .ac:active i{transform:scale(.88);background:#2c2c2e}
+.island .ac.hot i{background:var(--line);color:#000}
+
+/* ===================== game integration (not part of the prototype) ===================== */
+/* Own overlay layer above the canvas (a sibling of #glass-hud, so .gh's button reset never applies). */
+#island-layer{position:absolute;inset:0;z-index:7;pointer-events:none;overflow:hidden}
+#island-layer .island .pill,#island-layer .island .bubble{pointer-events:auto}
+#island-layer .island.hidden .pill,#island-layer .island.hidden .bubble{pointer-events:none}
+.island .pill:focus-visible{outline:2px solid rgba(255,255,255,.7);outline-offset:3px}
+/* Trains are suspended on the street, and the driving HUD owns the screen: the island steps aside
+   there (CSS only — the player's hide/show preference is untouched), like #gh-service-pill does. */
+.surface-exploring #island-layer,.driving #island-layer{visibility:hidden}
+/* The bottom glass pill hands over to the island: fade + slight slide, as in the prototype's glass HUD. */
+html.ui-glass #gh-service-pill{transition:box-shadow .7s ease,gap var(--spring-d) var(--spring),padding var(--spring-d) var(--spring),left var(--spring-d) var(--spring),opacity .35s ease,transform .45s cubic-bezier(.3,1.3,.5,1),filter .35s ease}
+html.ui-glass #gh-service-pill.gh-pill-gone{opacity:0;transform:translateX(-50%) translateY(14px) scale(.96);filter:blur(4px)}
+/* Keyboard focus inside the island: round rings instead of the game's global rectangular button outline. */
+.island button:focus-visible{outline:2px solid rgba(255,255,255,.75);outline-offset:2px}
+.island .ac:focus-visible{outline:none}
+.island .ac:focus-visible i{box-shadow:0 0 0 2px var(--black),0 0 0 4px rgba(255,255,255,.75)}

@@ -1,5 +1,6 @@
 import { GlassHud, UI_MODE } from './glass-hud.js';
 import { dayClock } from './day-cycle.js';
+import { IslandAdapter } from './ui/island/islandAdapter.js';
 
 /** Route journeys offered by the HUD. Each reloads the game with the chosen route. */
 export const RIDE_LINKS = Object.freeze([
@@ -123,6 +124,8 @@ export class UI {
     }
     // The Liquid Glass HUD is the default; ?ui=legacy keeps only the original HUD.
     this.glass = UI_MODE === 'glass' ? new GlassHud(this) : null;
+    // The Island HUD (top centre) swaps with the glass service pill; legacy mode keeps the original HUD only.
+    this.island = this.glass ? new IslandAdapter(this) : null;
   }
 
   /** Existing control actions, shared by the legacy HUD and the glass HUD. */
@@ -265,6 +268,7 @@ export class UI {
       this.boardRevision = this.board.revision;
     }
     this.glass?.update(delta);
+    this.island?.update();
   }
 
   boards() {
@@ -405,6 +409,7 @@ export class UI {
     const loading = document.querySelector('#loading');
     loading.classList.add('complete');
     this.glass?.ready();
+    this.island?.ready();
     window.setTimeout(() => loading.hidden = true, 450);
   }
 }
