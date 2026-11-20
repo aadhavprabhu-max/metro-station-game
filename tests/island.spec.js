@@ -22,7 +22,7 @@ const pillGone = page => page.evaluate(() => document.querySelector('#gh-service
 
 test('the island shows live data, swaps with the glass pill and remembers the choice', async ({ page }) => {
   await load(page);
-  await expect(page.locator('#island')).toBeVisible();
+  await expect(page.locator('#pill')).toBeVisible(); // #island itself is a 0×0 anchor
   expect(await island(page)).toMatchObject({ hidden: false, state: 'split', door: 'open' }); // boarding at the platform
   expect(await pillGone(page)).toBe(true);
   expect(await page.evaluate(() => getComputedStyle(document.querySelector('#pill')).backgroundColor)).toBe('rgb(0, 0, 0)');
